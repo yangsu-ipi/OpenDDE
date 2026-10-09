@@ -1,10 +1,10 @@
 # Inline optimization porting plan
 
-Revision 2. The changes from revision 1 and the reasons for them are listed in `inline_optimizations_plan_changelog.md`.
+Revision 3. Changes and reasons are recorded in `inline_optimizations_plan_changelog.md`.
 
 ## Recommendation
 
-Port the optimization kit in functional layers: an environment and baseline check, exact scheduling and data-path changes, the portable fast kernels, then large-input memory changes if the baseline profile shows they are needed. Keep OpenDDE 1.2.0 behavior as the default and make every optimized path opt-in. Do not copy the overlay launcher, import hooks, monkeypatch framework, stock-package verifier, or the `opt_core` tree. Move only the OpenDDE-specific code and the kernels that can run on the target GPUs into the OpenDDE package. Call them from the normal model and runner code, and keep explicit fallbacks to the current PyTorch and cuEquivariance implementations.
+Port the optimization kit in functional layers: an environment and baseline check, exact scheduling and data-path changes, the portable fast kernels, then large-input memory changes if measurements on the target cards show they are needed. Keep OpenDDE 1.2.0 behavior as the default and make every optimized path opt-in during this port. Do not copy the overlay launcher, import hooks, monkeypatch framework, stock-package verifier, or the `opt_core` tree. Move only the OpenDDE-specific code and the kernels that can run on the target GPUs into the OpenDDE package. Call them from the normal model and runner code, and keep explicit fallbacks to the current PyTorch and cuEquivariance implementations.
 
 The targets are A100 (sm_80) and RTX PRO 6000 Blackwell (sm_120). H100 and other sm_90a-only work is out of scope.
 
@@ -15,7 +15,7 @@ This work is isolated on `porting/inline-optimizations`, created from OpenDDE co
 ### OpenDDE 1.1.1 to 1.2.0
 
 - The optimization kit is pinned to OpenDDE 1.1.1 commit `ddfa1df`. The fork's 1.2.0 commit descends directly from that pin.
-- Between the two versions, only these files changed: `model/generator.py`, `model/opendde.py`, the two config default files, `data/inference/json_to_feature.py`, `tfg/*`, `utils/environment.py`, CLI defaults in `runner/batch_inference.py`, and the version files. Nothing under `model/modules`, `model/triangular`, `model/layer_norm`, `data/core`, `data/template`, `runner/inference.py`, `runner/dumper.py` or `utils/file_io.py` changed. The `json_to_feature.py` changes only add `user_*` guidance features.
+- Among the model and inference paths relevant to this port, the changes include `model/generator.py`, `model/opendde.py`, the two config default files, `data/inference/json_to_feature.py`, `tfg/*`, `utils/environment.py`, CLI defaults in `runner/batch_inference.py`, and the version files. The full commit diff also includes `runner/template_search.py`, docs, tests and examples. Nothing under `model/modules`, `model/triangular`, `model/layer_norm`, `data/core`, `data/template`, `runner/inference.py`, `runner/dumper.py` or `utils/file_io.py` changed. The `json_to_feature.py` changes only add `user_*` guidance features.
 - The risky changes are in `generator.py` and `opendde.py`:
   - 1.2 adds rigid-contact and epitope interventions inside the diffusion loop.
   - 1.2 adds an optional on-disk trunk cache, `_trunk_with_cache`.
@@ -63,27 +63,27 @@ The transitive closure of what the OpenDDE kit imports from `opt_core` is large:
 - 148 MB of prebuilt binaries;
 - 72 MB of test vectors.
 
-A selection limited to A100 and sm_120 is about 35–40k lines of Python, 3.6k lines of CUDA, and 3–5 MB of tables after pruning to compute capabilities 8.0 and 12.0. It drops all sm_90a units, the ESM/ef2 kernels, the JAX code and the prebuilt `.so` files. Even that keeps the generic provider and cell-selection machinery, which this plan proposes to replace with a smaller per-site dispatch (step 3).
+A selection limited to A100 and sm_120 is about 35-40k lines of Python, 3.6k lines of CUDA, and 3-5 MB of tables after pruning to compute capabilities 8.0 and 12.0. It drops all sm_90a units, the ESM/ef2 kernels, the JAX code and the prebuilt `.so` files. Even that keeps the generic provider and cell-selection machinery, which this plan proposes to replace with a smaller per-site dispatch (step 3).
 
 ### Software stack
 
 - `pyproject.toml` pins `torch==2.7.1`, `triton==3.3.1` and `cuequivariance==0.10.0`.
 - torch 2.7.1 ships a cu128 build that supports sm_120, and the kit's A100 tables and prebuilts are keyed to torch 2.7.1 and Triton 3.3.
 - Staying on the pinned versions with the cu128 build keeps the GPU architecture as the main variable and avoids changing a public dependency pin.
-- Two things are unknown: whether Triton 3.3.1 and cuEquivariance 0.10 run correctly and fast on sm_120. Step 0 checks both before any port work.
+- PyTorch 2.7 with cu128 includes Blackwell support and Triton 3.3. The open questions are whether the kit's Triton kernels compile, run correctly and win on sm_120 with Triton 3.3.1, and whether cuEquivariance 0.10 serves OpenDDE's triangle calls there. Step 0 checks those paths.
 
 ## Scope by optimization group
 
 | Group | Disposition | Notes |
 | --- | --- | --- |
-| Environment and baseline | Do first | Verify the pinned stack on sm_120. Record a per-phase profile of unmodified 1.2. The profile decides whether the later groups are worth porting. |
+| Environment and baseline | Do first | Verify the pinned stack on sm_120. Record a per-phase profile of unmodified 1.2. Use it to rank later groups, then use A100 and `fast` measurements for the capacity decision. |
 | LayerNorm stream fix | Port as a bug fix, not behind a mode | `layer_norm_cuda_kernel.cu` launches on the legacy default stream (`<<<grid, block>>>`), not PyTorch's current stream. This is wrong under any non-default stream or CUDA graph capture, whatever the optimization mode. |
 | Exact host and data-path changes | Port first | Drop the unused `bond_mask` feature, deduplicate padded template slots, remove the sampler's per-step host round-trips, reduce structural-token host reads, hoist step-invariant diffusion tensors and the pair permute, encode JSON in one pass. Optionally: prefetch the next input, skip in-forward cache flushes, set the expandable-segments allocator, guard CUDA graph replay. |
 | Exact-tier kernels | Defer | On the target GPUs these mostly run the stock operation: sampler attention has no sm_80 or sm_120 build, and sm_120 has no exact records. Records from cu126 do not carry over to cu128. Revisit A100 rows only if the profile shows the trunk dominates and a cu128 requalification passes. |
 | Pairformer fast path (Triton) | Port after exact parity | A cast-once Pairformer path that avoids transposes, plus Triton triangle attention, triangle multiplication, transition and pair-row LayerNorm. These are the only kernels that can run on sm_120 without new CUDA work. Keep the stock torch and cuEquivariance implementations as named fallbacks. |
 | A100 CUDA kernels | Port after the Triton path, A100 only | The sm_80 triangle-attention and triangle-multiplication CUDA sources, built from source for the target stack. They do not run on sm_120. Use the sm_80 tile size there and do not port the sm_80 shared-memory layout to sm_120. |
 | Diffusion and atom fast path | Port after Pairformer | Conditioning deduplication, pair-bias attention, fused token and atom schedules, low-precision operands. Fit them into the 1.2 guidance loop, and use the stock path for any call that needs gradients. |
-| Single-GPU `big` mode | Conditional on the baseline | Port only if the profile shows target inputs that do not fit on 96 GB and 80 GB cards under `fast`. The kit's offload threshold was 1,400 tokens for 80 GB cards. |
+| Single-GPU `big` mode | Conditional on measured capacity | Port if intended inputs fail to fit, or lack the agreed memory margin, on any actual target card under `fast`, including a 40 GB A100 if that is the provisioned model. The kit's offload threshold was 1,400 tokens for 80 GB cards. |
 | Custom `rowpair_tp` | Defer | About 23k lines. It overlaps native Fold-CP, refuses guidance and Fold-CP, and suits NVLink better than gnode2's PCIe-only setup. Benchmark native Fold-CP first. |
 | Unshipped or negative-value levers | Exclude | `writer_overlap`, `sampler_amp`, `xl_tri_ln` and the older `dit_attn_bf16` are not part of a shipped mode, or were measured as neutral or negative. |
 | sm_90a and other-model kernels | Exclude | sm_90a CUDA units, the ESM/ef2/JAX kernels and every prebuilt binary. Dropping the sm_90a units also removes the FlashAttention-3 and CUTLASS license obligations. |
@@ -110,8 +110,8 @@ On gnode2:
    - output digests.
 
 Gate and decision:
-- If Triton 3.3.1 or cuEquivariance 0.10 is broken or much slower than expected on sm_120, stop and ask the user. Changing the dependency pins is a public-interface decision.
-- Use the phase profile to rank the groups by expected gain. Drop or postpone a group whose phase is too small to matter; for example, do not port `big` if no target input approaches the memory limit.
+- A failing stock smoke run or unusable stock triangle fallback blocks the baseline until its cause is diagnosed. If an optional cuEquivariance, `fast_layernorm` or kit Triton path fails, record the failure and continue the baseline and exact work through the available stock path. Qualify that optimized path only after it works. Propose a dependency-pin change to the user only if a required target path has no suitable fallback and the alternative stack has been tested.
+- Use the phase profile to rank the groups by expected gain. Drop or postpone a group whose phase is too small to matter. Decide on `big` after measuring `fast` memory on the provisioned A100 as well as sm_120.
 
 Reason: the kit's numbers come from H100 on another software stack and OpenDDE version. Without a local profile there is no basis for the order or the scope.
 
@@ -121,10 +121,14 @@ The modes, all measured against the 1.2 defaults (bf16, TF32 off, `LAYERNORM_TYP
 
 - `off`: current OpenDDE 1.2 behavior.
 - `exact`: byte-identical prediction artifacts to `off` under the deterministic recipe (`--deterministic true` plus `CUBLAS_WORKSPACE_CONFIG`). It may not change the LayerNorm implementation, precision, TF32 or kernel choice. Any optimization without proof of identity on the running GPU and stack runs the stock operation.
-- `fast`: deterministic across repeated runs in the same environment when the underlying kernels are deterministic, finite throughout, and within an agreed validation envelope against `off` and normal seed-to-seed variation. `fast` may select `fast_layernorm` and the Triton kernels.
-- `big`: the same numerical class as `fast`, with lower peak device memory. It exists only if step 0 justifies it.
+- `fast`: deterministic across repeated runs in the same environment when the underlying kernels are deterministic, finite throughout, and within an agreed validation envelope against `off` and normal seed-to-seed variation. It may select qualified Triton kernels. It does not change the global LayerNorm implementation merely because the mode changed.
+- `big`: the same numerical class as `fast`, with lower peak device memory. It exists only if measurements on the target cards justify it.
 
-Add one native configuration object for mode, GPU capability, per-optimization decisions and fallbacks. Expose it through the existing config system and CLI as `--optimization_mode {off,exact,fast,big}`, defaulting to `off`. Existing CLI flags use underscores (`--triatt_kernel`, `--enable_tf32`). User choices always win when stated explicitly: `--triatt_kernel`, `--trimul_kernel`, `--dtype`, `--enable_tf32`, `LAYERNORM_TYPE`, cache, guidance and Fold-CP options.
+Add one native configuration object for mode, GPU capability, per-optimization decisions and fallbacks. Expose it through the existing config system and CLI as `--optimization_mode {off,exact,fast,big}`, defaulting to `off`, consistent with flags such as `--triatt_kernel` and `--enable_tf32`.
+
+Record which overlapping options were supplied before applying defaults at both CLI and direct Python entry points. Today the CLI passes `triatt_kernel="auto"` even when the option is absent. An explicit `--triatt_kernel auto` must retain the stock `auto` selection; an omitted flag may allow qualified optimization dispatch. Use an internal unset sentinel for omitted Python arguments, then resolve it to the current effective default so existing callers retain their behavior. Apply this rule to `--trimul_kernel`, `--dtype`, `--enable_tf32` and other overlapping flags. Explicit `LAYERNORM_TYPE`, cache, guidance and Fold-CP choices also take precedence. The resolved value alone does not record the user's intent.
+
+Keep the existing import-time `LAYERNORM_TYPE` selection for the first port, and use local dispatch for qualified pair-row LayerNorm kernels in step 3. `opendde/model/triangular/layers.py` reads the environment variable when it is imported and constructs a concrete LayerNorm module, so changing the mode later cannot switch every existing layer. If whole-model `fast_layernorm` shows a worthwhile gain, make it a separate follow-on design: resolve the choice before model construction, pass it explicitly to the constructors, preserve the environment override, and test mode changes through direct Python use. Do not implement it by changing `LAYERNORM_TYPE` after import.
 
 Allow individual optimizations to be switched off through config keys, for ablation and debugging. Use the existing logger, not the kit's banner protocol.
 
@@ -149,7 +153,7 @@ Optional exact items, gated because each has a real trade-off:
 Fix these two OpenDDE issues in the same step, outside any mode:
 
 1. **LayerNorm stream.** Change the kernel launches in `opendde/model/layer_norm/kernel/layer_norm_cuda_kernel.cu` to use PyTorch's current CUDA stream. Build through the existing extension loader for the active architecture. Do not carry the kit's cu126 prebuilt `.so`. Reason: it is a correctness bug on any non-default stream and a prerequisite for graph capture, not an optimization.
-2. **Trunk cache key.** Add the optimization mode and every setting that changes trunk numerics (dtype, TF32, LayerNorm type, triangle kernel choice) to the `_trunk_with_cache` key. Reason: today the key hashes only the input features and `N_cycle`. A trunk computed under `fast` would be served to `off` or `exact`, which breaks the `exact` contract. Dropping `bond_mask` changes the feature set and hence the key, which is harmless but should be expected.
+2. **Trunk cache identity.** Audit the inputs and settings read by the trunk, then version the cache format and key it by the feature fingerprint, `N_cycle`, the loaded checkpoint's content identity, relevant trunk configuration, precision and TF32 settings, LayerNorm type, and the effective optimized kernel or row choices. Bypass the disk cache for a call if its numerical path cannot be identified before the lookup. Compute the checkpoint digest once when loading it, or use a verified release-manifest digest; do not rehash the multi-gigabyte file for each call. Keep the disk cache off during numerical qualification until cache hits, misses, custom-checkpoint changes and cross-mode isolation are tested. Reason: today `_trunk_with_cache` hashes only tensor features and `N_cycle`. The CLI also accepts an explicit checkpoint path, so two models or two numerical paths could share one key. Dropping `bond_mask` changes the feature set and hence the key, which is harmless but should be expected.
 
 The 1.2 guidance path is a hard boundary:
 - CUDA graph replay stays disabled whenever training-free guidance is enabled. Rigid-contact and epitope guidance require it.
@@ -157,7 +161,7 @@ The 1.2 guidance path is a hard boundary:
 
 Gate: all existing CPU tests pass; the exact operator tests pass; deterministic `exact` and `off` outputs match on sm_120 before work moves to fast kernels.
 
-Once each byte-identical change has passed the A100 and sm_120 gates, decide whether to make it the default code path instead of keeping two paths. Candidates are the host schedule, structural-token sync, JSON encoding, template deduplication and the hoists. Keep the gate during the port so A/B comparison stays easy. Reason: two code paths for an identical result are a maintenance cost, and the gate's only remaining value is A/B testing.
+Keep exact changes behind the mode gate throughout this port so `off` remains the unmodified 1.2 path for A/B comparison. After each change passes the A100 and sm_120 gates, record whether it is a candidate for default promotion in a later release. Candidates are the host schedule, structural-token sync, JSON encoding, template deduplication and the hoists. A separate promotion decision would update the `off` contract, docs and tests. Reason: keeping two paths for an identical result costs maintenance, but changing the baseline during qualification would invalidate comparisons.
 
 ### 3. Bring in only the portable kernels, with a small dispatch
 
@@ -205,7 +209,7 @@ Gate: end-to-end unguided and guided runs pass the numerical, determinism and co
 
 ### 5. Port single-GPU large-input memory handling (conditional)
 
-Do this step only if the step 0 profile, and the `fast` memory measured after step 4, show target inputs that do not fit on a 96 GB RTX PRO 6000 or an 80 GB A100. The kit set the offload threshold at 1,400 tokens for 80 GB cards and 1,160 below 64 GB, and the conditioning-hoist exclusion at 2,565 and 1,856 tokens. Those numbers come from H100 and A100, not from the 1.2 defaults on these GPUs.
+Do this step if the step 0 profile and the `fast` measurements after step 4 show that intended inputs fail to fit, or lack an agreed memory margin, on any actual target card. Measure the provisioned A100 before the decision: it may have 40 GB or 80 GB, and the sm_120 profile cannot settle its capacity. Define the margin from measured peaks and run-to-run variation before making the decision. The kit set the offload threshold at 1,400 tokens for 80 GB cards and 1,160 below 64 GB, and the conditioning-hoist exclusion at 2,565 and 1,856 tokens. Those numbers come from H100 and A100, not from the 1.2 defaults on these GPUs.
 
 If the step goes ahead:
 - Convert the overlay's `HostPair` and row-block code into native stage implementations for the trunk, structural expansion and refinement, diffusion conditioning, confidence and distogram. Keep the existing PyTorch path at every stage.
@@ -270,8 +274,10 @@ For A100, use the same Python, torch 2.7.1+cu128, Triton and cuEquivariance vers
 ## Main risks
 
 - The kit's numerical claims are tied to OpenDDE 1.1.1, a `fast_layernorm` and TF32-on baseline, H100 or A100 on cu126, and specific software versions. Treat them as hypotheses until requalified.
-- Triton 3.3.1 on sm_120 is untested for these kernels. The kit's only sm_120 measurement used Triton 3.6. If 3.3.1 is inadequate, the fast path on sm_120 depends on a dependency-pin change, which needs the user's decision.
-- The trunk cache can mix trunk results from different modes unless its key is extended (step 2). It also conflicts with pair offload, which owns the same trunk result.
+- The kit's Triton kernels are unqualified on sm_120 with Triton 3.3.1. Its only sm_120 measurement used Triton 3.6. A failing optional kernel can fall back to the stock path; a dependency-pin change is needed only if a required target path has no suitable fallback.
+- The trunk cache can mix results from different checkpoints or numerical paths unless its identity is extended (step 2). It also conflicts with pair offload, which owns the same trunk result.
+- Global LayerNorm is selected at import and model-construction time. Mode-dependent switching needs an explicit construction-time design; the first port keeps that selection fixed.
+- CLI defaults do not identify which overlapping options the user supplied. Dispatch must record explicit options before applying those defaults.
 - Guidance with `rho>0` needs gradients through the denoiser. Fused sampler kernels without autograd support must step aside, or guidance silently weakens.
 - Guidance mutates sampler state between denoising steps. Graph capture and fused schedules must either be proven compatible or step aside.
 - Copying more of `opt_core` than needed would bring in tens of thousands of lines and a large maintenance burden. The port needs a dependency inventory and a selected source subset.
@@ -286,4 +292,4 @@ Add these documents as the port advances:
 - The numerical contract and agreed tolerances once baseline results are available.
 - GPU qualification tables for sm_80 and sm_120, including refused and fallback shapes.
 - Benchmark reports with commands, environment fingerprints, warm or cold status, timings, memory and output comparisons.
-- Decisions that change scope, especially go or no-go per group after step 0, the trunk-cache policy, dependency-pin changes, and the Fold-CP versus `rowpair_tp` result.
+- Decisions that change scope, especially go or no-go per group after step 0, the A100 capacity and `big` decision, the trunk-cache identity, any global LayerNorm selection design, dependency-pin changes, and the Fold-CP versus `rowpair_tp` result.
