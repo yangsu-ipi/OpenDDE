@@ -2,6 +2,38 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 4 (2026-10-09)
+
+Revision 3 was reviewed against OpenDDE's determinism settings, phase timers, LayerNorm modules, CLI and config entry points, and Fold-CP handling. These are planning changes; no optimization code was written.
+
+- **Step 0 checks that stock output is reproducible before `exact` relies on it.** Run `off` twice under the deterministic recipe and compare artifacts byte for byte. If the default `auto` triangle kernels are not reproducible, retry with `torch` kernels and use that configuration for `exact` comparisons. Stop and ask if neither is reproducible. Step 0 also lists the files that count as prediction artifacts and confirms they contain no run-specific values.
+  - *Reason:* `--deterministic true` sets `torch.use_deterministic_algorithms` and `CUBLAS_WORKSPACE_CONFIG`, which do not govern cuEquivariance's custom kernels. Byte identity between `exact` and `off` cannot hold if `off` does not reproduce itself.
+- **The `exact` contract now says that default, non-deterministic runs match `off` in distribution, not bit for bit.** The user docs must say so.
+  - *Reason:* the byte-identity guarantee is tested only under the deterministic recipe.
+- **Step 0 adds opt-in synchronized phase timing, used for all baseline and comparison numbers.** One-time compilation is reported separately.
+  - *Reason:* `_main_inference_loop` times phases with `time.time()` and never synchronizes the GPU, so queued work is charged to the next phase that forces a host wait. Exact changes remove such waits, so the built-in timers would show time moving between phases without any real speedup.
+- **Fold-CP policy: `--optimization_mode` other than `off` is rejected under Fold-CP in this port.** A Fold-CP regression is added to the validation matrix: stock Fold-CP output is unchanged by the port. Lifting the restriction for individual exact changes is a later, recorded decision.
+  - *Reason:* revision 3 did not say what the modes do under Fold-CP. The kit's levers step aside or refuse there, and none was qualified with Fold-CP's sharded state. A mode that silently ran stock would mislead users and benchmarks.
+- **Pair-row LayerNorm dispatch moved to `OpenFoldLayerNorm.forward`,** for the bf16 path at width 384. It is measured against PyTorch's bf16 `layer_norm`, qualified last, and skipped unless the profile shows LayerNorm time matters.
+  - *Reason:* with the default `LAYERNORM_TYPE=torch`, the model builds `OpenFoldLayerNorm`. The kit's `ln_core` wraps only `FusedLayerNorm.forward`, so it would never run. Its speed and accuracy were measured against the fused extension, a different reference.
+- **Trunk-cache key adds the GPU compute capability and device name, the torch, CUDA, Triton and cuEquivariance versions, and the OpenDDE version.** The checkpoint digest is computed only when `OPENDDE_TRUNK_CACHE` is set, and memoized by real path, size and modification time. Previously the plan said to compute it at every load.
+  - *Reasons:*
+    - Stock trunk results differ between GPU models and library versions, so a shared or long-lived cache could serve results from another platform.
+    - Hashing the 2.6 GB checkpoint at every model load would slow every run, including runs that never use the cache. Checking against the release digest also needs a hash.
+- **Explicit-option detection is concrete.**
+  - The CLI uses Click's `ctx.get_parameter_source()`, so option defaults and help text are unchanged.
+  - Python entry points use an unset sentinel.
+  - Dotted config overrides on the `runner.inference.run()` path, and kernel or precision environment variables, count as explicit.
+  - *Reason:* Click (8.5 in the dev environment) already records whether a value came from the command line, the environment or a default. Replacing the defaults with sentinels would change help output and callers for no gain. Revision 3 did not cover the dotted-override entry point.
+- **New section: keeping up with upstream OpenDDE.**
+  - Edits to upstream files are kept to thin dispatch calls, config plumbing and the two bug fixes, with the implementations in new files.
+  - A list of restated or depended-on upstream functions is refreshed before each upstream merge, and the gates are re-run afterwards.
+  - Offering the two bug fixes to `aurekaresearch/OpenDDE` is listed as a user decision.
+  - *Reason:* the fork will need future upstream releases, and inline changes spread across model files raise merge cost. Revision 3 had no strategy for this.
+- **Step 0 names the environment `opendde-dev`** and records that the production `opendde` environment must not be modified.
+  - *Reason:* the user's instruction when the environment was created.
+- **Risks and work records updated** for stock reproducibility, unsynchronized timers, the Fold-CP restriction, the upstream bug-fix decision and the upstream dependency list.
+
 ## Revision 3 (2026-10-09)
 
 Revision 2 was reviewed against OpenDDE's CLI, LayerNorm construction, and trunk-cache code. These are planning changes only; no environment, GPU job or optimization code was created.

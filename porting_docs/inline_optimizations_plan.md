@@ -1,6 +1,6 @@
 # Inline optimization porting plan
 
-Revision 3. Changes and reasons are recorded in `inline_optimizations_plan_changelog.md`.
+Revision 4. Changes and reasons are recorded in `inline_optimizations_plan_changelog.md`.
 
 ## Recommendation
 
@@ -96,20 +96,26 @@ A selection limited to A100 and sm_120 is about 35-40k lines of Python, 3.6k lin
 The step needs the user's approval before an environment is created.
 
 On gnode2:
-1. Create a conda environment from `~/miniforge3`. Use Python 3.11, `torch==2.7.1` from the cu128 index, `triton==3.3.1`, and the cuEquivariance 0.10.0 packages, with OpenDDE installed editable from a clone under the home directory.
+1. Create a conda environment named `opendde-dev` from `~/miniforge3`. The existing `opendde` environment is reserved for production use and must not be modified. Use Python 3.11, `torch==2.7.1` from the cu128 index, `triton==3.3.1`, and the cuEquivariance 0.10.0 packages, with OpenDDE installed editable from a clone under the home directory.
 2. Inside a Slurm allocation, check:
    - the CPU test suite;
    - a stock `opendde pred` smoke run;
    - that cuEquivariance 0.10 triangle kernels load and run on sm_120, and if not, what `--triatt_kernel auto` falls back to;
    - that the `fast_layernorm` extension builds for sm_120;
    - that a representative Triton kernel compiles and runs on Triton 3.3.1.
-3. Profile unmodified 1.2 with the released checkpoint from the shared weights store (see the validation matrix), fixed seeds and the trunk cache disabled. Use the small, medium and large inputs from the validation matrix. Record:
-   - cold and warm time per phase: featurization, trunk, structural expansion, diffusion, confidence, output writing;
+3. Check that stock output is reproducible, which the `exact` contract depends on. Run `off` twice with the deterministic recipe, the same seeds and the default `auto` triangle kernels, and compare the prediction artifacts byte for byte.
+   - `--deterministic true` turns on `torch.use_deterministic_algorithms` and sets `CUBLAS_WORKSPACE_CONFIG`. Neither governs cuEquivariance's custom kernels, which `auto` selects for triangle attention and multiplication.
+   - If the two runs differ, repeat with `--triatt_kernel torch --trimul_kernel torch`. Record which configuration is reproducible; step 1 uses it for `exact` comparisons.
+   - List the files that count as prediction artifacts (the structure CIFs and confidence JSONs), and confirm they embed no timestamps, absolute paths or other run-specific values.
+4. Add opt-in, synchronized phase timing before profiling. `_main_inference_loop` records phase times with `time.time()` and never synchronizes the GPU (`opendde/model/opendde.py`, for example the `pairformer` entry). Queued GPU work is charged to whichever later phase first forces a host wait. Several exact changes remove host waits, so these timers would move time between phases even when nothing got faster. Use CUDA events, or a `torch.cuda.synchronize()` at each phase boundary behind a profiling switch, so the default path is unchanged.
+5. Profile unmodified 1.2 with the released checkpoint from the shared weights store (see the validation matrix), fixed seeds and the trunk cache disabled. Use the small, medium and large inputs from the validation matrix and the synchronized timing from item 4. Record:
+   - cold and warm time per phase: featurization, trunk, structural expansion, diffusion, confidence, output writing. Report one-time compilation separately, such as the first `fast_layernorm` build, which took about 140 s on gnode2;
    - peak allocated and reserved GPU memory;
    - host memory peak;
    - output digests.
 
 Gate and decision:
+- If stock output is not reproducible under any triangle-kernel configuration, stop and ask the user: the `exact` contract cannot be tested as written.
 - A failing stock smoke run or unusable stock triangle fallback blocks the baseline until its cause is diagnosed. If an optional cuEquivariance, `fast_layernorm` or kit Triton path fails, record the failure and continue the baseline and exact work through the available stock path. Qualify that optimized path only after it works. Propose a dependency-pin change to the user only if a required target path has no suitable fallback and the alternative stack has been tested.
 - Use the phase profile to rank the groups by expected gain. Drop or postpone a group whose phase is too small to matter. Decide on `big` after measuring `fast` memory on the provisioned A100 as well as sm_120.
 
@@ -121,16 +127,28 @@ The modes, all measured against the 1.2 defaults (bf16, TF32 off, `LAYERNORM_TYP
 
 - `off`: current OpenDDE 1.2 behavior.
 - `exact`: byte-identical prediction artifacts to `off` under the deterministic recipe (`--deterministic true` plus `CUBLAS_WORKSPACE_CONFIG`). It may not change the LayerNorm implementation, precision, TF32 or kernel choice. Any optimization without proof of identity on the running GPU and stack runs the stock operation.
+  - "Prediction artifacts" are the files listed in step 0, item 3.
+  - Run `exact` comparisons with the triangle-kernel configuration that step 0 found reproducible. If only `torch` triangle kernels are reproducible, the byte-identity check uses them. Runs with `auto` are then compared within the agreed tolerance and documented as such.
+  - In default, non-deterministic runs, `exact` matches `off` in distribution, not bit for bit. The user docs must say so.
 - `fast`: deterministic across repeated runs in the same environment when the underlying kernels are deterministic, finite throughout, and within an agreed validation envelope against `off` and normal seed-to-seed variation. It may select qualified Triton kernels. It does not change the global LayerNorm implementation merely because the mode changed.
 - `big`: the same numerical class as `fast`, with lower peak device memory. It exists only if measurements on the target cards justify it.
 
 Add one native configuration object for mode, GPU capability, per-optimization decisions and fallbacks. Expose it through the existing config system and CLI as `--optimization_mode {off,exact,fast,big}`, defaulting to `off`, consistent with flags such as `--triatt_kernel` and `--enable_tf32`.
 
-Record which overlapping options were supplied before applying defaults at both CLI and direct Python entry points. Today the CLI passes `triatt_kernel="auto"` even when the option is absent. An explicit `--triatt_kernel auto` must retain the stock `auto` selection; an omitted flag may allow qualified optimization dispatch. Use an internal unset sentinel for omitted Python arguments, then resolve it to the current effective default so existing callers retain their behavior. Apply this rule to `--trimul_kernel`, `--dtype`, `--enable_tf32` and other overlapping flags. Explicit `LAYERNORM_TYPE`, cache, guidance and Fold-CP choices also take precedence. The resolved value alone does not record the user's intent.
+Record which overlapping options were supplied before applying defaults at both CLI and direct Python entry points. Today the CLI passes `triatt_kernel="auto"` even when the option is absent. An explicit `--triatt_kernel auto` must retain the stock `auto` selection; an omitted flag may allow qualified optimization dispatch. Apply this rule to `--trimul_kernel`, `--dtype`, `--enable_tf32` and other overlapping flags. Explicit `LAYERNORM_TYPE`, cache, guidance and Fold-CP choices also take precedence. The resolved value alone does not record the user's intent.
+- **CLI:** use Click's `ctx.get_parameter_source(name)`. It distinguishes `COMMANDLINE` and `ENVIRONMENT` from `DEFAULT`, so the existing option defaults and help text stay unchanged. Reason: changing the Click defaults to sentinels would change the help output and every caller that inspects them, for no gain.
+- **Direct Python entry points** (`get_default_runner`, `inference_jsons` and similar): use an internal unset sentinel for omitted arguments, then resolve it to the current effective default so existing callers keep their behavior.
+- **Dotted config overrides** also count as explicit choices. These are parsed by `opendde/config/inference.py` for the `runner.inference.run()` entry point, for example a supplied `--triangle_attention` or `--dtype` key. The `pred` command does not accept them. Environment variables that select a kernel or precision count as explicit too.
 
 Keep the existing import-time `LAYERNORM_TYPE` selection for the first port, and use local dispatch for qualified pair-row LayerNorm kernels in step 3. `opendde/model/triangular/layers.py` reads the environment variable when it is imported and constructs a concrete LayerNorm module, so changing the mode later cannot switch every existing layer. If whole-model `fast_layernorm` shows a worthwhile gain, make it a separate follow-on design: resolve the choice before model construction, pass it explicitly to the constructors, preserve the environment override, and test mode changes through direct Python use. Do not implement it by changing `LAYERNORM_TYPE` after import.
 
 Allow individual optimizations to be switched off through config keys, for ablation and debugging. Use the existing logger, not the kit's banner protocol.
+
+Fold-CP policy for this port: reject `--optimization_mode` other than `off` when Fold-CP is active, with an error that names the reason. Check this at startup, before model construction. Reasons:
+- The kit's levers step aside or refuse under Fold-CP. None was qualified with Fold-CP's sharded pair state and rank-synchronized sampler.
+- A mode that silently runs stock would mislead users and benchmarks.
+
+Lifting the restriction for specific exact changes is a later decision, made once each passes the Fold-CP regression in the validation matrix.
 
 ### 2. Port the exact, low-risk changes into their call sites
 
@@ -153,7 +171,24 @@ Optional exact items, gated because each has a real trade-off:
 Fix these two OpenDDE issues in the same step, outside any mode:
 
 1. **LayerNorm stream.** Change the kernel launches in `opendde/model/layer_norm/kernel/layer_norm_cuda_kernel.cu` to use PyTorch's current CUDA stream. Build through the existing extension loader for the active architecture. Do not carry the kit's cu126 prebuilt `.so`. Reason: it is a correctness bug on any non-default stream and a prerequisite for graph capture, not an optimization.
-2. **Trunk cache identity.** Audit the inputs and settings read by the trunk, then version the cache format and key it by the feature fingerprint, `N_cycle`, the loaded checkpoint's content identity, relevant trunk configuration, precision and TF32 settings, LayerNorm type, and the effective optimized kernel or row choices. Bypass the disk cache for a call if its numerical path cannot be identified before the lookup. Compute the checkpoint digest once when loading it, or use a verified release-manifest digest; do not rehash the multi-gigabyte file for each call. Keep the disk cache off during numerical qualification until cache hits, misses, custom-checkpoint changes and cross-mode isolation are tested. Reason: today `_trunk_with_cache` hashes only tensor features and `N_cycle`. The CLI also accepts an explicit checkpoint path, so two models or two numerical paths could share one key. Dropping `bond_mask` changes the feature set and hence the key, which is harmless but should be expected.
+2. **Trunk cache identity.** Audit the inputs and settings read by the trunk. Then version the cache format and key it by:
+   - the feature fingerprint and `N_cycle`;
+   - the loaded checkpoint's content identity;
+   - relevant trunk configuration, precision and TF32 settings, and LayerNorm type;
+   - the effective optimized kernel or row choices;
+   - the GPU compute capability and device name;
+   - the torch, CUDA runtime, Triton and cuEquivariance versions;
+   - the OpenDDE version.
+
+   Bypass the disk cache for a call if its numerical path cannot be identified before the lookup. Keep the disk cache off during numerical qualification until cache hits, misses, custom-checkpoint changes, cross-mode isolation and cross-GPU isolation are tested.
+
+   Compute the checkpoint digest only when `OPENDDE_TRUNK_CACHE` is set, never on the default path. Memoize it keyed by the checkpoint's real path, size and modification time, so it is hashed once per file version rather than once per call or per process. Checking against the release-manifest digest also requires a hash, so it is not cheaper.
+
+   Reasons:
+   - Today `_trunk_with_cache` hashes only tensor features and `N_cycle`. The CLI also accepts an explicit checkpoint path, so two models or two numerical paths could share one key.
+   - Stock trunk results already differ between GPU models and library versions. A cache directory shared between the A100 VM and gnode2, or across an environment upgrade, would otherwise serve results from the wrong platform.
+   - Hashing the 2.6 GB checkpoint takes several seconds. Doing it at every model load would slow every run, including those that never use the cache.
+   - Dropping `bond_mask` changes the feature set and hence the key, which is harmless but should be expected.
 
 The 1.2 guidance path is a hard boundary:
 - CUDA graph replay stays disabled whenever training-free guidance is enabled. Rigid-contact and epitope guidance require it.
@@ -172,6 +207,11 @@ Create a normal package area such as `opendde/model/optimized/` for:
 - the A100 CUDA sources, kept separate.
 
 Do not keep the core's generic provider interfaces, `*_CELLS.json` tables or "tier word" selection. Instead give each call site (triangle attention, triangle multiplication, transition, pair-row LayerNorm, pair-bias attention) a small explicit table keyed by GPU capability, dtype and shape range. It holds only the rows measured in this port. Anything else uses the stock implementation. Reason: the generic machinery serves many models and GPUs, most of it unreachable from OpenDDE on these two GPUs. The tables alone are 31 MB, one of them 17.8 MB.
+
+Pair-row LayerNorm needs a new dispatch point. Under the default `LAYERNORM_TYPE=torch`, `LayerNorm()` in `opendde/model/triangular/layers.py` builds `OpenFoldLayerNorm`, not `FusedLayerNorm`. The kit's `ln_core` wraps only `FusedLayerNorm.forward`, so it would never run.
+- Put the dispatch in `OpenFoldLayerNorm.forward`, on the bf16 path at width 384 (`c_z` and `c_s` are both 384), with weight and bias present.
+- Its reference is PyTorch's `layer_norm` in bf16 with bf16-cast weights, the current stock behavior. The kit measured speed and accuracy against the fused CUDA extension, so neither result carries over.
+- Qualify this site last among the Pairformer sites, and skip it unless the step 0 profile shows LayerNorm time is significant.
 
 Carry the license notices:
 - add Anthropic's Apache-2.0 copyright line to OpenDDE's NOTICE;
@@ -243,6 +283,14 @@ Add a machine-readable run report with the selected rows, fallbacks, software st
 
 Port the kit's behavior tests (template deduplication, structural-token sync, host schedule, step-graph window, kernel binding fallbacks), not its overlay-mechanics tests. Several of the latter check stock line numbers that 1.2 already moved. Keep generated binaries, caches, benchmark outputs, checkpoints and private paths out of git.
 
+## Keeping up with upstream OpenDDE
+
+The fork will need to absorb future upstream releases, and inline changes spread across model files make each merge harder. To keep merges small:
+- Limit edits to upstream files to thin dispatch calls, configuration plumbing and the two bug fixes. Put the implementations, dispatch tables, kernels and tests in new files, mainly `opendde/model/optimized/` and new test modules.
+- Keep each optimization's hook in one recognizable form, for example one call into the optimized package at the top of the stock method, so conflicts are easy to spot and resolve.
+- Before each upstream merge, list the upstream functions that the optimized code restates or depends on, and re-run the exact and fast gates afterwards.
+- Consider offering the LayerNorm stream fix and the trunk-cache identity fix to the upstream project (`aurekaresearch/OpenDDE`) as separate pull requests based on `main`. They are bug fixes independent of the optimization modes, and upstreaming them removes two sources of merge conflict. Opening external pull requests is outward-facing and needs the user's decision.
+
 ## Validation matrix
 
 Use fixed small, medium and large inputs, with thresholds set during step 0 rather than copied from H100. Cover:
@@ -250,7 +298,8 @@ Use fixed small, medium and large inputs, with thresholds set during step 0 rath
 - ligand and covalent-bond;
 - template and MSA;
 - multi-job and multi-seed;
-- unguided, generic guidance with `rho=0` and with `rho>0`, rigid contact, and epitope guidance.
+- unguided, generic guidance with `rho=0` and with `rho>0`, rigid contact, and epitope guidance;
+- Fold-CP regression: `--optimization_mode` other than `off` is rejected under Fold-CP. Fold-CP `off` outputs are unchanged by the port, including the two bug fixes, compared byte for byte with the 1.2 baseline under the deterministic recipe. First check that two stock Fold-CP runs reproduce each other, as in step 0; if they do not, compare within the agreed tolerance instead. On gnode2 this needs two whole GPUs and `--mem=58G`. If Fold-CP support is later added for an exact change, `exact` and `off` must also match under Fold-CP.
 
 For each mode, record:
 - cold start and second-run latency;
@@ -273,6 +322,9 @@ For A100, use the same Python, torch 2.7.1+cu128, Triton and cuEquivariance vers
 
 ## Main risks
 
+- The `exact` contract assumes stock output is reproducible under the deterministic recipe. The deterministic flag does not govern cuEquivariance kernels, so reproducibility with the default `auto` triangle kernels is unverified until step 0.
+- The model's built-in phase timers do not synchronize the GPU. Without the synchronized timing from step 0, exact changes that remove host waits would appear to move time between phases.
+- Fold-CP is excluded from the optimization modes in this port. Users who combine them get an error, not a speedup.
 - The kit's numerical claims are tied to OpenDDE 1.1.1, a `fast_layernorm` and TF32-on baseline, H100 or A100 on cu126, and specific software versions. Treat them as hypotheses until requalified.
 - The kit's Triton kernels are unqualified on sm_120 with Triton 3.3.1. Its only sm_120 measurement used Triton 3.6. A failing optional kernel can fall back to the stock path; a dependency-pin change is needed only if a required target path has no suitable fallback.
 - The trunk cache can mix results from different checkpoints or numerical paths unless its identity is extended (step 2). It also conflicts with pair offload, which owns the same trunk result.
@@ -287,9 +339,10 @@ For A100, use the same Python, torch 2.7.1+cu128, Triton and cuEquivariance vers
 
 Add these documents as the port advances:
 
-- The step 0 environment check and baseline profile.
+- The step 0 environment check, stock reproducibility result, prediction-artifact list and baseline profile.
 - A source-to-destination map for each imported or rewritten optimization, including provenance and license notes.
 - The numerical contract and agreed tolerances once baseline results are available.
 - GPU qualification tables for sm_80 and sm_120, including refused and fallback shapes.
 - Benchmark reports with commands, environment fingerprints, warm or cold status, timings, memory and output comparisons.
-- Decisions that change scope, especially go or no-go per group after step 0, the A100 capacity and `big` decision, the trunk-cache identity, any global LayerNorm selection design, dependency-pin changes, and the Fold-CP versus `rowpair_tp` result.
+- Decisions that change scope, especially go or no-go per group after step 0, the A100 capacity and `big` decision, the trunk-cache identity, any global LayerNorm selection design, dependency-pin changes, any lifting of the Fold-CP restriction, whether to offer the bug fixes upstream, and the Fold-CP versus `rowpair_tp` result.
+- A list, refreshed before each upstream merge, of upstream functions the optimized code restates or depends on.
