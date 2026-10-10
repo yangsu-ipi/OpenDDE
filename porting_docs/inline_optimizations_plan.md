@@ -1,6 +1,13 @@
 # Inline optimization porting plan
 
-Revision 4. Changes and reasons are recorded in `inline_optimizations_plan_changelog.md`.
+Revision 5. Changes and reasons are recorded in `inline_optimizations_plan_changelog.md`.
+
+## Recorded decisions
+
+| Date | Decision | Where it applies |
+| --- | --- | --- |
+| 2026-10-09 | Approved: reject `--optimization_mode` other than `off` under Fold-CP for this port. | Step 1 (Fold-CP policy), validation matrix |
+| 2026-10-09 | Do not offer the LayerNorm stream fix or the trunk-cache identity fix to upstream `aurekaresearch/OpenDDE` for now. Both stay in the fork. Revisit only at the user's request. | Step 2, keeping up with upstream |
 
 ## Recommendation
 
@@ -144,7 +151,7 @@ Keep the existing import-time `LAYERNORM_TYPE` selection for the first port, and
 
 Allow individual optimizations to be switched off through config keys, for ablation and debugging. Use the existing logger, not the kit's banner protocol.
 
-Fold-CP policy for this port: reject `--optimization_mode` other than `off` when Fold-CP is active, with an error that names the reason. Check this at startup, before model construction. Reasons:
+Fold-CP policy for this port, approved by the user on 2026-10-09: reject `--optimization_mode` other than `off` when Fold-CP is active, with an error that names the reason. Check this at startup, before model construction. Reasons:
 - The kit's levers step aside or refuse under Fold-CP. None was qualified with Fold-CP's sharded pair state and rank-synchronized sampler.
 - A mode that silently runs stock would mislead users and benchmarks.
 
@@ -289,7 +296,7 @@ The fork will need to absorb future upstream releases, and inline changes spread
 - Limit edits to upstream files to thin dispatch calls, configuration plumbing and the two bug fixes. Put the implementations, dispatch tables, kernels and tests in new files, mainly `opendde/model/optimized/` and new test modules.
 - Keep each optimization's hook in one recognizable form, for example one call into the optimized package at the top of the stock method, so conflicts are easy to spot and resolve.
 - Before each upstream merge, list the upstream functions that the optimized code restates or depends on, and re-run the exact and fast gates afterwards.
-- Consider offering the LayerNorm stream fix and the trunk-cache identity fix to the upstream project (`aurekaresearch/OpenDDE`) as separate pull requests based on `main`. They are bug fixes independent of the optimization modes, and upstreaming them removes two sources of merge conflict. Opening external pull requests is outward-facing and needs the user's decision.
+- The LayerNorm stream fix and the trunk-cache identity fix stay in the fork. On 2026-10-09 the user decided not to offer them to the upstream project (`aurekaresearch/OpenDDE`) for now. Expect them to need re-applying when upstream changes those files, and revisit upstreaming only at the user's request.
 
 ## Validation matrix
 
@@ -344,5 +351,5 @@ Add these documents as the port advances:
 - The numerical contract and agreed tolerances once baseline results are available.
 - GPU qualification tables for sm_80 and sm_120, including refused and fallback shapes.
 - Benchmark reports with commands, environment fingerprints, warm or cold status, timings, memory and output comparisons.
-- Decisions that change scope, especially go or no-go per group after step 0, the A100 capacity and `big` decision, the trunk-cache identity, any global LayerNorm selection design, dependency-pin changes, any lifting of the Fold-CP restriction, whether to offer the bug fixes upstream, and the Fold-CP versus `rowpair_tp` result.
+- Decisions that change scope, especially go or no-go per group after step 0, the A100 capacity and `big` decision, the trunk-cache identity, any global LayerNorm selection design, dependency-pin changes, any lifting of the Fold-CP restriction, any change to the decision not to upstream the bug fixes, and the Fold-CP versus `rowpair_tp` result.
 - A list, refreshed before each upstream merge, of upstream functions the optimized code restates or depends on.

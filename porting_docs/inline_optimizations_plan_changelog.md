@@ -2,6 +2,17 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 5 (2026-10-09)
+
+Records two user decisions; no change in scope or approach.
+
+- **Added a "Recorded decisions" table at the top of the plan.**
+  - *Reason:* decisions were spread across sections and the changelog. One table makes the current state easy to find.
+- **Fold-CP rejection marked as approved.** `--optimization_mode` other than `off` is rejected under Fold-CP for this port.
+  - *Reason:* the user approved the policy proposed in revision 4.
+- **The two bug fixes stay in the fork.** The LayerNorm stream fix and the trunk-cache identity fix will not be offered to `aurekaresearch/OpenDDE` for now. The upstream-sync section now says they may need re-applying when upstream changes those files.
+  - *Reason:* the user's decision. It replaces revision 4's open question about upstreaming them.
+
 ## Revision 4 (2026-10-09)
 
 Revision 3 was reviewed against OpenDDE's determinism settings, phase timers, LayerNorm modules, CLI and config entry points, and Fold-CP handling. These are planning changes; no optimization code was written.
