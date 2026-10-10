@@ -1,0 +1,45 @@
+[
+  {
+    "sequences": [
+      {
+        "proteinChain": {
+          "sequence": "MASWSHPQFEKGGTHVAETSAPTRSEPDTRVLTLPGTASAPEFRLIDIDGLLNNRATTDVRDLGSGRLNAWGNSFPAAELPAPGSLITVAGIPFTWANAHARGDNIRCEGQVVDIPPGQYDWIYLLAASERRSEDTIWAHYDDGHADPLRVGISDFLDGTPAFGELSAFRTSRMHYPHHVQEGLPTTMWLTRVGMPRHGVARSLRLPRSVAMHVFALTLRTAAAVRLAEGATT",
+          "count": 2,
+          "msa": {
+            "precomputed_msa_dir": "./examples/cofold/msa/7wux/1",
+            "pairing_db": "uniref100"
+          }
+        }
+      },
+      {
+        "proteinChain": {
+          "sequence": "MGSSHHHHHHSQDPNSTTTAPPVELWTRDLGSCLHGTLATALIRDGHDPVTVLGAPWEFRRRPGAWSSEEYFFFAEPDSLAGRLALYHPFESTWHRSDGDGVDDLREALAAGVLPIAAVDNFHLPFRPAFHDVHAAHLLVVYRITETEVYVSDAQPPAFQGAIPLADFLASWGSLNPPDDADVFFSASPSGRRWLRTRMTGPVPEPDRHWVGRVIRENVARYRQEPPADTQTGLPGLRRYLDELCALTPGTNAASEALSELYVISWNIQAQSGLHAEFLRAHSVKWRIPELAEAAAGVDAVAHGWTGVRMTGAHSRVWQRHRPAELRGHATALVRRLEAALDLLELAADAVS",
+          "count": 2,
+          "msa": {
+            "precomputed_msa_dir": "./examples/cofold/msa/7wux/2",
+            "pairing_db": "uniref100"
+          }
+        }
+      },
+      {
+        "ligand": {
+          "ligand": "CCD_P4G",
+          "count": 1
+        }
+      },
+      {
+        "ligand": {
+          "ligand": "CCD_6OI",
+          "count": 2
+        }
+      },
+      {
+        "ligand": {
+          "ligand": "CCD_MG",
+          "count": 3
+        }
+      }
+    ],
+    "name": "7wux"
+  }
+]

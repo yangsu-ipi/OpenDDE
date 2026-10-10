@@ -1,0 +1,17 @@
+[
+  {
+    "name": "h9_rna_hairpin",
+    "modelSeeds": [],
+    "sequences": [
+      {
+        "rnaSequence": {
+          "sequence": "GGCAUCGAGUCACUUCGGUGACUCGAUGCC",
+          "count": 1,
+          "id": [
+            "A"
+          ]
+        }
+      }
+    ]
+  }
+]

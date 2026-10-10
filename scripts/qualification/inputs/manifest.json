@@ -1,0 +1,328 @@
+{
+ "description": "Frozen qualification inputs (porting_docs/qualification_protocol.md). Run from the repository root: input JSONs use repository-relative MSA and template paths.",
+ "common_flags": [
+  "--sample",
+  "5",
+  "--step",
+  "200",
+  "--cycle",
+  "10",
+  "--dtype",
+  "bf16",
+  "--use_template",
+  "false",
+  "--use_rna_msa",
+  "false",
+  "--enable_tf32",
+  "false"
+ ],
+ "common_flags_note": "Row flags come after the common flags and override them. LAYERNORM_TYPE=torch unless a test says otherwise. Paired runs set sorted_by_ranking_score=false through run_opendde.py --set; row overrides use the same option.",
+ "development_seeds": [
+  101,
+  102
+ ],
+ "held_out_seed_range": [
+  201,
+  299
+ ],
+ "held_out_seed_rule": "single-use; drawn per held-out qualification and recorded in the held-out log",
+ "rows": [
+  {
+   "id": "D1",
+   "role": "development",
+   "input": "examples/cofold/protein_200.json",
+   "job": "synthetic_protein_200",
+   "covers": "protein only, small, no MSA",
+   "flags": [
+    "--use_msa",
+    "false"
+   ]
+  },
+  {
+   "id": "D2",
+   "role": "development",
+   "input": "scripts/qualification/inputs/d2_7r6r.json",
+   "job": "7r6r",
+   "covers": "protein-DNA, MSA, small",
+   "flags": [
+    "--use_msa",
+    "true"
+   ]
+  },
+  {
+   "id": "D3",
+   "role": "development",
+   "input": "examples/tfg/1a14/1a14_unconstrained.json",
+   "job": "1a14_unconstrained",
+   "covers": "three protein chains, paired MSA, medium",
+   "flags": [
+    "--use_msa",
+    "true"
+   ]
+  },
+  {
+   "id": "D4",
+   "role": "development",
+   "input": "scripts/qualification/inputs/d4_7wux.json",
+   "job": "7wux",
+   "covers": "heterotetramer with ligands and ions, MSA, large",
+   "flags": [
+    "--use_msa",
+    "true"
+   ]
+  },
+  {
+   "id": "D5",
+   "role": "development",
+   "input": "examples/cofold/template/example_9fm7.json",
+   "job": "9fm7",
+   "covers": "template and MSA, protein dimer with ligands",
+   "flags": [
+    "--use_msa",
+    "true",
+    "--use_template",
+    "true"
+   ]
+  },
+  {
+   "id": "D6",
+   "role": "development",
+   "input": "examples/cofold/rna_msa/example_9gmw_2.json",
+   "job": "9gmw_2",
+   "covers": "RNA only, RNA MSA",
+   "flags": [
+    "--use_msa",
+    "true",
+    "--use_rna_msa",
+    "true"
+   ]
+  },
+  {
+   "id": "D7",
+   "role": "development",
+   "input": "scripts/qualification/inputs/d7_dna_duplex.json",
+   "job": "d7_dna_duplex",
+   "covers": "DNA only, self-complementary duplex, non-protein anchor",
+   "flags": [
+    "--use_msa",
+    "false"
+   ]
+  },
+  {
+   "id": "D8",
+   "role": "development",
+   "input": "examples/tfg/9lh2/9lh2_unconstrained.json",
+   "job": "9lh2_unconstrained",
+   "covers": "covalent N-glycan, ligands",
+   "flags": [
+    "--use_msa",
+    "true"
+   ]
+  },
+  {
+   "id": "D9",
+   "role": "development",
+   "input": "examples/tfg/1a14/1a14_contact.json",
+   "job": "1a14_contact",
+   "covers": "rigid-contact guidance",
+   "flags": [
+    "--use_msa",
+    "true",
+    "--use_tfg_guidance",
+    "true",
+    "--enable_tf32",
+    "false"
+   ]
+  },
+  {
+   "id": "D10",
+   "role": "development",
+   "input": "examples/tfg/1a14/1a14_pocket.json",
+   "job": "1a14_pocket",
+   "covers": "epitope guidance",
+   "flags": [
+    "--use_msa",
+    "true",
+    "--use_tfg_guidance",
+    "true",
+    "--enable_tf32",
+    "false"
+   ]
+  },
+  {
+   "id": "D11",
+   "role": "development",
+   "input": "examples/tfg/1a14/1a14_contact.json",
+   "job": "1a14_contact",
+   "covers": "generic TFG potential guidance, rho=0; scoped to path agreement",
+   "flags": [
+    "--use_msa",
+    "true",
+    "--use_tfg_guidance",
+    "true",
+    "--enable_tf32",
+    "false"
+   ],
+   "env": {
+    "OPENDDE_RIGID_CONTACT": "off"
+   }
+  },
+  {
+   "id": "D12",
+   "role": "development",
+   "input": "examples/tfg/1a14/1a14_contact.json",
+   "job": "1a14_contact",
+   "covers": "guidance gradients through the denoiser, rho=1.0; scoped to path agreement",
+   "flags": [
+    "--use_msa",
+    "true",
+    "--use_tfg_guidance",
+    "true",
+    "--enable_tf32",
+    "false"
+   ],
+   "env": {
+    "OPENDDE_RIGID_CONTACT": "off"
+   },
+   "overrides": [
+    "sample_diffusion.guidance.rho=1.0"
+   ]
+  },
+  {
+   "id": "D13",
+   "role": "development",
+   "input": "scripts/qualification/inputs/d13_7r6r_1a14.json",
+   "job": null,
+   "covers": "multi-job, multi-seed",
+   "flags": [
+    "--use_msa",
+    "true"
+   ],
+   "note": "two jobs: 7r6r and 1a14_unconstrained"
+  },
+  {
+   "id": "H1",
+   "role": "held-out",
+   "input": "examples/cofold/input.json",
+   "job": "user_test",
+   "covers": "protein only, no MSA, medium",
+   "flags": [
+    "--use_msa",
+    "false"
+   ]
+  },
+  {
+   "id": "H2",
+   "role": "held-out",
+   "input": "scripts/qualification/inputs/h2_7pzb.json",
+   "job": "7pzb",
+   "covers": "protein-DNA with ligands, MSA",
+   "flags": [
+    "--use_msa",
+    "true"
+   ]
+  },
+  {
+   "id": "H3",
+   "role": "held-out",
+   "input": "examples/tfg/9sat/9sat_unconstrained.json",
+   "job": "9sat_unconstrained",
+   "covers": "three protein chains with Zn ions, MSA",
+   "flags": [
+    "--use_msa",
+    "true"
+   ]
+  },
+  {
+   "id": "H4",
+   "role": "held-out",
+   "input": "examples/tfg/9xqn/9xqn_unconstrained.json",
+   "job": "9xqn_unconstrained",
+   "covers": "three protein chains, MSA",
+   "flags": [
+    "--use_msa",
+    "true"
+   ]
+  },
+  {
+   "id": "H5",
+   "role": "held-out",
+   "input": "examples/tfg/9sat/9sat_pocket.json",
+   "job": "9sat_pocket",
+   "covers": "epitope guidance",
+   "flags": [
+    "--use_msa",
+    "true",
+    "--use_tfg_guidance",
+    "true",
+    "--enable_tf32",
+    "false"
+   ]
+  },
+  {
+   "id": "H6",
+   "role": "held-out",
+   "input": "examples/tfg/9xqn/9xqn_contact.json",
+   "job": "9xqn_contact",
+   "covers": "rigid-contact guidance",
+   "flags": [
+    "--use_msa",
+    "true",
+    "--use_tfg_guidance",
+    "true",
+    "--enable_tf32",
+    "false"
+   ]
+  },
+  {
+   "id": "H7",
+   "role": "held-out",
+   "input": "examples/tfg/9lh2/9lh2_contact.json",
+   "job": "9lh2_contact",
+   "covers": "covalent glycan with guidance",
+   "flags": [
+    "--use_msa",
+    "true",
+    "--use_tfg_guidance",
+    "true",
+    "--enable_tf32",
+    "false"
+   ]
+  },
+  {
+   "id": "H8",
+   "role": "held-out",
+   "input": "scripts/qualification/inputs/h8_dna_duplex.json",
+   "job": "h8_dna_duplex",
+   "covers": "DNA only, two distinct strands",
+   "flags": [
+    "--use_msa",
+    "false"
+   ]
+  },
+  {
+   "id": "H9",
+   "role": "held-out",
+   "input": "scripts/qualification/inputs/h9_rna_hairpin.json",
+   "job": "h9_rna_hairpin",
+   "covers": "RNA only hairpin, no MSA",
+   "flags": [
+    "--use_msa",
+    "false",
+    "--use_rna_msa",
+    "false"
+   ]
+  },
+  {
+   "id": "H10",
+   "role": "held-out",
+   "input": "scripts/qualification/inputs/d4_7wux.json",
+   "job": "7wux",
+   "covers": "large; D4 input with held-out seeds only",
+   "flags": [
+    "--use_msa",
+    "true"
+   ]
+  }
+ ]
+}

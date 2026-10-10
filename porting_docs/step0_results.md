@@ -154,4 +154,4 @@ Ranking score is shown per sample range over both seeds; LDDT is heavy-atom `bio
 ## Not yet done
 
 - Item 7 contrast distances: need the frozen qualification inputs and paired seeds, and the comparison tooling (LDDT, ligand RMSD, chain mapping).
-- The qualification protocol: `qualification_protocol.md` holds the approved inputs, seeds and held-out pool; freezing, criteria and comparison rules follow.
+- The qualification protocol: inputs, seeds, pairing, held-out pool and symmetry screen are frozen (`qualification_protocol.md`, freeze record; job 48760). Acceptance and guidance-success criteria, the numerical contract and comparison rules follow.

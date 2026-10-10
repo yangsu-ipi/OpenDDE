@@ -1,0 +1,26 @@
+[
+  {
+    "name": "h8_dna_duplex",
+    "modelSeeds": [],
+    "sequences": [
+      {
+        "dnaSequence": {
+          "sequence": "GTCAGCTTACGGAT",
+          "count": 1,
+          "id": [
+            "A"
+          ]
+        }
+      },
+      {
+        "dnaSequence": {
+          "sequence": "ATCCGTAAGCTGAC",
+          "count": 1,
+          "id": [
+            "B"
+          ]
+        }
+      }
+    ]
+  }
+]

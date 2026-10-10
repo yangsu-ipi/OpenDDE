@@ -1,0 +1,38 @@
+[
+  {
+    "sequences": [
+      {
+        "proteinChain": {
+          "sequence": "MGSSHHHHHHSSGLVPRGSHMSGKIQHKAVVPAPSRIPLTLSEIEDLRRKGFNQTEIAELYGVTRQAVSWHKKTYGGRLTTRQIVQQNWPWDTRKPHDKSKAFQRLRDHGEYMRVGSFRTMSEDKKKRLLSWWKMLRDNDLVLEFDPSIEPYEGMAGGGFRYVPRDISDDDLLIRVNEHTQLTAEGELLWSWPDDIEELLSEP",
+          "count": 1,
+          "id": [
+            "A"
+          ],
+          "msa": {
+            "precomputed_msa_dir": "./examples/cofold/msa/7r6r/1",
+            "pairing_db": "uniref100"
+          }
+        }
+      },
+      {
+        "dnaSequence": {
+          "sequence": "TTTCGGTGGCTGTCAAGCGGG",
+          "count": 1,
+          "id": [
+            "B"
+          ]
+        }
+      },
+      {
+        "dnaSequence": {
+          "sequence": "CCCGCTTGACAGCCACCGAAA",
+          "count": 1,
+          "id": [
+            "D"
+          ]
+        }
+      }
+    ],
+    "name": "7r6r"
+  }
+]

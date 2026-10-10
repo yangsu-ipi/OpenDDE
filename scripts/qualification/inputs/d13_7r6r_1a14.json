@@ -1,0 +1,79 @@
+[
+  {
+    "sequences": [
+      {
+        "proteinChain": {
+          "sequence": "MGSSHHHHHHSSGLVPRGSHMSGKIQHKAVVPAPSRIPLTLSEIEDLRRKGFNQTEIAELYGVTRQAVSWHKKTYGGRLTTRQIVQQNWPWDTRKPHDKSKAFQRLRDHGEYMRVGSFRTMSEDKKKRLLSWWKMLRDNDLVLEFDPSIEPYEGMAGGGFRYVPRDISDDDLLIRVNEHTQLTAEGELLWSWPDDIEELLSEP",
+          "count": 1,
+          "id": [
+            "A"
+          ],
+          "msa": {
+            "precomputed_msa_dir": "./examples/cofold/msa/7r6r/1",
+            "pairing_db": "uniref100"
+          }
+        }
+      },
+      {
+        "dnaSequence": {
+          "sequence": "TTTCGGTGGCTGTCAAGCGGG",
+          "count": 1,
+          "id": [
+            "B"
+          ]
+        }
+      },
+      {
+        "dnaSequence": {
+          "sequence": "CCCGCTTGACAGCCACCGAAA",
+          "count": 1,
+          "id": [
+            "D"
+          ]
+        }
+      }
+    ],
+    "name": "7r6r"
+  },
+  {
+    "name": "1a14_unconstrained",
+    "modelSeeds": [
+      101
+    ],
+    "sequences": [
+      {
+        "proteinChain": {
+          "count": 1,
+          "id": [
+            "H"
+          ],
+          "sequence": "QVQLQQSGAELVKPGASVRMSCKASGYTFTNYNMYWVKQSPGQGLEWIGIFYPGNGDTSYNQKFKDKATLTADKSSNTAYMQLSSLTSEDSAVYYCARSGGSYRYDGGFDYWGQGTTVTV",
+          "pairedMsaPath": "examples/tfg/1a14/msa/H/pairing.a3m",
+          "unpairedMsaPath": "examples/tfg/1a14/msa/H/non_pairing.a3m"
+        }
+      },
+      {
+        "proteinChain": {
+          "count": 1,
+          "id": [
+            "L"
+          ],
+          "sequence": "DIELTQTTSSLSASLGDRVTISCRASQDISNYLNWYQQNPDGTVKLLIYYTSNLHSEVPSRFSGSGSGTDYSLTISNLEQEDIATYFCQQDFTLPFTFGGGTAA",
+          "pairedMsaPath": "examples/tfg/1a14/msa/L/pairing.a3m",
+          "unpairedMsaPath": "examples/tfg/1a14/msa/L/non_pairing.a3m"
+        }
+      },
+      {
+        "proteinChain": {
+          "count": 1,
+          "id": [
+            "N"
+          ],
+          "sequence": "RDFNNLTKGLCTINSWHIYGKDNAVRIGEDSDVLVTREPYVSCDPDECRFYALSQGTTIRGKHSNGTIHDRSQYRALISWPLSSPPTVYNSRVECIGWSSTSCHDGKTRMSICISGPNNNASAVIWYNRRPVTEINTWARNILRTQESECVCHNGVCPVVFTDGSATGPAETRIYYFKEGKILKWEPLAGTAKHIEECSCYGERAEITCTCRDNWQGSNRPVIRIDPVAMTHTSQYICSPVLTDNPRPNDPTVGKCNDPYPGNNNNGVKGFSYLDGVNTWLGRTISIASRSGYEMLKVPNALTDDKSKPTQGQTIVLNTDWSGYSGSFMDYWAEGECYRACFYVELIRGRPKEDKVWWTSNSIVSMCSSTEFLGQWDWPDGAKIEYFL",
+          "pairedMsaPath": "examples/tfg/1a14/msa/N/pairing.a3m",
+          "unpairedMsaPath": "examples/tfg/1a14/msa/N/non_pairing.a3m"
+        }
+      }
+    ]
+  }
+]
