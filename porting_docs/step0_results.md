@@ -139,6 +139,18 @@ Job 48751, `1a14_contact` (D11 input) with `OPENDDE_RIGID_CONTACT=off`, MSA, see
 
 All coordinates were finite and peak device memory stayed at 10.7–10.8 GiB. Generic guidance breaks the backbone on this input already at `rho=0`: consecutive Cα gaps of up to 17 Å at and next to the restrained residues (L29–31, L91–94, N247–248, H54–56), widening to up to 35 Å at `rho=1.0`. Sample 0 of the unguided D3 output (job 48613) and of the rigid-contact D9 output (job 48620) has no such gaps; its only short Cα steps are cis-prolines. The user chose `rho=1.0` and scoped D11 and D12 to path agreement (qualification protocol).
 
+## Nucleic-acid-only runnability
+
+Jobs 48754 and 48756, stock `off`, seeds 101 and 102, 5 samples, deterministic, bf16, TF32 off, each case run twice. D7 is the synthetic `CGCGAATTCGCG` duplex (`dnaSequence`, `count: 2`). The first D6-with-RNA-MSA attempt passed `--use_msa false` and was refused by 1.2 (`--use_rna_msa true requires --use_msa true`); job 48756 reran it with both switches on.
+
+| Case | Flags | Tokens / atoms | MSA rows | Time per run | Repeat | Finite | Ranking score | LDDT sample 0 vs 1 |
+|---|---|---|---|---|---|---|---|---|
+| D6, RNA MSA | `--use_msa true --use_rna_msa true` | 86 / 1,836 | 1,727 | 27 s | byte-identical (30 files) | yes | 0.154 | 0.935, 0.950 |
+| D6, no MSA (as H9) | `--use_msa false --use_rna_msa false` | 86 / 1,836 | 1 | 28 s | byte-identical (30 files) | yes | 0.154–0.155 | 0.926, 0.943 |
+| D7, DNA duplex | `--use_msa false` | 24 / 494 | — | 22 s | byte-identical (30 files) | yes | 0.569–0.571 | 0.998, 0.999 |
+
+Ranking score is shown per sample range over both seeds; LDDT is heavy-atom `biotite.structure.lddt` with default settings for seeds 101 and 102, only to confirm the metric returns finite scores on these outputs. The RNA monomer has `iptm` 0, which keeps its ranking score low. D7's samples are nearly identical to each other, so its seed-to-seed spread is small.
+
 ## Not yet done
 
 - Item 7 contrast distances: need the frozen qualification inputs and paired seeds, and the comparison tooling (LDDT, ligand RMSD, chain mapping).

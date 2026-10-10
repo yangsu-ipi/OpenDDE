@@ -1,6 +1,6 @@
 # Qualification protocol
 
-Status: **inputs, seeds and held-out pool approved by the user (2026-10-10); nothing is frozen yet.** Freezing waits on the D6 and D7 stock runnability check, the H8 and H9 sequences and the symmetry-completeness screen. The plan (`inline_optimizations_plan.md`, step 0 gate) requires the qualification inputs, paired seeds, sample-index pairing, symmetry-completeness screen, acceptance criteria, guidance-success criteria and reserved held-out pool to be frozen before any `fast` kernel is tuned. This first part sets the inputs, seeds and held-out pool. The numerical contract, two-tier limits, comparison rules and held-out log will be added as the remaining step 0 work lands.
+Status: **inputs, seeds and held-out pool approved by the user (2026-10-10); nothing is frozen yet.** Freezing waits on the H8 and H9 sequences and the symmetry-completeness screen. The plan (`inline_optimizations_plan.md`, step 0 gate) requires the qualification inputs, paired seeds, sample-index pairing, symmetry-completeness screen, acceptance criteria, guidance-success criteria and reserved held-out pool to be frozen before any `fast` kernel is tuned. This first part sets the inputs, seeds and held-out pool. The numerical contract, two-tier limits, comparison rules and held-out log will be added as the remaining step 0 work lands.
 
 ## Proposed development set
 
@@ -13,7 +13,7 @@ Used for tuning and development comparisons against `off`. All inputs come from 
 | D3 | `examples/tfg/1a14/1a14_unconstrained.json` | three protein chains, paired MSA, medium | 612 tokens | `--use_msa true` |
 | D4 | `7wux` from `examples/cofold/example.json` | heterotetramer with ligands and ions, MSA, large | 1,218 tokens | `--use_msa true` |
 | D5 | `examples/cofold/template/example_9fm7.json` | template and MSA, protein dimer with ligands | 582 residues plus ligands | `--use_msa true --use_template true` |
-| D6 | `examples/cofold/rna_msa/example_9gmw_2.json` | RNA only, RNA MSA | 86 nt | `--use_rna_msa true` |
+| D6 | `examples/cofold/rna_msa/example_9gmw_2.json` | RNA only, RNA MSA | 86 nt | `--use_msa true --use_rna_msa true` (1.2 requires both) |
 | D7 | synthetic DNA duplex: `CGCGAATTCGCG` (Dickerson–Drew dodecamer), `dnaSequence` with `count: 2` | DNA only, non-protein anchor | 24 nt | `--use_msa false` |
 | D8 | `examples/tfg/9lh2/9lh2_unconstrained.json` | covalent bond (N-glycan NAG on Asn), ligands | 704 residues plus glycans | `--use_msa true` |
 | D9 | `examples/tfg/1a14/1a14_contact.json` | rigid-contact guidance | 612 tokens | `--use_tfg_guidance true --enable_tf32 false` |
@@ -56,7 +56,7 @@ Never used for tuning or inspected during development. A qualification that need
 
 H10 is the large held-out case (user decision, 2026-10-10): the repository has no second input above 1,000 tokens. Because D4 is tuned on, H10 tests only new seeds, not a new input, and is a weaker check than the other held-out rows. Its seeds come from the 201–299 held-out range like every other held-out run, and are never used for development.
 
-D7, H8 and H9 are synthetic nucleic acids, accepted by the user on 2026-10-10. They have no reference structure, so they test the non-protein anchor and polymer LDDT between paired `off` and candidate samples, not prediction accuracy. The H8 and H9 sequences are fixed when the inputs are frozen. Before freezing, D7 and D6 are each run once through stock `off` to confirm that the DNA-only and RNA-only paths work on the target stack. D6 is also run once with `--use_rna_msa false`, because H9 has no RNA MSA. H8 and H9 themselves are not run, because a held-out input must stay unseen until it is used. If either stock path fails, record the failure and ask the user whether to drop that input class (plan, validation matrix).
+D7, H8 and H9 are synthetic nucleic acids, accepted by the user on 2026-10-10. They have no reference structure, so they test the non-protein anchor and polymer LDDT between paired `off` and candidate samples, not prediction accuracy. The H8 and H9 sequences are fixed when the inputs are frozen. H8 and H9 themselves are not run before use, because a held-out input must stay unseen until it is used. Instead D7, D6 and D6 without its RNA MSA (`--use_msa false --use_rna_msa false`, as H9 will run) were checked through stock `off` on sm_120: all three run, give finite coordinates and repeat byte for byte under the deterministic recipe (step 0 results, nucleic-acid-only runnability). Both input classes stay in.
 
 ## When a held-out draw is required
 
