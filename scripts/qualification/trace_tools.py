@@ -199,6 +199,19 @@ def compare(
     }
 
 
+def unusable(meta: dict[str, Any], records: list[dict[str, Any]]) -> list[str]:
+    """Reasons a trace cannot support any check. A failed or empty run would
+    otherwise match an empty manifest, or another empty trace, vacuously."""
+    reasons = []
+    if meta.get("exit_code", 0) != 0:
+        reasons.append(f"run exit code {meta['exit_code']}")
+    if not meta.get("rollouts"):
+        reasons.append("no sampler rollouts recorded")
+    if not records:
+        reasons.append("no draws recorded")
+    return reasons
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -211,13 +224,19 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "compare":
-        _, a = load(args.a)
-        _, b = load(args.b)
+        meta_a, a = load(args.a)
+        meta_b, b = load(args.b)
         result = compare(a, b, f"{args.hash}_sha256")
+        problems = [f"a: {r}" for r in unusable(meta_a, a)]
+        problems += [f"b: {r}" for r in unusable(meta_b, b)]
     else:
         meta, records = load(args.trace)
         check = check_manifest if args.command == "manifest" else self_test
         result = check(meta, records)
+        problems = unusable(meta, records)
+    if problems:
+        result["ok"] = False
+        result["unusable"] = problems
     print(json.dumps(result, indent=1, default=str))
     return 0 if result["ok"] else 1
 

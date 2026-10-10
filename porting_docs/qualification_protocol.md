@@ -103,6 +103,17 @@ Fixed on 2026-10-10, before any candidate output exists. The plan's validation m
 - **D11 and D12 exclusion.** Rows with `comparison.exclude_constraint_window` in the manifest (D11 and D12, window 3) drop the constraint residues and their same-chain neighbours within 3 positions from anchor, RMSD and lDDT masks.
 - **Confidence and ranking.** Absolute differences of each sample's scalar confidence values (`ranking_score`, `ptm`, `iptm`, `plddt`, `gpde`, `has_clash` where present), and, per seed, whether the top-ranked sample is the same and Kendall's tau of the ranking scores.
 
+## Calibration context (step 0 item 7)
+
+Measured on sm_120 before any candidate exists (step 0 results, item 7; table there). Stock `off`, bf16 versus fp32, with identical random inputs on every development row that ran (all draws are fp32 and every trace matched), so the contrast isolates numerical precision. Stock seed-to-seed variation is measured alongside. Neither grants an automatic error allowance; they inform the absolute limits, which are still to be set.
+
+- **Stable inputs** (D1, D2, D4 polymer, D6, D7, D9): bf16 versus fp32 stays within 1.94 Å anchor RMSD and lDDT 0.81 or higher, mostly far tighter (D4, D6, D7 ≤ 0.34 Å), and below seed-to-seed variation.
+- **Flexible multi-chain inputs** (D3, D8, D10, D11, D12): precision alone moves about half the paired samples to a different chain arrangement, up to 16–20 Å anchor RMSD, as far as seed-to-seed variation. Paired-sample limits on these inputs need a form that tolerates such switches, such as limits on medians or on the fraction of pairs beyond a threshold, rather than per-sample maxima.
+- **Ligands:** the specific ligand 6OI moved at most 0.93 Å; the PEG fragment P4G and Mg²⁺ ions in D4 jump sites under a precision change and between seeds; D8's NAG follows its chain. Pose limits should distinguish specific ligands from additives and ions.
+- **D12 gradient check:** constrained distances differ by up to 3.7 Å between precisions, about as much as switching `rho` from 1.0 to 0, so the check needs an aggregate form (for example the mean constrained distance over all samples and seeds) rather than a per-pair limit.
+- **Confidence:** `ranking_score` differences are ≤ 0.002 on stable inputs and up to 0.17 on flexible ones; the top-ranked sample changes on some flexible rows.
+- **D5** is not yet measured (template data unavailable on gnode2).
+
 ## Notes
 
 - **Fold-CP.** The Fold-CP regression input is D1 on two GPUs (plan, validation matrix), independent of this set.
