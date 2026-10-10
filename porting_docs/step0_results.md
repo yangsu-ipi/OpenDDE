@@ -66,8 +66,8 @@ Stock CLI, default stream, deterministic recipe, `auto` kernels, `protein_200`, 
 |---|---|
 | Single GPU, `LAYERNORM_TYPE=fast_layernorm`, two runs | byte-identical, 15 of 15 artifacts |
 | Single GPU, trunk cache miss (writes key `2fc3174e…`) then hit | hit and miss byte-identical, 15 of 15 artifacts |
-| Fold-CP, default LayerNorm, two GPUs | blocked: NCCL fails on this stack (below) |
-| Fold-CP, `fast_layernorm`, two GPUs | blocked: NCCL fails on this stack (below) |
+| Fold-CP, default LayerNorm, two GPUs, `--sample 1`, torch triangle kernels (job 48707) | byte-identical, 3 of 3 artifacts; needs NCCL 2.28.9 (below) |
+| Fold-CP, `fast_layernorm`, same settings (job 48729) | byte-identical, 3 of 3 artifacts; needs NCCL 2.28.9 (below) |
 
 Targeted `fast_layernorm` checks (`scripts/qualification/layernorm_stream_diag.py`), pre-fix:
 
@@ -88,7 +88,11 @@ Every Fold-CP run (jobs 48618 and 48623) aborted with `CUDA error: an illegal me
 | 2.28.9+cuda12.9, preloaded from another shared environment | passes (all-reduce and send/recv) |
 | 2.30.7+cuda12.9, preloaded from another shared environment | passes |
 
-With NCCL 2.28.9 preloaded, a two-GPU Fold-CP run of `protein_200` (default LayerNorm, torch triangle kernels, deterministic) completed in 28 s. That run is information only, not a baseline: it used a library outside the pinned stack. The production `opendde` environment on gnode2 pins the same NCCL 2.26.2, so its Fold-CP mode is presumably affected as well (not tested). The Fold-CP baselines need a decision on the NCCL used for them; see the plan's dependency-pin rule.
+With NCCL 2.28.9 preloaded, a two-GPU Fold-CP run of `protein_200` completed in 28 s. The production `opendde` environment on gnode2 pins the same NCCL 2.26.2, so its Fold-CP mode is presumably affected as well (not tested).
+
+**Decision (user, 2026-10-10):** produce the Fold-CP baselines in a temporary conda environment and delete it afterwards. The temporary environment was a clone of `opendde-dev` whose only package difference was `nvidia-nccl-cu12` 2.28.9 instead of 2.26.2 (pip notes that torch 2.7.1 declares `==2.26.2`). Its `fast_layernorm` extension was built once, single-process, in a separate extension cache before `torchrun` started. Both Fold-CP baselines above came from it at commit `45bb734`; the environment and its extension cache were then deleted. Later Fold-CP comparisons against these baselines must use NCCL 2.28.9 as well.
+
+**Fold-CP rank divergence (stock behavior).** The first `fast_layernorm` Fold-CP attempt in the temporary environment, before its compiler paths were set, hung until the job's time limit instead of failing. Both ranks tried to JIT-build the extension at once. One rank's build failed and it fell back to torch LayerNorm with a warning, while the other loaded the existing build, so the two ranks ran different LayerNorm implementations and deadlocked. The soft per-rank fallback that `LAYERNORM_TYPE` relies on is therefore not rank-consistent under Fold-CP when the extension build differs between ranks. This is outside the port's scope; it is recorded for the user to decide whether to act on it.
 
 ## Item 7: cross-precision draw match (pilot)
 
@@ -124,6 +128,5 @@ CPU unit tests (`tests/test_instrumentation.py`) cover unguided runs and guidanc
 
 ## Not yet done
 
-- Fold-CP baselines: blocked on the NCCL decision above.
 - Item 7 contrast distances: need the frozen qualification inputs and paired seeds, and the comparison tooling (LDDT, ligand RMSD, chain mapping).
-- The separate qualification protocol document.
+- The qualification protocol: `qualification_protocol.md` holds a draft input, seed and held-out proposal awaiting approval; criteria and comparison rules follow.
