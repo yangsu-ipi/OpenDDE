@@ -2,14 +2,22 @@
 """Record or check digests of the frozen qualification inputs.
 
 Usage:
-    python scripts/qualification/freeze_inputs.py write [MANIFEST]
-    python scripts/qualification/freeze_inputs.py check [MANIFEST]
+    python scripts/qualification/freeze_inputs.py write [--external] [MANIFEST]
+    python scripts/qualification/freeze_inputs.py check [--external] [MANIFEST]
 
 Run from the repository root. ``write`` hashes every input JSON named in the
 manifest and every MSA or template file those JSONs reference, and stores the
 result in ``digests.json`` next to the manifest. ``check`` recomputes the
 digests and exits non-zero if any file changed, appeared or disappeared.
+
+With ``--external`` the same is done for the host-side data that rows list in
+``external_data`` (for example D5's template mmCIF files), stored in
+``external_digests.json``. Entries name their location through environment
+variables such as ``${OPENDDE_QUAL_DATA}``, which must be set; digest keys
+keep the unexpanded form so they are the same on every host.
 """
+
+import os
 
 import hashlib
 import json
@@ -55,18 +63,48 @@ def digests(manifest_path: Path) -> dict[str, str]:
     return out
 
 
+def external_digests(manifest_path: Path) -> dict[str, str]:
+    manifest = json.loads(manifest_path.read_text())
+    out = {}
+    for row in manifest["rows"]:
+        for entry in row.get("external_data", []):
+            root = os.path.expandvars(entry)
+            if "$" in root:
+                raise SystemExit(f"error: unset environment variable in {entry!r}")
+            root_path = Path(root)
+            files = (
+                sorted(p for p in root_path.rglob("*") if p.is_file())
+                if root_path.is_dir()
+                else [root_path]
+            )
+            if not files or not all(p.is_file() for p in files):
+                raise SystemExit(f"error: missing external data {entry}")
+            for path in files:
+                key = (
+                    entry
+                    if path == root_path
+                    else f"{entry}/{path.relative_to(root_path).as_posix()}"
+                )
+                out[key] = _sha256(path)
+    return out
+
+
 def main() -> int:
-    if len(sys.argv) < 2 or sys.argv[1] not in ("write", "check"):
+    argv = [a for a in sys.argv[1:] if a != "--external"]
+    external = len(argv) != len(sys.argv) - 1
+    if not argv or argv[0] not in ("write", "check"):
         print(__doc__, file=sys.stderr)
         return 2
     manifest_path = Path(
-        sys.argv[2]
-        if len(sys.argv) > 2
-        else "scripts/qualification/inputs/manifest.json"
+        argv[1] if len(argv) > 1 else "scripts/qualification/inputs/manifest.json"
     )
-    digest_path = manifest_path.with_name("digests.json")
-    current = digests(manifest_path)
-    if sys.argv[1] == "write":
+    if external:
+        digest_path = manifest_path.with_name("external_digests.json")
+        current = external_digests(manifest_path)
+    else:
+        digest_path = manifest_path.with_name("digests.json")
+        current = digests(manifest_path)
+    if argv[0] == "write":
         digest_path.write_text(json.dumps(current, indent=1) + "\n")
         print(f"wrote {len(current)} digests to {digest_path}")
         return 0

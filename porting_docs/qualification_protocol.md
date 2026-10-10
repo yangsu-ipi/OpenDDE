@@ -60,7 +60,8 @@ D7, H8 and H9 are synthetic nucleic acids, accepted by the user on 2026-10-10. T
 
 ## Freeze record
 
-- **Files.** `scripts/qualification/inputs/manifest.json` lists every row; `digests.json` holds the SHA-256 of each input JSON and each MSA or template file it references (46 files). Run `python scripts/qualification/freeze_inputs.py check` from the repository root before any qualification run; a changed, missing or added file stops qualification until the change is reviewed. Template structures and CCD data come from the shared, read-only `$OPENDDE_ROOT_DIR` store and are not digested here; the plan's store check covers only the weights.
+- **Files.** `scripts/qualification/inputs/manifest.json` lists every row; `digests.json` holds the SHA-256 of each input JSON and each MSA or template file it references (46 files). Run `python scripts/qualification/freeze_inputs.py check` from the repository root before any qualification run; a changed, missing or added file stops qualification until the change is reviewed. CCD data come from the shared, read-only `$OPENDDE_ROOT_DIR` store and are not digested here; the plan's store check covers only the weights.
+- **D5 template data.** Added 2026-10-10 (user decision, option 1). D5's four template mmCIF files (5ocm, 3zgy, 5a9s, 5a9r, the hits OpenDDE selects under its 2021-09-30 template date cutoff) were fetched once from PDBe and are kept in a read-only directory named by the host variable `OPENDDE_QUAL_DATA`; `external_digests.json` holds their SHA-256, checked with `freeze_inputs.py check --external` on the GPU host. D5 runs with `fetch_remote=false`, a per-run template cache and kalign 2.04 named by `OPENDDE_QUAL_KALIGN` (on gnode2, the shared colabfold env's binary). A host without these, such as the A100 VM, must provide the same four files (checked by digest) and kalign 2.04 before running D5.
 - **Seeds and pairing.** Development seeds are 101 and 102. Held-out seeds come from 201–299, are single-use and are recorded in the held-out log. Pair `off` and candidate samples by original sample index, with `sorted_by_ranking_score=false`.
 - **Symmetry-completeness screen.** `scripts/qualification/symmetry_screen.py` counts, from the inputs alone, the whole-complex equivalent-chain assignments (chains with identical entity content permuted together, keeping inter-chain covalent bonds and constraint-named chains fixed) and each ligand's heavy-atom automorphisms with covalent attachment atoms fixed, with bond orders and with elements only. Run on gnode2 (job 48760); every row is exhaustively searchable:
 
@@ -105,14 +106,14 @@ Fixed on 2026-10-10, before any candidate output exists. The plan's validation m
 
 ## Calibration context (step 0 item 7)
 
-Measured on sm_120 before any candidate exists (step 0 results, item 7; table there). Stock `off`, bf16 versus fp32, with identical random inputs on every development row that ran (all draws are fp32 and every trace matched), so the contrast isolates numerical precision. Stock seed-to-seed variation is measured alongside. Neither grants an automatic error allowance; they inform the absolute limits, which are still to be set.
+Measured on sm_120 before any candidate exists (step 0 results, item 7; table there). Stock `off`, bf16 versus fp32, with identical random inputs on every development row (all draws are fp32 and every trace matched), so the contrast isolates numerical precision. Stock seed-to-seed variation is measured alongside. Neither grants an automatic error allowance; they inform the absolute limits, which are still to be set.
 
-- **Stable inputs** (D1, D2, D4 polymer, D6, D7, D9): bf16 versus fp32 stays within 1.94 Å anchor RMSD and lDDT 0.81 or higher, mostly far tighter (D4, D6, D7 ≤ 0.34 Å), and below seed-to-seed variation.
+- **Stable inputs** (D1, D2, D4 polymer, D5, D6, D7, D9): bf16 versus fp32 stays within 1.94 Å anchor RMSD and lDDT 0.81 or higher, mostly far tighter (D4, D6, D7 ≤ 0.34 Å), and below seed-to-seed variation.
 - **Flexible multi-chain inputs** (D3, D8, D10, D11, D12): precision alone moves about half the paired samples to a different chain arrangement, up to 16–20 Å anchor RMSD, as far as seed-to-seed variation. Paired-sample limits on these inputs need a form that tolerates such switches, such as limits on medians or on the fraction of pairs beyond a threshold, rather than per-sample maxima.
 - **Ligands:** the specific ligand 6OI moved at most 0.93 Å; the PEG fragment P4G and Mg²⁺ ions in D4 jump sites under a precision change and between seeds; D8's NAG follows its chain. Pose limits should distinguish specific ligands from additives and ions.
 - **D12 gradient check:** constrained distances differ by up to 3.7 Å between precisions, about as much as switching `rho` from 1.0 to 0, so the check needs an aggregate form (for example the mean constrained distance over all samples and seeds) rather than a per-pair limit.
 - **Confidence:** `ranking_score` differences are ≤ 0.002 on stable inputs and up to 0.17 on flexible ones; the top-ranked sample changes on some flexible rows.
-- **D5** is not yet measured (template data unavailable on gnode2).
+- **D5** (templates) is stable: 0.04 Å anchor RMSD and ATR within 0.45 Å between precisions.
 
 ## Notes
 

@@ -12,6 +12,10 @@ Run from the repository root. Each row runs as
 <row flags> --seeds <seeds> <extra flags>`` with the row's environment added.
 Extra flags come last, so ``-- --dtype fp32 --deterministic true`` overrides
 the common flags. Held-out rows must be given explicit held-out seeds.
+
+Row flags and overrides may name host-specific locations through environment
+variables (``${OPENDDE_QUAL_DATA}``, ``${OPENDDE_QUAL_KALIGN}``), and ``{out}``
+stands for the row's output directory. An unset variable is an error.
 """
 
 import argparse
@@ -23,6 +27,13 @@ import time
 from pathlib import Path
 
 WRAPPER = Path(__file__).with_name("run_opendde.py")
+
+
+def _expand(value: str, out: Path) -> str:
+    expanded = os.path.expandvars(value).replace("{out}", str(out))
+    if "$" in expanded:
+        raise SystemExit(f"error: unset environment variable in {value!r}")
+    return expanded
 
 
 def main() -> int:
@@ -57,17 +68,18 @@ def main() -> int:
         if args.phase_timing:
             wrapper += ["--phase-timing", str(args.out / f"{row_id}.phases.json")]
         wrapper += ["--set", "sorted_by_ranking_score=false"]
+        row_out = args.out / row_id
         for override in row.get("overrides", []):
-            wrapper += ["--set", override]
+            wrapper += ["--set", _expand(override, row_out)]
         cmd = wrapper + [
             "--",
             "pred",
             "-i",
             row["input"],
             "-o",
-            str(args.out / row_id),
+            str(row_out),
             *manifest["common_flags"],
-            *row["flags"],
+            *(_expand(flag, row_out) for flag in row["flags"]),
             "--seeds",
             seeds,
             *extra,

@@ -81,8 +81,19 @@
     "--use_msa",
     "true",
     "--use_template",
-    "true"
-   ]
+    "true",
+    "--kalign_binary_path",
+    "${OPENDDE_QUAL_KALIGN}"
+   ],
+   "overrides": [
+    "data.template.prot_template_mmcif_dir=${OPENDDE_QUAL_DATA}/template_mmcif",
+    "data.template.fetch_remote=false",
+    "data.template.prot_template_cache_dir={out}/template_cache"
+   ],
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/template_mmcif"
+   ],
+   "note": "Templates: kalign 2.04 and the four mmCIF files fetched once from PDBe (5ocm, 3zgy, 5a9s, 5a9r), checked by freeze_inputs.py check --external; no network access during runs."
   },
   {
    "id": "D6",
@@ -330,5 +341,9 @@
     "true"
    ]
   }
- ]
+ ],
+ "host_environment": {
+  "OPENDDE_QUAL_DATA": "private qualification data directory holding template_mmcif/",
+  "OPENDDE_QUAL_KALIGN": "kalign 2.04 binary"
+ }
 }

@@ -106,9 +106,9 @@ The native bf16-versus-fp32 contrast therefore shares its random inputs for ungu
 
 ### Contrast distances
 
-Jobs 48765 (bf16) and 48766 (fp32) ran every development row through `run_rows.py`: stock `off`, seeds 101 and 102, 5 samples, deterministic, TF32 off, torch LayerNorm, `sorted_by_ranking_score=false`, draw trace on, at commit `d5619dc` with the comparison tooling uncommitted (committed unchanged as `3c021ce`). The frozen-input digest check passed first. Every row ran except D5, which needs `kalign` and template mmCIF files that gnode2 lacks (see below).
+Jobs 48765 (bf16) and 48766 (fp32) ran every development row through `run_rows.py`: stock `off`, seeds 101 and 102, 5 samples, deterministic, TF32 off, torch LayerNorm, `sorted_by_ranking_score=false`, draw trace on, at commit `d5619dc` with the comparison tooling uncommitted (committed unchanged as `3c021ce`). The frozen-input digest check passed first. Every row ran except D5, which needed `kalign` and template mmCIF files that gnode2 lacked; it ran later with frozen template data (job 48810, below).
 
-**Random inputs.** For all 12 rows that ran, every bf16 draw matched its manifest and every fp32 draw, under the comparison-dtype hash (6,010 draws per unguided row, 8,010 per guided row, 12,020 for D13). All draws are fp32 in both precisions. So the native contrast shares its random inputs on every row and isolates numerical precision; no replay is needed (plan, item 7). The D5 traces were empty; the first analysis job (48780) passed them vacuously, and `trace_tools.py` now fails a trace from a failed or empty run (job 48788 confirmed D5 now fails).
+**Random inputs.** For all 13 rows, every bf16 draw matched its manifest and every fp32 draw, under the comparison-dtype hash (6,010 draws per unguided row including D5, 8,010 per guided row, 12,020 for D13). All draws are fp32 in both precisions. So the native contrast shares its random inputs on every row and isolates numerical precision; no replay is needed (plan, item 7). The D5 traces were empty; the first analysis job (48780) passed them vacuously, and `trace_tools.py` now fails a trace from a failed or empty run (job 48788 confirmed D5 now fails).
 
 **Distances.** `compare_structures.py` paired sample k of bf16 with sample k of fp32 for each seed (10 pairs per row; job 48788), and sample k of seed 101 with sample k of seed 102 within the bf16 run (5 pairs; job 48780). All comparisons were conclusive: every lDDT had contacts and no ligand map search was truncated. Anchor is protein Cα, or C4′ for D6 and D7. Ligand RMSDs are symmetry-aware; D13's two jobs gave exactly D2's and D3's numbers.
 
@@ -118,6 +118,7 @@ Jobs 48765 (bf16) and 48766 (fp32) ran every development row through `run_rows.p
 | D2 protein–DNA | 0.34 / 1.17 Å (0/10) | 0.999 / 0.994 | 2.06 / 4.50 Å | 0.946 / 0.896 |
 | D3 three chains | 2.17 / 15.92 Å (5/10) | 0.975 / 0.856 | 2.79 / 14.51 Å | 0.939 / 0.859 |
 | D4 large, ligands | 0.11 / 0.14 Å (0/10) | 1.000 / 0.999 | 3.77 / 4.40 Å | 0.981 / 0.978 |
+| D5 templates, ATR | 0.03 / 0.04 Å (0/10) | 1.000 / 0.997 | 0.75 / 1.00 Å | 0.976 / 0.971 |
 | D6 RNA | 0.06 / 0.34 Å (0/10) | 1.000 / 0.982 | 2.31 / 2.42 Å | 0.927 / 0.914 |
 | D7 DNA duplex | 0.01 / 0.11 Å (0/10) | 1.000 / 0.998 | 0.20 / 0.48 Å | 0.998 / 0.996 |
 | D8 covalent glycan | 2.47 / 20.57 Å (5/10) | 0.917 / 0.682 | 6.06 / 27.33 Å | 0.825 / 0.673 |
@@ -128,21 +129,25 @@ Jobs 48765 (bf16) and 48766 (fp32) ran every development row through `run_rows.p
 
 D11 and D12 exclude the constraint residues and neighbours within 3 positions.
 
-Ligands, bf16 vs fp32 (max RMSD over 10 pairs): D4's specific ligand 6OI 0.93 Å (seed contrast 2.11 Å); D4's PEG fragment P4G 31.1 Å and Mg²⁺ ions up to 29.1 Å, which also move 30–66 Å between seeds; D8's covalent NAG 25.5 Å, moving with the chain rearrangement in the same samples, and ≤ 1.3 Å in the samples whose anchor RMSD is ≤ 2.5 Å.
+Ligands, bf16 vs fp32 (max RMSD over 10 pairs): D4's specific ligand 6OI 0.93 Å (seed contrast 2.11 Å); D5's ATR 0.45 Å with centroid shifts under 0.06 Å (seed contrast 1.13 Å); D4's PEG fragment P4G 31.1 Å and Mg²⁺ ions up to 29.1 Å, which also move 30–66 Å between seeds; D8's covalent NAG 25.5 Å, moving with the chain rearrangement in the same samples, and ≤ 1.3 Å in the samples whose anchor RMSD is ≤ 2.5 Å.
 
 Constraint distances, largest bf16-vs-fp32 difference of a constrained Cα–Cα distance: D9 0.44 Å, D11 0.06 Å, D12 3.69 Å (seed contrast 0.76, 0.12 and 4.20 Å).
 
 Confidence: the largest bf16-vs-fp32 `ranking_score` difference per sample is ≤ 0.002 on D1, D2, D4, D6 and D7, 0.02–0.03 on D9 and D10, and 0.09–0.17 on D3, D8, D11 and D12. The top-ranked sample agreed between precisions for both seeds on D1, D2, D4, D6, D7, D9 and D11, and for one of the two seeds on D3, D8, D10 and D12.
 
 What this shows:
-- On the stable inputs (D1, D2, D4 polymer, D6, D7, D9) the precision contrast is small, at most 1.94 Å anchor RMSD, and well below seed-to-seed variation.
+- On the stable inputs (D1, D2, D4 polymer, D5, D6, D7, D9) the precision contrast is small, at most 1.94 Å anchor RMSD, and well below seed-to-seed variation.
 - On flexible multi-chain inputs (D3, D8, D10, D11, D12) precision alone, with identical random inputs, switches about half the samples to a different chain arrangement, 9–20 Å away. That is as large as seed-to-seed variation. The distribution is bimodal: medians of 2–3 Å (8 Å on D10) with tails at 16–20 Å. This is the heavy tail the plan anticipated: per-sample maximum limits on these inputs would reject a harmless change.
 - Nonspecific ligands and ions (D4's P4G and Mg²⁺) flip sites even under a precision change; the specific ligand 6OI stays under 1 Å.
 - D12's constrained distances differ by up to 3.7 Å between precisions, against 0.06 Å for D11. Under `rho=1.0` the D12 per-sample gradient check cannot use a tight per-pair limit: a zeroed gradient (as at `rho=0`) moves the distances by a similar amount.
 
 **Tooling cost.** The bf16-vs-fp32 comparison of all 12 rows took 17 min with a peak of 17.0 GB resident; the first attempt at 8 CPUs (15 GB default) was OOM-killed. Run it with at least 12 CPUs on gnode2, since CPU jobs set no `--mem`.
 
-**D5 (template input) not run.** Its template path needs the `kalign` binary, absent from `opendde-dev`, and template mmCIF files: `$OPENDDE_ROOT_DIR/search_database/mmcif` does not exist on gnode2's read-only store, and OpenDDE's default remote PDBe fetch would try to write there. Options are with the user.
+**D5 (template input).** The first attempt failed in 3 s: `opendde-dev` has no `kalign`, and gnode2's read-only store has no `search_database/mmcif`, where OpenDDE's default remote PDBe fetch would also write. With the user's approval (option 1):
+- D5 uses the kalign 2.04 binary from gnode2's shared colabfold env (the version OpenFold's wrapper targets) through `--kalign_binary_path`; no environment changed.
+- One stock run with fetching on (job 48809, bf16, seed 101) fetched the four templates OpenDDE selected under its 2021-09-30 template date cutoff, 5ocm, 3zgy, 5a9s and 5a9r, into a private directory, now read-only; the log reports "Found 4 templates".
+- D5's manifest row now sets that directory, `fetch_remote=false` and a per-run template cache, through the host variables `OPENDDE_QUAL_DATA` and `OPENDDE_QUAL_KALIGN`; `external_digests.json` holds the four files' SHA-256 (`freeze_inputs.py check --external`).
+- Job 48810 ran D5 at bf16 and fp32 from the frozen data: the bf16 seed-101 artifacts are byte-identical to the fetch run's (15 files), and the results are in the table above.
 
 ## Item 8: random-input trace
 
@@ -195,5 +200,4 @@ Ranking score is shown per sample range over both seeds; LDDT is heavy-atom `bio
 
 ## Not yet done
 
-- Item 7 for D5: needs a decision on `kalign` and template mmCIF files.
 - The qualification protocol: inputs, seeds, pairing, held-out pool and symmetry screen are frozen (`qualification_protocol.md`, freeze record; job 48760). Comparison rules are fixed (protocol). Acceptance and guidance-success criteria and the numerical contract follow, informed by the item 7 contrast.

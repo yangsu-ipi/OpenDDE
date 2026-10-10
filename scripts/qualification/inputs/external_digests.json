@@ -1,0 +1,6 @@
+{
+ "${OPENDDE_QUAL_DATA}/template_mmcif/3zgy.cif": "3eb57cb01021cdd00a060fe9e4212be0082eb85b363e70be7083fe003a15476c",
+ "${OPENDDE_QUAL_DATA}/template_mmcif/5a9r.cif": "7d13439f4dc987439e59b0a7be5d06f4f2ad9dfded66da90b800d8d429c5f087",
+ "${OPENDDE_QUAL_DATA}/template_mmcif/5a9s.cif": "46f1e3b5bb768ead0ab5fb182a692f8e706b1ce2db153ad6f3a7c2b41bbefe1e",
+ "${OPENDDE_QUAL_DATA}/template_mmcif/5ocm.cif": "1f6f6360a215cc4c5492002cc1da143fbf58ff53d4617aaac5ac357c495049cd"
+}
