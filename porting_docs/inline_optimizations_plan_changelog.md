@@ -2,6 +2,21 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 13 (2026-10-10)
+
+Revision 12 was checked against the sampler, dumper and CIF writer code and the RDKit `CalcRMS` signature in `opendde-dev`. These edits affect the step 0 protocol; no porting code was written.
+
+- Require a check that paired sample indices received identical noise: matching `N_sample` and `sample_diffusion_chunk_size`, plus a step 0 test that hashes each sample's initial noise. A candidate that changes chunking is compared with `off` at the same chunk size. Step 0 item 7 records whether the bf16 and fp32 runs share initial noise.
+  - *Reason:* the sampler's generator is seeded per run and isolated from global RNG use, but each chunk draws all its noise before the next, and a different shape gives different GPU random values. Sample-index pairing alone does not guarantee identical noise, and the default 5 samples with chunk size 5 would hide the problem. Noise is drawn in the dtype of `s_inputs`, so the precision comparison may not share noise.
+- Screen symmetry completeness (ligand atom matches and equivalent-chain permutations) when the inputs and held-out pool are frozen; exclude inputs that cannot be searched exhaustively or declare their resolution test in advance. An undeclared inconclusive held-out result counts as a failure.
+  - *Reason:* both counts depend only on the input, so they can be known before any run. Discovering an inconclusive case during a single-use held-out run left its outcome undefined, and a retry would use up the set.
+- Have the harness enumerate ligand matches with `GetSubstructMatches(..., maxMatches=cap + 1)` and pass them to `CalcRMS` through `map`, applying the same conjugated-terminal-group equivalence that `CalcRMS` uses by default.
+  - *Reason:* this gives an explicit truncation flag. Without the equivalence, a harmless carboxylate oxygen swap would appear as an error of about 2 Å.
+- Take ligand bonds from the in-process featurized `atom_array` or from CIFs written with the existing `include_bonds=True`, instead of reconstructing graphs from input and CIF atom names.
+  - *Reason:* the harness already reads in-process prediction arrays, and reusing OpenDDE's own bonds avoids a separate, error-prone atom correspondence.
+- Generalize the alignment anchor beyond protein (a declared polymer anchor for inputs without protein), and extend LDDT to DNA and RNA when the qualification set includes them.
+  - *Reason:* the protein-only anchor and LDDT left nucleic-acid-only inputs undefined.
+
 ## Revision 12 (2026-10-10)
 
 Revision 11 named comparison tools but left three ways for qualification to compare the wrong structures or overstate a result. These edits affect the step 0 protocol; no porting code was written.
