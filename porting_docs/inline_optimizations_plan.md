@@ -1,6 +1,6 @@
 # Inline optimization porting plan
 
-Revision 19. Changes and reasons are recorded in `inline_optimizations_plan_changelog.md`.
+Revision 20. Changes and reasons are recorded in `inline_optimizations_plan_changelog.md`.
 
 Status: the plan is ready for step 0. The questions that decide scope now need measurements rather than more desk review: stock reproducibility, cuEquivariance determinism on sm_120, the phase profile and the bf16-versus-fp32 contrast. Revise the plan next from step 0 results, or when a reviewer finds a defect that would change what step 0 does.
 
@@ -10,6 +10,7 @@ Status: the plan is ready for step 0. The questions that decide scope now need m
 | --- | --- | --- |
 | 2026-10-09 | Approved: reject `--optimization_mode` other than `off` under Fold-CP for this port. | Step 1 (Fold-CP policy), validation matrix |
 | 2026-10-09 | Do not offer the LayerNorm stream fix or the trunk-cache identity fix to upstream `aurekaresearch/OpenDDE` for now. Both stay in the fork. Revisit only at the user's request. | Step 2, keeping up with upstream |
+| 2026-10-10 | Require a held-out draw only for dispatch rows chosen or changed in this port. Rows kept unchanged from a kit record for that card qualify on the development set. | Step 4 gate, validation matrix, qualification protocol |
 
 ## Recommendation
 
@@ -298,7 +299,7 @@ Guidance rules:
 
 Test four cases separately: unguided, generic guidance (with `rho=0` and `rho>0`), rigid contact, and epitope guidance. Exact scheduling must not change intervention timing or random-number consumption. Fast mode must keep guidance success rates.
 
-Gate: end-to-end unguided and guided runs pass the predeclared two-tier numerical and domain criteria, determinism and constraint-satisfaction checks on the qualification inputs and a fresh held-out set on sm_120, then on sm_80. Use paired seeds against `off` and report the failures as well as the pass rate.
+Gate: end-to-end unguided and guided runs pass the predeclared two-tier numerical and domain criteria, determinism and constraint-satisfaction checks on the qualification inputs on sm_120, then on sm_80. On each GPU where the candidate enables a port-chosen row, which includes every sm_120 candidate, it must also pass a fresh held-out set (validation matrix). Use paired seeds against `off` and report the failures as well as the pass rate.
 
 ### 5. Port single-GPU large-input memory handling (conditional)
 
@@ -383,7 +384,13 @@ Check `off` itself for drift on every candidate commit. Compare the fresh `off` 
 
 Reason: candidate and `off` now come from the same commit, so a change that reaches both would be invisible to the paired comparison while changing what `off` users get.
 
-Then qualify each candidate once per GPU on a held-out set drawn from the reserved pool:
+Then decide per GPU whether the candidate needs a held-out set. The held-out set guards against selection on development results, so it is required only where this port makes a selection (user decision, 2026-10-10; detail in the qualification protocol):
+- A dispatch row whose kernel source, configuration and shape range are unchanged from a kit record for that compute capability qualifies on the development set alone. Record it as a development-set pass, a weaker claim than a held-out pass.
+- A row chosen or changed in this port is port-chosen. That includes every sm_120 row, since the kit has no sm_120 records, and narrowing a kit row's shape range after seeing development results. A candidate that enables any port-chosen row on a GPU is qualified once on that GPU on a held-out set drawn from the reserved pool.
+- A kit row that fails on the development set is rejected and its site keeps the stock operation, with no held-out draw. Changing the row to retry it makes it port-chosen.
+- Both routes use the protocol's frozen criteria against the 1.2 `off` baseline, never the kit's own limits.
+
+For held-out qualification:
 - A held-out failure rejects that candidate. An inconclusive held-out result is decided only by the resolution test declared at freeze time; if none was declared, it counts as a failure.
 - Once a held-out set has been seen, it is used up: any retry after changes draws a fresh set from the pool.
 - Record which held-out sets have been used, and for which candidate.

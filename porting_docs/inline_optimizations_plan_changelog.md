@@ -2,6 +2,13 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 20 (2026-10-10)
+
+Step 0 is under way. This revision records the user's decision on when a held-out draw is required, matching the qualification protocol (commit `7c832df`). No porting code was written.
+
+- Require a held-out draw only for dispatch rows chosen or changed in this port, including every sm_120 row. Rows whose kernel source, configuration and shape range are unchanged from a kit record for that card qualify on the development set and are recorded as development-set passes. A failing kit row is rejected to stock without a held-out draw; changing it to retry makes it port-chosen. Updated the recorded decisions, the step 4 gate and the validation matrix.
+  - *Reason:* the held-out set protects against selecting configurations on development results. A row taken unchanged from the kit was not selected on this port's results, so a held-out draw adds little for it, while the kit has no sm_120 records and its A100 records came from a different stack, so rows re-chosen here still need it.
+
 ## Revision 19 (2026-10-10)
 
 Revision 18 was checked against the augmentation code: rotations come from SciPy's `Rotation.random` driven by the NumPy generator and are converted to fp32 on the CPU, and the initial Gaussian can be captured before scaling by splitting one expression without changing the arithmetic. These edits guard the same-commit baseline and tidy item 7. No porting code was written.
