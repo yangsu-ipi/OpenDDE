@@ -2,6 +2,17 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 17 (2026-10-10)
+
+Revision 16 was checked against the sampler, guidance, rigid-contact and epitope code. Every random draw count is fixed by configuration, so the manifest can be derived from settings. These edits narrow the replay diagnostic and keep the manifest valid over time. No porting code was written.
+
+- Run the native traced bf16-versus-fp32 contrast first. Build the replay diagnostic only if draws differ and an isolated precision estimate is still needed. Capture replay draws from the fp32 run, and keep the replay injector a private in-process callback.
+  - *Reason:* if the native traces match after casting, the native contrast already shares random inputs, and a second injection hook would add work without information. Capturing from fp32 gives the fp32 path exact values and the bf16 path a rounded copy.
+- Name RNG call sites with stable symbolic names rather than file and line numbers, and record each trace's source commit. Compare a candidate only with an `off` trace from the same commit or with a re-validated manifest.
+  - *Reason:* line-based keys would change with unrelated edits and break comparison with older `off` traces.
+- Treat a stock `off` mismatch with the manifest as a harness defect, and re-validate the manifest against fresh stock traces after each upstream merge (added to "Keeping up with upstream").
+  - *Reason:* the manifest re-encodes the sampler's control flow, so an upstream change that adds or moves a draw would make it stale.
+
 ## Revision 16 (2026-10-10)
 
 Revision 15 closed gaps in the random-input trace, but two comparisons still needed clearer limits. No porting code was written.
