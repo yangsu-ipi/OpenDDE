@@ -2,6 +2,19 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 12 (2026-10-10)
+
+Revision 11 named comparison tools but left three ways for qualification to compare the wrong structures or overstate a result. These edits affect the step 0 protocol; no porting code was written.
+
+- Pair `off` and candidate samples by their original sampling index, using unsorted prediction arrays or `sorted_by_ranking_score=False` in the qualification harness. Check the normal ranked outputs and ranking agreement separately.
+  - *Reason:* OpenDDE ranks `_sample_*.cif` filenames by confidence by default. A change in ranking can make matching filenames refer to different draws even when the seeds match.
+- Build RDKit ligand graphs from the input and attach predicted coordinates through verified atom correspondence. Define the protein alignment and covalent attachment constraints before calling `CalcRMS`.
+  - *Reason:* prediction CIFs omit bonds, and ligand pose RMSD without a shared protein frame or a valid atom graph does not measure the intended difference.
+- Check whether the RDKit symmetry search is complete; record its `maxMatches` cap and test repeatability on the pinned stack. A capped RMSD above the limit is inconclusive unless another pose-sensitive check resolves it. Keep centroid and contact checks as supplements, not substitutes.
+  - *Reason:* `CalcRMS` returns no truncation flag. A partial symmetry search can miss a lower-RMSD mapping, while a ligand can rotate within one site without materially changing its centroid or residue-contact set.
+- Restrict equivalent-chain permutations to mappings that preserve covalent bonds and input-specific constraints. Use one declared whole-complex assignment for all metrics; an approximate assignment does not hard-pass an ambiguous case.
+  - *Reason:* OpenDDE's `sym_id` is a copy ordinal, not proof of interchangeability. Choosing the best permutation separately for each metric can hide a coherent structural difference.
+
 ## Revision 11 (2026-10-10)
 
 Revision 10 was checked against the validation-matrix layout and the ligand and chain comparison tooling available in the pinned stack. These are planning changes; no porting code was written.
