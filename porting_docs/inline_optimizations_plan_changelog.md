@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 10 (2026-10-10)
+
+Revision 9 was checked against the public Python runner and the ligand-permutation helper. These edits clarify step 0; no porting code was written.
+
+- The pre-fix `fast_layernorm` identity claim now applies to stock CLI baselines run on the default CUDA stream. OpenDDE does not switch streams internally, but a Python caller can invoke the runner under an external stream. The targeted graph-capture and side-stream checks now record actual pre-fix behavior instead of requiring a failure that has not been verified on the target stack. The corrected kernel must pass those checks where supported.
+- The structure-comparison protocol can no longer use `get_substructure_perms` unchanged as a pass/fail oracle. The helper caps permutation enumeration and calls `np.random.choice` when more than `MaxMatches` remain. Qualification needs a deterministic, exhaustive mapping where tractable; a capped comparison must be reported as non-exhaustive and checked another way before accepting or rejecting the candidate.
+- Numerical limits are fixed before candidate qualification outputs are inspected, after stock calibration. Step 0's representative Triton compile-and-run check remains a compatibility smoke test and cannot set those limits. The previous phrase, "before any optimized output has been seen," conflicted with that smoke test.
+
 ## Revision 9 (2026-10-10)
 
 Revision 8 was checked against OpenDDE's stream usage, the LayerNorm kernel source, the available structure-comparison tooling and the cache guard. These are planning changes; no porting code was written.
