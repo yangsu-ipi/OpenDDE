@@ -41,10 +41,12 @@ Never used for tuning or inspected during development. Each qualification draws 
 | H7 | `examples/tfg/9lh2/9lh2_contact.json` | covalent glycan with guidance | 704 residues |
 | H8 | synthetic DNA duplex, a sequence different from D7 | DNA only | about 24 nt |
 | H9 | synthetic RNA hairpin, no MSA | RNA only | about 30 nt |
+| H10 | D4 (`7wux`) with held-out seeds only | large | 1,218 tokens |
+
+H10 is the large held-out case (user decision, 2026-10-10): the repository has no second input above 1,000 tokens. Because D4 is tuned on, H10 tests only new seeds, not a new input, and is a weaker check than the other held-out rows. Its seeds come from the 201–299 held-out range like every other held-out run, and are never used for development.
 
 ## Open questions for approval
 
-1. **Large held-out input.** The repository has only one input above 1,000 tokens (D4). Either supply an external large complex, for example a PDB entry of 1,000–1,500 tokens with a precomputed MSA, or accept new seeds on D4 as the large held-out case. New seeds on a tuned input are a weaker test.
-2. **`rho` for D12.** The default is `rho=0`. A value is needed that exercises gradients through the denoiser without making the sampler diverge.
-3. **Synthetic inputs.** D7, H8 and H9 are synthetic nucleic acids with no reference structure. They test the non-protein anchor and polymer LDDT between paired samples, not accuracy. Accept them, or name deposited DNA-only and RNA-only entries instead.
-4. **Fold-CP.** The Fold-CP regression input is D1 on two GPUs (plan, validation matrix), independent of this set.
+1. **`rho` for D12.** The default is `rho=0`. A value is needed that exercises gradients through the denoiser without making the sampler diverge.
+2. **Synthetic inputs.** D7, H8 and H9 are synthetic nucleic acids with no reference structure. They test the non-protein anchor and polymer LDDT between paired samples, not accuracy. Accept them, or name deposited DNA-only and RNA-only entries instead.
+3. **Fold-CP.** The Fold-CP regression input is D1 on two GPUs (plan, validation matrix), independent of this set.
