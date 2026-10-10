@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 16 (2026-10-10)
+
+Revision 15 closed gaps in the random-input trace, but two comparisons still needed clearer limits. No porting code was written.
+
+- Treat native bf16-versus-fp32 stock runs as a cross-precision contrast. If their traced draws differ, the distance is descriptive and cannot inform numerical limits as a precision estimate. When an isolated precision estimate is needed, capture one complete draw set and replay it into both stock precision paths, casting at each draw site. Keep replay out of timing.
+  - *Reason:* `torch.randn` uses the requested dtype in the sampler, so equal seeds need not give equal stochastic inputs. A native run may measure both a noise change and an arithmetic change.
+- Replace the trace's total-count check with an expected key manifest and per-RNG-site, per-kind counts. Check skipped and repeated guidance draws, reject duplicate keys, and self-test that omitting a hook or duplicating a record fails.
+  - *Reason:* one missing record and one duplicate can leave the total unchanged. Qualification needs to detect both before calling samples paired.
+
 ## Revision 15 (2026-10-10)
 
 Revision 14 was checked against `biotite.structure.lddt` in biotite 1.4.0 and the augmentation code. The LDDT parameters and per-sample random draws are as the plan assumes; these edits close gaps in the trace and LDDT rules. No porting code was written.
