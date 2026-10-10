@@ -2,6 +2,19 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 15 (2026-10-10)
+
+Revision 14 was checked against `biotite.structure.lddt` in biotite 1.4.0 and the augmentation code. The LDDT parameters and per-sample random draws are as the plan assumes; these edits close gaps in the trace and LDDT rules. No porting code was written.
+
+- Require the random-input trace to have an expected record count derived from the sampling settings; a missing or extra record fails. Implement the trace as a private in-process callback, not an environment variable, CLI option or config key.
+  - *Reason:* a rewritten sampler that stops calling the hook would produce an empty or partial trace that trivially agrees, and an exposed switch would add public surface outside step 7.
+- Store a raw hash and a comparison-dtype hash for each traced draw, and use the comparison-dtype hashes for the bf16-versus-fp32 comparison of later draws.
+  - *Reason:* raw hashes of bf16 and fp32 draws always differ, so revision 14's trace could not compare any draw after the first between precisions.
+- Have the harness count LDDT contact pairs itself: zero pairs is inconclusive, while a NaN with a nonzero count fails.
+  - *Reason:* Biotite returns NaN for zero contacts (confirmed), the same value an invalid input produces, so the score alone cannot distinguish the two outcomes.
+- Run reproducibility and artifact checks with the trace off, using traced runs only for random-input identity.
+  - *Reason:* hashing copies each draw to the host and synchronizes every step, which can hide the stream races the step 0 diagnostics look for.
+
 ## Revision 14 (2026-10-10)
 
 Revision 13 made sample-index pairing and initial-noise checks explicit. This revision completes the sampled-structure comparison rules and makes the new nucleic-acid metrics testable. No porting code was written.
