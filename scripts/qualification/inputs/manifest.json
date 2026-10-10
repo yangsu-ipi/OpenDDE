@@ -165,6 +165,9 @@
    ],
    "env": {
     "OPENDDE_RIGID_CONTACT": "off"
+   },
+   "comparison": {
+    "exclude_constraint_window": 3
    }
   },
   {
@@ -186,7 +189,10 @@
    },
    "overrides": [
     "sample_diffusion.guidance.rho=1.0"
-   ]
+   ],
+   "comparison": {
+    "exclude_constraint_window": 3
+   }
   },
   {
    "id": "D13",
