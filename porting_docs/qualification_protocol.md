@@ -1,6 +1,6 @@
 # Qualification protocol
 
-Status: **draft for approval. Nothing here is frozen yet.** The plan (`inline_optimizations_plan.md`, step 0 gate) requires the qualification inputs, paired seeds, sample-index pairing, symmetry-completeness screen, acceptance criteria, guidance-success criteria and reserved held-out pool to be frozen before any `fast` kernel is tuned. This first section proposes the inputs, seeds and held-out pool. The numerical contract, two-tier limits, comparison rules and held-out log will be added as the remaining step 0 work lands.
+Status: **inputs, seeds and held-out pool approved by the user (2026-10-10); nothing is frozen yet.** Freezing waits on the D6 and D7 stock runnability check, the H8 and H9 sequences and the symmetry-completeness screen. The plan (`inline_optimizations_plan.md`, step 0 gate) requires the qualification inputs, paired seeds, sample-index pairing, symmetry-completeness screen, acceptance criteria, guidance-success criteria and reserved held-out pool to be frozen before any `fast` kernel is tuned. This first part sets the inputs, seeds and held-out pool. The numerical contract, two-tier limits, comparison rules and held-out log will be added as the remaining step 0 work lands.
 
 ## Proposed development set
 
@@ -18,13 +18,24 @@ Used for tuning and development comparisons against `off`. All inputs come from 
 | D8 | `examples/tfg/9lh2/9lh2_unconstrained.json` | covalent bond (N-glycan NAG on Asn), ligands | 704 residues plus glycans | `--use_msa true` |
 | D9 | `examples/tfg/1a14/1a14_contact.json` | rigid-contact guidance | 612 tokens | `--use_tfg_guidance true --enable_tf32 false` |
 | D10 | `examples/tfg/1a14/1a14_pocket.json` | epitope guidance | 612 tokens | as D9 |
-| D11 | D9 input with `OPENDDE_RIGID_CONTACT=off` | generic TFG potential guidance, `rho=0` | 612 tokens | as D9 |
-| D12 | D11 with `--sample_diffusion.guidance.rho` > 0 | guidance gradients through the denoiser | 612 tokens | value to choose (see open questions) |
+| D11 | D9 input with `OPENDDE_RIGID_CONTACT=off` | generic TFG potential guidance, `rho=0` (scoped; see below) | 612 tokens | as D9 |
+| D12 | D11 with `rho=1.0` | guidance gradients through the denoiser (scoped; see below) | 612 tokens | as D11, run through `scripts/qualification/run_opendde.py --set sample_diffusion.guidance.rho=1.0` |
 | D13 | D2 and D3 in one input file | multi-job, multi-seed | — | `--seeds 101,102` |
 
 - **Paired seeds:** 101 and 102 for every development row. Pair `off` and candidate samples by original sample index (see the plan's validation matrix), not by output filename.
 - **Sizes:** D1 and D2 are small, D3, D5 and D8 medium, D4 large.
 - **Repeat runs:** item 3 already showed D1 and D4 byte-reproducible under the deterministic recipe, and D9 as well for guided runs.
+
+### Scope of D11 and D12
+
+User decision, 2026-10-10. `pred` has no option for `rho`, so D12 sets it through the qualification wrapper's `--set`, which edits the config `pred` builds before validation. Paired D11 and D12 runs also set `sorted_by_ranking_score=false`, so output `sample_k` is original sample index k.
+
+`rho=1.0` was chosen from a stock sweep on sm_120 (step 0 results, rho sweep). Against `rho=0`, it moved paired samples by 0.67–1.30 Å Cα RMSD and pulled the restrained Cα–Cα contacts from the 8 Å limit in to 3.5–6.5 Å, with every coordinate finite and ranking scores unchanged. At `rho=0.1` the shift was 0.06–0.34 Å, which may not exceed the differences a `fast` candidate is allowed, so a silently zeroed gradient could pass; `rho=0.01` barely moved the samples.
+
+Stock generic guidance breaks the backbone on this input, at `rho=0` as well: with rigid contact off, the atom-level contact restraint pulls single atoms out of the chain, leaving consecutive Cα atoms up to 17 Å apart at and next to the restrained residues (L29–31, L91–94, N247–248, H54–56). `rho=1.0` widens these gaps to up to 35 Å. The checked unguided D3 and rigid-contact D9 samples show no gap. So D11 and D12 test only that the generic guidance path matches `off`, not structure quality:
+- Structure comparisons for D11 and D12 exclude the residues named in the input's contact constraints and the residues within 3 positions of them in the same chain. The exclusion is fixed from the input, not from any prediction.
+- D12 adds a gradient check: for each paired sample, every constrained Cα–Cα distance of the candidate must stay within a limit, frozen with the other criteria, of the `off` sample's distance. A zeroed or partial gradient leaves these distances near the 8 Å limit, as at `rho=0`.
+- Structure quality and backbone geometry are not judged on D11 or D12.
 
 ## Proposed reserved held-out pool
 
@@ -58,7 +69,6 @@ User decision, 2026-10-10. This narrows the plan's validation-matrix rule that e
 - **Criteria.** Both routes use this protocol's frozen criteria against the 1.2 `off` baseline. The kit's own limits and numerical claims are not used: they were set for OpenDDE 1.1.1 on H100 with torch 2.7.1+cu126 and a `fast_layernorm`, TF32-on baseline.
 - **Record.** The GPU qualification tables state, for each row, whether it was kit-unchanged or port-chosen and which route qualified it. The held-out log records the draws used.
 
-## Open questions for approval
+## Notes
 
-1. **`rho` for D12.** The default is `rho=0`. A value is needed that exercises gradients through the denoiser without making the sampler diverge.
-2. **Fold-CP.** The Fold-CP regression input is D1 on two GPUs (plan, validation matrix), independent of this set.
+- **Fold-CP.** The Fold-CP regression input is D1 on two GPUs (plan, validation matrix), independent of this set.

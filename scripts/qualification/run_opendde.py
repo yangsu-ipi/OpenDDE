@@ -3,7 +3,7 @@
 
 Usage:
     python scripts/qualification/run_opendde.py [--phase-timing OUT.json]
-        [--draw-trace OUT.jsonl] -- pred -i input.json -o out_dir ...
+        [--draw-trace OUT.jsonl] [--set KEY=VALUE ...] -- pred -i input.json -o out_dir ...
 
 Everything after ``--`` is passed unchanged to the ``opendde`` CLI. Without
 either option this is equivalent to running ``opendde``. The instrumentation
@@ -17,6 +17,13 @@ wall time and peak device memory per phase. It is for profiling only.
 copies each draw to the host, so it synchronizes every step; use traced runs
 only to establish random-input identity, never for timing or for checking
 reproducibility of prediction artifacts.
+
+``--set`` overrides a dotted inference config key that ``pred`` has no option
+for, such as ``sample_diffusion.guidance.rho=0.1`` or
+``sorted_by_ranking_score=false``. The value is parsed as JSON, falling back to
+a string. It is applied to the config ``pred`` builds, before ``pred`` applies
+its own options and validates the result, so it cannot override a ``pred``
+option.
 """
 
 import argparse
@@ -341,6 +348,45 @@ def _host_peak_bytes() -> dict[str, Any]:
     return out
 
 
+def _parse_override(text: str) -> tuple[list[str], Any]:
+    key, sep, raw = text.partition("=")
+    if not sep or not key:
+        raise SystemExit(f"error: --set expects KEY=VALUE, got {text!r}")
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError:
+        value = raw
+    return key.split("."), value
+
+
+def _install_overrides(overrides: list[tuple[list[str], Any]]) -> None:
+    import runner.batch_inference as batch_module
+
+    def apply(configs: Any) -> None:
+        for path, value in overrides:
+            node = configs
+            for part in path[:-1]:
+                node = node[part] if isinstance(node, dict) else getattr(node, part)
+            if isinstance(node, dict):
+                if path[-1] not in node:
+                    raise SystemExit(f"error: unknown config key {'.'.join(path)}")
+                node[path[-1]] = value
+            else:
+                if not hasattr(node, path[-1]):
+                    raise SystemExit(f"error: unknown config key {'.'.join(path)}")
+                setattr(node, path[-1], value)
+
+    def make(fn):
+        def wrapper(*args, **kwargs):
+            configs = fn(*args, **kwargs)
+            apply(configs)
+            return configs
+
+        return wrapper
+
+    _wrap(batch_module, "build_inference_config", make)
+
+
 def main() -> int:
     argv = sys.argv[1:]
     if "--" not in argv:
@@ -350,18 +396,25 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--phase-timing", type=Path)
     parser.add_argument("--draw-trace", type=Path)
+    parser.add_argument("--set", dest="overrides", action="append", default=[])
     options = parser.parse_args(argv[:split])
     cli_args = argv[split + 1 :]
 
     timer = PhaseTimer() if options.phase_timing else None
     trace = DrawTrace() if options.draw_trace else None
     _install(timer, trace)
+    overrides = [_parse_override(text) for text in options.overrides]
+    if overrides:
+        _install_overrides(overrides)
 
     from runner.cli import opendde_cli
 
     # The fingerprint is taken after the run so it never initializes CUDA
     # ahead of the stock code path.
-    meta: dict[str, Any] = {"cli_args": cli_args}
+    meta: dict[str, Any] = {
+        "cli_args": cli_args,
+        "config_overrides": options.overrides,
+    }
     start = time.perf_counter()
     exit_code = 0
     try:

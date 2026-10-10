@@ -126,7 +126,20 @@ So guided stock runs with rigid contact are also byte-reproducible under the det
 
 CPU unit tests (`tests/test_instrumentation.py`) cover unguided runs and guidance with zero and nonzero Monte Carlo noise, including per-site counts, scopes and unchanged outputs.
 
+## D12 rho sweep
+
+Job 48751, `1a14_contact` (D11 input) with `OPENDDE_RIGID_CONTACT=off`, MSA, seed 101, 5 samples, deterministic, bf16, TF32 off, stock `off`. `rho` was set with `run_opendde.py --set sample_diffusion.guidance.rho=…`, with `sorted_by_ranking_score=false` so samples pair by original index. A CPU check in the job confirmed the override reaches the guidance config. Comparisons are against the `rho=0` sample with the same index.
+
+| `rho` | Cα RMSD vs `rho=0` | Max atom shift | Restrained Cα–Cα distances (3.5–8 Å) | Ranking score | Diffusion / total |
+|---|---|---|---|---|---|
+| 0 | — | — | all ≈ 8.0 Å | 0.51–0.61 | 36 s / 90 s |
+| 0.01 | 0.01–0.07 Å | 0.08–0.84 Å | ≈ 8.0 Å | unchanged | 141 s / 194 s |
+| 0.1 | 0.06–0.34 Å | 0.7–5.2 Å | mostly ≈ 8.0 Å, some 6.6–7.8 Å | unchanged | 140 s / 194 s |
+| 1.0 | 0.67–1.30 Å | 8–14 Å | 3.5–6.5 Å | unchanged | 141 s / 194 s |
+
+All coordinates were finite and peak device memory stayed at 10.7–10.8 GiB. Generic guidance breaks the backbone on this input already at `rho=0`: consecutive Cα gaps of up to 17 Å at and next to the restrained residues (L29–31, L91–94, N247–248, H54–56), widening to up to 35 Å at `rho=1.0`. Sample 0 of the unguided D3 output (job 48613) and of the rigid-contact D9 output (job 48620) has no such gaps; its only short Cα steps are cis-prolines. The user chose `rho=1.0` and scoped D11 and D12 to path agreement (qualification protocol).
+
 ## Not yet done
 
 - Item 7 contrast distances: need the frozen qualification inputs and paired seeds, and the comparison tooling (LDDT, ligand RMSD, chain mapping).
-- The qualification protocol: `qualification_protocol.md` holds a draft input, seed and held-out proposal awaiting approval; criteria and comparison rules follow.
+- The qualification protocol: `qualification_protocol.md` holds the approved inputs, seeds and held-out pool; freezing, criteria and comparison rules follow.
