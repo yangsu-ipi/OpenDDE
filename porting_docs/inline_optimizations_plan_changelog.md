@@ -2,6 +2,19 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 6 (2026-10-09)
+
+Revision 5 was reviewed against checkpoint loading, kernel fallback and the proposed validation gates. These changes refine the plan; no porting code was written.
+
+- **Tie trunk-cache identity to a strictly loaded, unchanged model, not file metadata alone.** Non-strict loads, direct model construction and later weight changes bypass the cache unless the current state has a verified identity. Test same-metadata checkpoint replacement. A new process must rehash without a trusted content-addressed manifest.
+  - *Reason:* path, size and modification time can stay the same when checkpoint contents change; a non-strict load or post-load mutation can also leave the model holding weights the file digest does not describe. Any case could make the disk cache return another model's trunk result.
+- **Check parameter gradients at optimized dispatch sites.** A kernel without backward support falls back when gradients are required for inputs or module parameters; parameter-only backward gets a test.
+  - *Reason:* checking inputs alone misses a call with constant inputs and trainable weights.
+- **Set `fast` and `big` acceptance criteria before tuning.** Name the inputs, pair seeds with `off`, set coordinate, confidence and guidance limits from fixed-seed repeatability and domain-specific criteria, and reserve a held-out qualification set. Seed-to-seed variation is context, not a license for large paired-seed errors.
+  - *Reason:* choosing limits after inspecting optimized outputs would make the qualification circular. Size labels alone do not establish numerical safety across the input classes in the matrix.
+- **Move the Fold-CP `off` regression to the step 2 gate.** Save a two-GPU stock baseline in step 0, before either unconditional bug fix, and compare after each fix. Hold the gate if two GPUs are unavailable.
+  - *Reason:* the plan promises unchanged Fold-CP `off` behavior, and testing each fix separately makes a failure easier to attribute.
+
 ## Revision 5 (2026-10-09)
 
 Records two user decisions; no change in scope or approach.

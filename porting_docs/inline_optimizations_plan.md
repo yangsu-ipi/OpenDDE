@@ -1,6 +1,6 @@
 # Inline optimization porting plan
 
-Revision 5. Changes and reasons are recorded in `inline_optimizations_plan_changelog.md`.
+Revision 6. Changes and reasons are recorded in `inline_optimizations_plan_changelog.md`.
 
 ## Recorded decisions
 
@@ -120,11 +120,13 @@ On gnode2:
    - peak allocated and reserved GPU memory;
    - host memory peak;
    - output digests.
+6. Before either unconditional bug fix, save a stock Fold-CP `off` baseline for a short, fixed input on two GPUs. Run it twice under the deterministic recipe. Record whether those runs agree byte for byte and retain the prediction artifacts for the step 2 regression. If they differ, repeat enough runs to set an agreed comparison tolerance before changing the code. Reason: once the fixes are in place, the unmodified Fold-CP output is no longer available from this branch for a direct comparison.
 
 Gate and decision:
 - If stock output is not reproducible under any triangle-kernel configuration, stop and ask the user: the `exact` contract cannot be tested as written.
 - A failing stock smoke run or unusable stock triangle fallback blocks the baseline until its cause is diagnosed. If an optional cuEquivariance, `fast_layernorm` or kit Triton path fails, record the failure and continue the baseline and exact work through the available stock path. Qualify that optimized path only after it works. Propose a dependency-pin change to the user only if a required target path has no suitable fallback and the alternative stack has been tested.
 - Use the phase profile to rank the groups by expected gain. Drop or postpone a group whose phase is too small to matter. Decide on `big` after measuring `fast` memory on the provisioned A100 as well as sm_120.
+- Before tuning any `fast` kernel, freeze the qualification inputs, paired seeds, coordinate and confidence tolerances, guidance-success criteria, and a held-out set. Measure stock repeatability at fixed seeds and seed-to-seed variation separately; the latter gives context, not an automatic allowance for large paired-seed errors. Reason: thresholds chosen after seeing optimized outputs would make a marginal kernel look qualified.
 
 Reason: the kit's numbers come from H100 on another software stack and OpenDDE version. Without a local profile there is no basis for the order or the scope.
 
@@ -137,7 +139,7 @@ The modes, all measured against the 1.2 defaults (bf16, TF32 off, `LAYERNORM_TYP
   - "Prediction artifacts" are the files listed in step 0, item 3.
   - Run `exact` comparisons with the triangle-kernel configuration that step 0 found reproducible. If only `torch` triangle kernels are reproducible, the byte-identity check uses them. Runs with `auto` are then compared within the agreed tolerance and documented as such.
   - In default, non-deterministic runs, `exact` matches `off` in distribution, not bit for bit. The user docs must say so.
-- `fast`: deterministic across repeated runs in the same environment when the underlying kernels are deterministic, finite throughout, and within an agreed validation envelope against `off` and normal seed-to-seed variation. It may select qualified Triton kernels. It does not change the global LayerNorm implementation merely because the mode changed.
+- `fast`: deterministic across repeated runs in the same environment when the underlying kernels are deterministic, finite throughout, and within the predeclared per-case envelope against `off` on paired seeds. Report stock seed-to-seed variation separately as context. It may select qualified Triton kernels. It does not change the global LayerNorm implementation merely because the mode changed.
 - `big`: the same numerical class as `fast`, with lower peak device memory. It exists only if measurements on the target cards justify it.
 
 Add one native configuration object for mode, GPU capability, per-optimization decisions and fallbacks. Expose it through the existing config system and CLI as `--optimization_mode {off,exact,fast,big}`, defaulting to `off`, consistent with flags such as `--triatt_kernel` and `--enable_tf32`.
@@ -187,21 +189,22 @@ Fix these two OpenDDE issues in the same step, outside any mode:
    - the torch, CUDA runtime, Triton and cuEquivariance versions;
    - the OpenDDE version.
 
-   Bypass the disk cache for a call if its numerical path cannot be identified before the lookup. Keep the disk cache off during numerical qualification until cache hits, misses, custom-checkpoint changes, cross-mode isolation and cross-GPU isolation are tested.
+   Bypass the disk cache for a call if its numerical path or loaded model state cannot be identified before the lookup. Keep the disk cache off during numerical qualification until cache hits, misses, custom-checkpoint changes, same-metadata checkpoint replacement, post-load weight changes, cross-mode isolation and cross-GPU isolation are tested.
 
-   Compute the checkpoint digest only when `OPENDDE_TRUNK_CACHE` is set, never on the default path. Memoize it keyed by the checkpoint's real path, size and modification time, so it is hashed once per file version rather than once per call or per process. Checking against the release-manifest digest also requires a hash, so it is not cheaper.
+   Compute the checkpoint digest only when `OPENDDE_TRUNK_CACHE` is set, never on the default path. Bind the digest to a runner-managed model instance after a successful strict load, and reuse it for that instance while its weights remain unchanged. Path, size and modification time are not safe memo keys: replacing a file can preserve all three. Bypass the disk cache after a non-strict load or for directly constructed models unless their loaded state has a verified identity. Invalidate or bypass it after `load_state_dict` or an in-place weight change unless the new state is verified. A new process must hash again unless it has a trusted content-addressed manifest.
 
    Reasons:
    - Today `_trunk_with_cache` hashes only tensor features and `N_cycle`. The CLI also accepts an explicit checkpoint path, so two models or two numerical paths could share one key.
    - Stock trunk results already differ between GPU models and library versions. A cache directory shared between the A100 VM and gnode2, or across an environment upgrade, would otherwise serve results from the wrong platform.
    - Hashing the 2.6 GB checkpoint takes several seconds. Doing it at every model load would slow every run, including those that never use the cache.
+   - File metadata cannot establish which weights the model actually holds. A cache hit after a same-metadata file replacement or a post-load weight change could return another model's trunk result.
    - Dropping `bond_mask` changes the feature set and hence the key, which is harmless but should be expected.
 
 The 1.2 guidance path is a hard boundary:
 - CUDA graph replay stays disabled whenever training-free guidance is enabled. Rigid-contact and epitope guidance require it.
 - The other exact changes may stay enabled if their operator-level and end-to-end tests pass with guidance on.
 
-Gate: all existing CPU tests pass; the exact operator tests pass; deterministic `exact` and `off` outputs match on sm_120 before work moves to fast kernels.
+Gate: all existing CPU tests pass; the exact operator tests pass; deterministic `exact` and `off` outputs match on sm_120 before work moves to fast kernels. Run the Fold-CP `off` regression against the step 0 artifacts after each unconditional fix, before adding the exact changes. If stock Fold-CP was reproducible, require byte identity; otherwise use the tolerance fixed from its stock runs. If two GPUs are unavailable, hold this gate open and do not claim Fold-CP `off` is preserved.
 
 Keep exact changes behind the mode gate throughout this port so `off` remains the unmodified 1.2 path for A/B comparison. After each change passes the A100 and sm_120 gates, record whether it is a candidate for default promotion in a later release. Candidates are the host schedule, structural-token sync, JSON encoding, template deduplication and the hoists. A separate promotion decision would update the `off` contract, docs and tests. Reason: keeping two paths for an identical result costs maintenance, but changing the baseline during qualification would invalidate comparisons.
 
@@ -231,7 +234,7 @@ Replace monkeypatched `forward` methods with explicit dispatch inside the existi
 - the kernel fails to compile;
 - the shape is unsupported;
 - the user stated an explicit stock kernel flag;
-- autograd is needed (`torch.is_grad_enabled()` with inputs that require gradients);
+- autograd is needed (`torch.is_grad_enabled()` and any differentiable input or module parameter requires gradients);
 - the device is CPU or MPS;
 - the numerical class is unknown.
 
@@ -240,7 +243,7 @@ Order:
 2. The same Triton kernels on sm_80 in the A100 VM, on the same stack.
 3. The A100 CUDA triangle-attention and triangle-multiplication kernels, built from source with the cu128 toolkit, as A100-only rows. Building from source avoids depending on the kit's CUDA 13.0 cubins and the R580 driver requirement. Port them only if they beat the Triton rows on A100 at OpenDDE's shapes.
 
-Gate: every promoted row has a correctness record, a run-to-run check, a graph-capture result where applicable, and a measured win over the fallback at the exact call shape.
+Gate: every promoted row has a correctness record, a run-to-run check, a graph-capture result where applicable, and a measured win over the fallback at the exact call shape. Include a parameter-only backward test for each dispatch site that can be called with gradients enabled. Reason: an input may not require gradients while the module's weights do.
 
 ### 4. Reconcile and port the optimized sampler
 
@@ -252,7 +255,7 @@ Guidance rules:
 
 Test four cases separately: unguided, generic guidance (with `rho=0` and `rho>0`), rigid contact, and epitope guidance. Exact scheduling must not change intervention timing or random-number consumption. Fast mode must keep guidance success rates.
 
-Gate: end-to-end unguided and guided runs pass the numerical, determinism and constraint-satisfaction checks on sm_120, then on sm_80.
+Gate: end-to-end unguided and guided runs pass the predeclared numerical, determinism and constraint-satisfaction checks on the qualification inputs and held-out set on sm_120, then on sm_80. Use paired seeds against `off` and report the failures as well as the pass rate.
 
 ### 5. Port single-GPU large-input memory handling (conditional)
 
@@ -300,13 +303,15 @@ The fork will need to absorb future upstream releases, and inline changes spread
 
 ## Validation matrix
 
-Use fixed small, medium and large inputs, with thresholds set during step 0 rather than copied from H100. Cover:
+Use named, fixed small, medium and large inputs for both tuning and qualification. Before the first `fast` row is tuned, set per-case acceptance limits from fixed-seed `off` repeatability and domain-specific criteria; record seed-to-seed variation as context. Reserve inputs and seeds that will not be used for tuning. Cover:
 - protein-only;
 - ligand and covalent-bond;
 - template and MSA;
 - multi-job and multi-seed;
 - unguided, generic guidance with `rho=0` and with `rho>0`, rigid contact, and epitope guidance;
 - Fold-CP regression: `--optimization_mode` other than `off` is rejected under Fold-CP. Fold-CP `off` outputs are unchanged by the port, including the two bug fixes, compared byte for byte with the 1.2 baseline under the deterministic recipe. First check that two stock Fold-CP runs reproduce each other, as in step 0; if they do not, compare within the agreed tolerance instead. On gnode2 this needs two whole GPUs and `--mem=58G`. If Fold-CP support is later added for an exact change, `exact` and `off` must also match under Fold-CP.
+
+For `fast` and `big`, define the coordinate, confidence and constraint-satisfaction limits before tuning. Compare each candidate with `off` on paired seeds, then run the reserved inputs and seeds once per GPU for qualification; if that set fails, do not tune to it and reuse it as a holdout. Record both absolute limits and the stock fixed-seed repeatability and seed-to-seed variation. A small, medium and large size label alone is not enough to establish the numerical envelope.
 
 For each mode, record:
 - cold start and second-run latency;
@@ -335,9 +340,11 @@ For A100, use the same Python, torch 2.7.1+cu128, Triton and cuEquivariance vers
 - The kit's numerical claims are tied to OpenDDE 1.1.1, a `fast_layernorm` and TF32-on baseline, H100 or A100 on cu126, and specific software versions. Treat them as hypotheses until requalified.
 - The kit's Triton kernels are unqualified on sm_120 with Triton 3.3.1. Its only sm_120 measurement used Triton 3.6. A failing optional kernel can fall back to the stock path; a dependency-pin change is needed only if a required target path has no suitable fallback.
 - The trunk cache can mix results from different checkpoints or numerical paths unless its identity is extended (step 2). It also conflicts with pair offload, which owns the same trunk result.
+- Path, size and modification time do not prove checkpoint content, and the loaded model can change after the file is read. Disk-cache identity must follow the model state or the cache must step aside.
 - Global LayerNorm is selected at import and model-construction time. Mode-dependent switching needs an explicit construction-time design; the first port keeps that selection fixed.
 - CLI defaults do not identify which overlapping options the user supplied. Dispatch must record explicit options before applying those defaults.
 - Guidance with `rho>0` needs gradients through the denoiser. Fused sampler kernels without autograd support must step aside, or guidance silently weakens.
+- Kernels without backward support must also step aside when only module parameters require gradients; checking inputs alone would miss that case.
 - Guidance mutates sampler state between denoising steps. Graph capture and fused schedules must either be proven compatible or step aside.
 - Copying more of `opt_core` than needed would bring in tens of thousands of lines and a large maintenance burden. The port needs a dependency inventory and a selected source subset.
 - The existing Fold-CP and the overlay's tensor-parallel code solve overlapping problems with different state layouts. Combining them is riskier than benchmarking the native path first.
@@ -346,9 +353,9 @@ For A100, use the same Python, torch 2.7.1+cu128, Triton and cuEquivariance vers
 
 Add these documents as the port advances:
 
-- The step 0 environment check, stock reproducibility result, prediction-artifact list and baseline profile.
+- The step 0 environment check, stock and Fold-CP reproducibility results, prediction-artifact lists and baseline profiles.
 - A source-to-destination map for each imported or rewritten optimization, including provenance and license notes.
-- The numerical contract and agreed tolerances once baseline results are available.
+- The numerical contract, predeclared tolerances, named qualification inputs and held-out seeds once baseline results are available.
 - GPU qualification tables for sm_80 and sm_120, including refused and fallback shapes.
 - Benchmark reports with commands, environment fingerprints, warm or cold status, timings, memory and output comparisons.
 - Decisions that change scope, especially go or no-go per group after step 0, the A100 capacity and `big` decision, the trunk-cache identity, any global LayerNorm selection design, dependency-pin changes, any lifting of the Fold-CP restriction, any change to the decision not to upstream the bug fixes, and the Fold-CP versus `rowpair_tp` result.
