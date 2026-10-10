@@ -2,6 +2,19 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 14 (2026-10-10)
+
+Revision 13 made sample-index pairing and initial-noise checks explicit. This revision completes the sampled-structure comparison rules and makes the new nucleic-acid metrics testable. No porting code was written.
+
+- Add an opt-in trace of every sampler random input, keyed by original sample, diffusion step and chunk. Step 0 checks traced stock repeatability and confirms that tracing leaves prediction artifacts unchanged; candidates are checked during qualification. For bf16 versus fp32, record raw initial-noise hashes before schedule scaling and compare values after casting the fp32 draw to bf16.
+  - *Reason:* matching initial noise does not prove that later per-step noise, augmentation or guidance draws match. A changed draw sequence invalidates the paired-sample gate even when the seed and first draw agree.
+- Specify symmetric, heavy-atom polymer LDDT, explicit contact settings, per-polymer-type scores and treatment of zero-contact and non-finite cases. Change the two-tier gate from protein to polymer LDDT.
+  - *Reason:* Biotite's default directional score counts contacts in the reference but can miss new candidate contacts. An undefined atom subset or missing coordinate could otherwise be mistaken for a valid pass.
+- Require step 0 parity fixtures for explicit RDKit ligand maps: carboxylate and nitro versus automatic matching, a covalent attachment that cannot be remapped, and the match-cap boundary.
+  - *Reason:* supplying `map` bypasses automatic match generation. The manual enumeration and conjugated-terminal-group equivalence must be checked before their result is used as a hard gate.
+- Require DNA-only and RNA-only qualification inputs, with an explicit user decision if stock cannot run either class.
+  - *Reason:* revision 13 defined a non-protein anchor and nucleic-acid LDDT but left both optional in the validation matrix, so neither path was guaranteed to be exercised.
+
 ## Revision 13 (2026-10-10)
 
 Revision 12 was checked against the sampler, dumper and CIF writer code and the RDKit `CalcRMS` signature in `opendde-dev`. These edits affect the step 0 protocol; no porting code was written.
