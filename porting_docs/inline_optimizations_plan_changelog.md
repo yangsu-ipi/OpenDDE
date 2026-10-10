@@ -2,6 +2,17 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 18 (2026-10-10)
+
+Revision 17 left three Step 0 trace assumptions too loose. This revision fixes them before the harness is built. No porting code was written.
+
+- Treat cross-precision translation equality as a measured result, not a guarantee. The translation draw is fp32 in both paths, but it shares a torch generator with an earlier dtype-dependent Gaussian.
+  - *Reason:* the earlier draw may advance the generator differently, so matching translation dtype alone does not establish matching values.
+- Capture and replay Gaussians before their schedule, translation or guidance scaling. Capture the augmentation rotation matrix before it is applied to coordinates.
+  - *Reason:* a scaled perturbation is not the raw random input. Replaying it at the wrong boundary can apply the scale twice or mix arithmetic differences into the trace.
+- Require a fresh `off` baseline from the candidate's source commit on the same target GPU and software stack for numerical qualification. On a stock trace-manifest mismatch, inspect the source, hooks and manifest, then rerun the self-tests and stock traces. Rebaseline after upstream merges.
+  - *Reason:* a valid manifest proves record coverage, not equivalence of model code across commits; a mismatch can reflect changed sampler behavior as well as a harness defect.
+
 ## Revision 17 (2026-10-10)
 
 Revision 16 was checked against the sampler, guidance, rigid-contact and epitope code. Every random draw count is fixed by configuration, so the manifest can be derived from settings. These edits narrow the replay diagnostic and keep the manifest valid over time. No porting code was written.
