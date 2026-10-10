@@ -2,6 +2,19 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 19 (2026-10-10)
+
+Revision 18 was checked against the augmentation code: rotations come from SciPy's `Rotation.random` driven by the NumPy generator and are converted to fp32 on the CPU, and the initial Gaussian can be captured before scaling by splitting one expression without changing the arithmetic. These edits guard the same-commit baseline and tidy item 7. No porting code was written.
+
+- Add an `off` drift check on every candidate commit: compare the fresh `off` with the Step 0 baseline (or the latest recorded rebaseline) on the same GPU and stack, and stop qualification on any difference until it is classified as an intended, rebaselined change or a leak to fix.
+  - *Reason:* with candidate and `off` from the same commit, a change that leaks into the `off` path moves both and is invisible to the paired comparison. Nothing previously enforced that `off` stays the unmodified 1.2 path.
+- Require a fresh bf16 `off` per candidate, but reuse the Step 0 fp32 run while that `off` stays byte-identical to the Step 0 baseline; rerun the fp32 contrast only after a legitimate rebaseline.
+  - *Reason:* revision 18 asked for both stock precision runs on every candidate commit, but the fp32 run is context only.
+- Name NumPy and SciPy, alongside the driver, CUDA, torch, Triton and cuEquivariance, in the trace's software-stack fingerprint.
+  - *Reason:* those two libraries determine the rotation draws.
+- Split item 7 into native contrast, conditional replay, reporting and later-candidate sub-bullets, with the reason for conditional replay moved to the end of its bullet.
+  - *Reason:* the revision 17 insertion put a reason sentence mid-paragraph, ahead of further replay requirements.
+
 ## Revision 18 (2026-10-10)
 
 Revision 17 left three Step 0 trace assumptions too loose. This revision fixes them before the harness is built. No porting code was written.
