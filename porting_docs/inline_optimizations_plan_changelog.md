@@ -2,6 +2,37 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 7 (2026-10-09)
+
+Revision 6 was reviewed against the sampler's behavior, the LayerNorm and trunk-cache code paths, checkpoint loading and gradient handling. These are planning changes; no porting code was written.
+
+- **`fast` and `big` acceptance criteria now have three tiers, plus a precision yardstick measured in step 0 (new item 7):**
+  1. tight limits on the trunk and confidence outputs;
+  2. robust paired-sample metrics for sampled structures (a high-percentile coordinate error and paired LDDT, not the maximum);
+  3. no further from stock `--dtype fp32` than stock bf16 is.
+  - *Reasons:*
+    - Under the deterministic recipe, fixed-seed `off` repeatability is expected to be zero, so revision 6's limits based on it would reject any rounding change.
+    - Even with identical injected noise, a 200-step diffusion sampler can send a flexible loop, a ligand pose or a chain-symmetry choice to a different outcome after a small numerical change. Paired errors are therefore heavy-tailed.
+    - The bf16-versus-fp32 drift is a measured, non-zero reference for how much stock moves when only arithmetic precision changes.
+- **Held-out rule fixed.** A held-out failure rejects the candidate. A held-out set that has been seen is used up, and a retry draws a fresh set from a reserved pool. Used sets are logged, and the pool is topped up before tuning continues, not after seeing results.
+  - *Reason:* revision 6 said to "reuse it as a holdout" after it failed, which contradicts holding it out. Once seen, it no longer gives an unbiased test.
+- **Pre-fix regression baselines now exercise the changed code.** Step 0 item 6 adds `LAYERNORM_TYPE=fast_layernorm` baselines on one GPU and under Fold-CP, plus a single-GPU trunk-cache miss-then-hit baseline. The step 2 gate names which baselines each fix is checked against.
+  - *Reasons:*
+    - The LayerNorm stream fix changes a kernel that only runs with `fast_layernorm`, so the default-LayerNorm baselines never reach it.
+    - `_trunk_with_cache` skips the cache under Fold-CP, so the Fold-CP regression cannot test the cache fix.
+- **Trunk-cache identity mechanisms made concrete:**
+  - When the cache is enabled, read the checkpoint once, hash those bytes and load from the same buffer.
+  - Detect post-load weight changes, including a later `load_state_dict`, with PyTorch's per-tensor `_version` counters.
+  - *Reasons:*
+    - Hashing the file and then reading it again leaves a window for it to change between the two reads.
+    - Revision 6 required detecting in-place weight changes without saying how. The version counters are cheap and cover both cases.
+- **Gradient-rule confirmation recorded under risks.**
+  - Normal inference runs under `@torch.no_grad()`, so grad mode is checked first to keep the common path cheap.
+  - Parameters keep `requires_grad=True`, so with `rho>0` every optimized denoiser site falls back to stock.
+  - *Reason:* this confirms revision 6's parameter-gradient rule works with the current runner, and states its cost and effect.
+- **Qualification protocol to live in its own document** (for example `porting_docs/qualification_protocol.md`), started in step 0. The plan keeps the strategy.
+  - *Reason:* the plan now mixes strategy with test procedure, which makes both harder to follow.
+
 ## Revision 6 (2026-10-09)
 
 Revision 5 was reviewed against checkpoint loading, kernel fallback and the proposed validation gates. These changes refine the plan; no porting code was written.
