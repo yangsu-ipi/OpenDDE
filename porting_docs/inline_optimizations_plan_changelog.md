@@ -2,6 +2,27 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 9 (2026-10-10)
+
+Revision 8 was checked against OpenDDE's stream usage, the LayerNorm kernel source, the available structure-comparison tooling and the cache guard. These are planning changes; no porting code was written.
+
+- **Pre-fix `fast_layernorm` baselines are identity references.** Revision 8's branch for a baseline "affected by the bug" is removed.
+  - *Reason:* nothing in `opendde/` or `runner/` creates or switches CUDA streams, including Fold-CP, so every current prediction runs on the default stream and cannot trigger the bug. It becomes reachable only once the port adds graph capture or a side stream.
+- **The targeted stream checks now fail reliably before the fix.** One captures LayerNorm forward and backward in a CUDA graph; one runs a side-stream race with a deliberate delay such as `torch.cuda._sleep`.
+  - *Reason:* launching onto the legacy default stream during capture fails outright. Without a delay, a race test may pass by chance.
+- **The LayerNorm fix covers all 28 launch sites, with a check that none is left without a stream argument.**
+  - *Reason:* the backward is half-converted. `HostLayerNormGradient` passes the current stream to `LayerNormParamGradStep2`, while `LayerNormParamGradStep1` and others in the same function still use the default stream. On a side stream that is a race inside a single operation.
+- **Structure-comparison tooling is chosen in step 0.** Start from biotite's `lddt` (biotite 1.4 is already a dependency; confirmed in `opendde-dev`) and OpenDDE's ligand-symmetry enumeration, plus a small chain-mapping step. Add DockQ or OpenStructure only if needed, and keep any of them as test or dev dependencies.
+  - *Reason:* OpenDDE has no structure-comparison metrics (`opendde/metrics/` has only `clash.py`), and the plan did not say how its paired-structure criteria would be computed.
+- **The trunk-cache guard holds tensor references, or weak references, instead of `id()` values. Its design is frozen at this level.**
+  - *Reasons:*
+    - Python reuses `id()` values after an object is freed, so a replacement tensor could match.
+    - The cache is opt-in and off during qualification, so further elaboration has little value.
+- **Absolute limits are set after the step 0 calibration and before any optimized output is seen.**
+  - *Reason:* revision 8 said only "before tuning", which left open whether limits could be set before calibration data existed.
+- **Status note: the plan is ready for step 0.** The next revision should come from step 0 results, or from a defect that would change what step 0 does.
+  - *Reason:* recent rounds have mostly added edge cases. The questions that decide scope can only be answered by measurement.
+
 ## Revision 8 (2026-10-09)
 
 Revision 7 was checked against the confidence-head inputs, dtype handling, LayerNorm launches and the proposed cache guard. These are planning changes; no porting code was written.
