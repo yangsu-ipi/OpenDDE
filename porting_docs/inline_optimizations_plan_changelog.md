@@ -2,6 +2,23 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 11 (2026-10-10)
+
+Revision 10 was checked against the validation-matrix layout and the ligand and chain comparison tooling available in the pinned stack. These are planning changes; no porting code was written.
+
+- **Fixed a formatting defect introduced in revision 9.** The held-out-set rules had been merged into the comparison-tooling bullet list, with two unrelated sentences sharing one bullet. They are now a separate paragraph. No content changed.
+  - *Reason:* the merged list made the held-out procedure read as a tooling choice.
+- **Named the default ligand tools.**
+  - RDKit's `rdMolAlign.CalcRMS` gives symmetry-aware, deterministic ligand RMSD without realignment, with its `maxMatches` cap recorded. A comparison that reaches the cap is non-exhaustive and is decided by the mapping-free checks.
+  - The mapping-free checks are ligand centroid displacement and the set of protein residues in contact with the ligand.
+  - *Reasons:*
+    - Revision 10 ruled out the random permutation helper but did not name a replacement.
+    - RDKit is already pinned (2025.09.3), and `CalcRMS` was confirmed in `opendde-dev`.
+    - Mapping-free checks catch a ligand that moves to the wrong site whatever the atom mapping.
+- **Named the default chain mapping:** an exhaustive search over permutations of chains that share an entity, using OpenDDE's entity and symmetry identifiers, with a recorded greedy fallback if there are too many copies.
+  - *Reason:* paired predictions of the same input share chain identifiers, so only equivalent copies can swap, and the search is small for typical inputs.
+- **DockQ or OpenStructure remain the fallback** if these defaults are not enough.
+
 ## Revision 10 (2026-10-10)
 
 Revision 9 was checked against the public Python runner and the ligand-permutation helper. These edits clarify step 0; no porting code was written.

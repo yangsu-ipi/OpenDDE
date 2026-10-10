@@ -1,6 +1,6 @@
 # Inline optimization porting plan
 
-Revision 10. Changes and reasons are recorded in `inline_optimizations_plan_changelog.md`.
+Revision 11. Changes and reasons are recorded in `inline_optimizations_plan_changelog.md`.
 
 Status: the plan is ready for step 0. The questions that decide scope now need measurements rather than more desk review: stock reproducibility, cuEquivariance determinism on sm_120, the phase profile and the bf16-versus-fp32 comparison. Revise the plan next from step 0 results, or when a reviewer finds a defect that would change what step 0 does.
 
@@ -346,9 +346,16 @@ Use named, fixed small, medium and large inputs for both tuning and qualificatio
 
 For `fast` and `big`, define the two-tier limits, confidence and constraint-satisfaction criteria before tuning. Fix the alignment, equivalent-chain assignment and ligand atom-symmetry rules in the qualification protocol, and choose the tooling in step 0:
 - OpenDDE has no structure-comparison metrics; `opendde/metrics/` contains only `clash.py`.
-- Start from what is already available. biotite 1.4 is a dependency and provides `biotite.structure.lddt` (confirmed in `opendde-dev`). `opendde/data/core/substructure_perms.py` provides candidate ligand atom permutations, but it caps enumeration and randomly subsamples when more than `MaxMatches` remain. Do not use its output as-is for a pass/fail symmetry-aware metric. Choose a deterministic, exhaustive mapping where tractable; if a cap is necessary, record that the comparison is non-exhaustive and use another acceptance check for that case. Add an equivalent-chain mapping step.
-- Add DockQ, OpenStructure or similar only if these are not enough.
-- Keep any added comparison tooling as a test or dev dependency, not a runtime dependency in `pyproject.toml`. Compare each candidate with `off` on paired seeds during development. Then qualify it once per GPU on a held-out set drawn from the reserved pool.
+- Start from what is already available. biotite 1.4 is a dependency and provides `biotite.structure.lddt` (confirmed in `opendde-dev`). Use it for protein LDDT between paired samples.
+- Do not use `opendde/data/core/substructure_perms.py` for a pass/fail symmetry-aware metric. It caps enumeration and randomly subsamples with `np.random.choice` when more than `MaxMatches` permutations remain.
+- **Default ligand tools.**
+  - Use RDKit's `rdkit.Chem.rdMolAlign.CalcRMS` for ligand RMSD between paired samples. It accounts for symmetry by enumerating substructure matches deterministically, compares in place without realigning, and has a configurable `maxMatches` cap (default 1,000,000). RDKit 2025.09.3 is already pinned, and `CalcRMS` is confirmed present in `opendde-dev`. Record the cap used. If a ligand's match count reaches the cap, mark that comparison as non-exhaustive and decide the case with the mapping-free checks below.
+  - Add mapping-free checks that cannot be fooled by atom relabeling: ligand centroid displacement, and the set of protein residues within a fixed contact distance of the ligand. These catch a ligand that moves to the wrong site while keeping its internal geometry.
+- **Default chain mapping.** Paired predictions of the same input share chain identifiers, so only equivalent copies of the same entity can swap. Search the permutations of chains that share an entity, using the entity and symmetry identifiers OpenDDE already assigns, and keep the assignment that minimizes the paired error. This search is small and exhaustive for typical inputs. If an input has too many equivalent copies for exhaustive search, record that and use a greedy assignment, reported as non-exhaustive.
+- Add DockQ, OpenStructure or similar only if these defaults are not enough.
+- Keep any added comparison tooling as a test or dev dependency, not a runtime dependency in `pyproject.toml`.
+
+Compare each candidate with `off` on paired seeds during development. Then qualify it once per GPU on a held-out set drawn from the reserved pool:
 - A held-out failure rejects that candidate.
 - Once a held-out set has been seen, it is used up: any retry after changes draws a fresh set from the pool.
 - Record which held-out sets have been used, and for which candidate.
