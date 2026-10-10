@@ -10,6 +10,7 @@ import torch.nn as nn
 from scipy.spatial.transform import Rotation
 from torch.utils.checkpoint import checkpoint
 
+from opendde.utils import instrumentation
 from opendde.utils.scatter_utils import scatter
 
 
@@ -65,14 +66,24 @@ def centre_random_augmentation(
     # Generate N_augment (rot, trans) pairs
     batch_size_shape = x_input_coords.shape[:-3]
     rot_matrix_random = (
-        uniform_random_rotation(N_sample=N_augment, numpy_rng=numpy_rng)
+        instrumentation.record_draw(
+            "augmentation.rotation",
+            "rotation",
+            uniform_random_rotation(N_sample=N_augment, numpy_rng=numpy_rng),
+            sample_dim=-3,
+        )
         .to(device)
         .reshape(*batch_size_shape, N_sample, 3, 3)
     ).detach()  # [..., N_sample, 3, 3]
-    trans_random = s_trans * torch.randn(
-        size=(*batch_size_shape, N_sample, 3),
-        device=device,
-        generator=torch_generator,
+    trans_random = s_trans * instrumentation.record_draw(
+        "augmentation.translation",
+        "gaussian",
+        torch.randn(
+            size=(*batch_size_shape, N_sample, 3),
+            device=device,
+            generator=torch_generator,
+        ),
+        sample_dim=-3,
     )  # [..., N_sample, 3]
     x_augment_coords = (
         rot_vec_mul(

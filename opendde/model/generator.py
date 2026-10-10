@@ -17,6 +17,7 @@ from opendde.tfg.rigid_contact import (
     intervention_schedule,
     late_pass_enabled,
 )
+from opendde.utils import instrumentation
 from opendde.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -207,17 +208,27 @@ def sample_diffusion(
             raise RuntimeError(f"{description} returned no result.")
         return result
 
-    def _chunk_sample_diffusion(chunk_n_sample, inplace_safe):
+    def _chunk_sample_diffusion(
+        chunk_n_sample, inplace_safe, chunk_index=0, sample_offset=0
+    ):
         # init noise
         # [..., chunk_n_sample, N_atom, 3]
+        instrumentation.set_draw_scope(
+            chunk=chunk_index, sample_offset=sample_offset, step=None
+        )
         x_l = _run_sampler_action(
             lambda: (
                 noise_schedule[0]
-                * torch.randn(
-                    size=(*batch_shape, chunk_n_sample, N_atom, 3),
-                    device=device,
-                    dtype=dtype,
-                    generator=torch_generator,
+                * instrumentation.record_draw(
+                    "sampler.initial_noise",
+                    "gaussian",
+                    torch.randn(
+                        size=(*batch_shape, chunk_n_sample, N_atom, 3),
+                        device=device,
+                        dtype=dtype,
+                        generator=torch_generator,
+                    ),
+                    sample_dim=-3,
                 )
             ),
             "Fold-CP diffusion initial-noise preparation",
@@ -226,6 +237,9 @@ def sample_diffusion(
         for step_i, (c_tau_last, c_tau) in enumerate(
             zip(noise_schedule[:-1], noise_schedule[1:])
         ):
+            instrumentation.set_draw_scope(
+                chunk=chunk_index, sample_offset=sample_offset, step=step_i
+            )
 
             def _prepare_diffusion_step():
                 # [..., chunk_n_sample, N_atom, 3]
@@ -249,11 +263,16 @@ def sample_diffusion(
                     augmented_x_l
                     + noise_scale_lambda
                     * delta_noise_level
-                    * torch.randn(
-                        size=augmented_x_l.shape,
-                        device=device,
-                        dtype=dtype,
-                        generator=torch_generator,
+                    * instrumentation.record_draw(
+                        "sampler.step_noise",
+                        "gaussian",
+                        torch.randn(
+                            size=augmented_x_l.shape,
+                            device=device,
+                            dtype=dtype,
+                            generator=torch_generator,
+                        ),
+                        sample_dim=-3,
                     )
                 )
                 # 2. Denoise from x_{t_hat} to x_{c_tau}
@@ -374,7 +393,9 @@ def sample_diffusion(
         return x_l
 
     if diffusion_chunk_size is None:
-        x_l = _chunk_sample_diffusion(N_sample, inplace_safe=inplace_safe)
+        x_l = _chunk_sample_diffusion(
+            N_sample, inplace_safe=inplace_safe, chunk_index=0, sample_offset=0
+        )
     else:
         chunk_size = max(1, diffusion_chunk_size)
         x_l = []
@@ -384,7 +405,10 @@ def sample_diffusion(
                 chunk_size if i < no_chunks - 1 else N_sample - i * chunk_size
             )
             chunk_x_l = _chunk_sample_diffusion(
-                chunk_n_sample, inplace_safe=inplace_safe
+                chunk_n_sample,
+                inplace_safe=inplace_safe,
+                chunk_index=i,
+                sample_offset=i * chunk_size,
             )
             x_l.append(chunk_x_l)
         x_l = _run_sampler_action(

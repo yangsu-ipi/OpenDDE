@@ -59,6 +59,7 @@ from opendde.model.shape_complementarity import (
 from opendde.model.modules.structural_tokens import StructuralTokenExpander
 from opendde.model.triangular.layers import LayerNorm
 from opendde.model.utils import simple_merge_dict_list
+from opendde.utils import instrumentation
 from opendde.utils.logger import get_logger
 from opendde.utils.torch_utils import autocasting_disable_decorator
 
@@ -390,7 +391,7 @@ class OpenDDE(nn.Module):
     def _foldcp_stage_context(self, stage_name: str, n_token: int):
         mesh = self._maybe_foldcp_mesh()
         if mesh is None:
-            return nullcontext()
+            return instrumentation.phase(stage_name)
         foldcp = FoldCPConfig.from_environment()
         if foldcp.metrics_jsonl:
             rank = dist.get_rank() if dist.is_initialized() else 0

@@ -38,6 +38,7 @@ import torch
 
 from opendde.tfg.config import TFGConfig, validate_features
 from opendde.tfg.potentials import Potential
+from opendde.utils import instrumentation
 from opendde.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -66,8 +67,11 @@ def _sample_eps(
     """
     if std == 0.0:
         return torch.zeros((1, *shape), device=device, dtype=dtype)
-    return std * torch.randn(
-        (k, *shape), device=device, dtype=dtype, generator=generator
+    return std * instrumentation.record_draw(
+        "tfg.eps",
+        "gaussian",
+        torch.randn((k, *shape), device=device, dtype=dtype, generator=generator),
+        sample_dim=-3,
     )
 
 
@@ -550,11 +554,19 @@ class TFGEngine:
                 # Inject noise so the marginal at the next noise level matches the
                 # chosen diffusion schedule.
                 sigma = torch.sqrt(t_hat**2 - c_tau**2)
-                next_x_work = x_next_local + sigma[..., None, None] * torch.randn(
-                    size=x_next_local.shape,
-                    device=x_next_local.device,
-                    dtype=x_next_local.dtype,
-                    generator=torch_generator,
+                next_x_work = x_next_local + sigma[
+                    ..., None, None
+                ] * instrumentation.record_draw(
+                    "tfg.outer_noise",
+                    "gaussian",
+                    torch.randn(
+                        size=x_next_local.shape,
+                        device=x_next_local.device,
+                        dtype=x_next_local.dtype,
+                        generator=torch_generator,
+                    ),
+                    sample_dim=-3,
+                    outer=outer,
                 )
                 return x_next_local, next_x_work
 

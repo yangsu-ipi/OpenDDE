@@ -1,0 +1,129 @@
+# Step 0 results (sm_120)
+
+Results for step 0 of `inline_optimizations_plan.md` (revision 19) on gnode2. Runs are identified by Slurm job ID; prediction artifacts and logs stay on gnode2 and are not committed.
+
+## Environment and source
+
+- Host: gnode2, NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition (sm_120), driver 595.84. Jobs ran in the `interactive` partition.
+- Stack (`opendde-dev`): Python 3.11.17, torch 2.7.1+cu128, Triton 3.3.1, cuEquivariance 0.10.0, NumPy 2.4.1, SciPy 1.17.1, RDKit 2025.09.3, biotite 1.4.0.
+- Weights: the shared read-only store; `opendde.pt` matches the 1.2 manifest sha256.
+- Source: commit `0238914` plus the uncommitted step 0 instrumentation (items 4 and 8 below). Every GPU job saved `git diff HEAD` (sha256 `420674bf…`) and a tarball of untracked files with its results. The instrumentation is off by default; job A showed it leaves stock artifacts byte-identical when the draw recorder is on.
+
+## Item 2: environment checks
+
+| Check | Result |
+|---|---|
+| CPU test suite (`pytest tests -m "not network"`, CPU only, job 48606) | 783 passed, 4 skipped (Apple MPS only), 4 deselected (network), 26 s |
+| `tests/test_triton_compatibility.py`, `tests/smoke/test_cueq_runtime.py` (job 48612) | 3 passed |
+| Stock `opendde pred` smoke run, `protein_200` (job 48612) | succeeded, 29 s, 5 CIFs and 10 confidence JSONs |
+| Triangle kernels under `auto` | resolved to cuEquivariance for both multiplication and attention |
+| `fast_layernorm` extension | builds and loads for sm_120 (first build about 140 s) |
+| Representative Triton kernel | compiles and runs on Triton 3.3.1 (environment check, 2026-10-09) |
+
+## Item 3: stock reproducibility
+
+Deterministic recipe (`--deterministic true`), default `auto` triangle kernels (cuEquivariance), bf16, TF32 off, torch LayerNorm, seed 101.
+
+| Input | Runs | Result |
+|---|---|---|
+| `protein_200` (200 tokens, no MSA), job 48612 | 2 | byte-identical, 15 of 15 artifacts |
+| `7wux` (1,218 tokens, 9,142 atoms, MSA, ligands), job 48614 | 2 | byte-identical, 15 of 15 artifacts |
+
+The reproducible configuration is therefore `auto`; step 1 can use it for `exact` byte-identity comparisons. The fallback to torch triangle kernels was not needed.
+
+Prediction artifacts are the files under `<job>/seed_<seed>/predictions/`: `<name>_sample_<rank>.cif`, `<name>_summary_confidence_sample_<rank>.json` and `<name>_full_data_sample_<rank>.json`, five of each with the default `--sample 5`. A scan of all 15 found no output, home or data paths, hostname, user name or timestamp-like strings.
+
+## Item 4: synchronized phase timing
+
+Added `opendde/utils/instrumentation.py`, a private in-process hook module with no CLI option, config key or environment variable. On a single GPU, `_foldcp_stage_context` returns `instrumentation.phase(stage_name)` instead of `nullcontext()`; with no recorder installed this is still a null context. `scripts/qualification/run_opendde.py --phase-timing` installs a recorder that synchronizes the device at each boundary and records wall time and peak device memory per phase, and also times featurization, batch preparation and output writing in the runner.
+
+## Item 5: phase profile
+
+Unmodified 1.2 defaults (bf16, TF32 off, torch LayerNorm, `auto` kernels, trunk cache off, `--sample 5 --step 200 --cycle 10`), precomputed MSAs, no templates. One whole GPU (job 48613). Each input ran in its own process with seeds 101 (cold) and 102 (warm). Times are synchronized wall time; memory is peak allocated device memory within the phase.
+
+The inputs are provisional profile inputs taken from the repository examples, not the frozen qualification set.
+
+| Phase | `7r6r` 245 tok, warm | `1a14` 612 tok, warm | `7wux` 1,218 tok, warm |
+|---|---|---|---|
+| featurization | 0.2 s | 1.7 s | 4.0 s |
+| trunk | 4.2 s (21%) / 3.8 GiB | 37.7 s (49%) / 7.5 GiB | 175.8 s (57%) / 18.8 GiB |
+| structural expansion | 0.2 s / 4.9 GiB | 1.2 s / 13.7 GiB | 10.3 s / 43.6 GiB |
+| diffusion | 14.7 s (72%) / 4.2 GiB | 29.4 s (38%) / 10.7 GiB | 87.7 s (29%) / 32.2 GiB |
+| confidence | 0.6 s / 4.6 GiB | 4.5 s / 11.4 GiB | 21.0 s / 35.0 GiB |
+| output writing | 0.4 s | 2.1 s | 7.3 s |
+| total | 20.3 s | 76.6 s | 306.2 s |
+
+- Cold runs took 3.9 s, 3.1 s and 6.2 s longer than warm. Featurization accounts for 3.3 s, 2.8 s and 4.8 s of that; every model phase was within about 2% of its warm time.
+- `1a14` has 10,448 MSA rows against 703 for `7r6r` and 1,302 for `7wux`, which accounts for its relatively heavy trunk.
+- The device-memory peak is in structural token expansion, not the trunk: 43.6 GiB at 1,218 tokens. If it scales roughly with the square of the token count (an extrapolation from one point, not measured), a 96 GB card runs out near 1,750 tokens. This bears on the `big` decision.
+- Host memory peaked at 11.1 GiB (`7wux`).
+
+## Item 6: pre-fix baselines and stream diagnostics
+
+Stock CLI, default stream, deterministic recipe, `auto` kernels, `protein_200`, seed 101 (job 48614).
+
+| Baseline | Result |
+|---|---|
+| Single GPU, `LAYERNORM_TYPE=fast_layernorm`, two runs | byte-identical, 15 of 15 artifacts |
+| Single GPU, trunk cache miss (writes key `2fc3174e…`) then hit | hit and miss byte-identical, 15 of 15 artifacts |
+| Fold-CP, default LayerNorm, two GPUs | blocked: NCCL fails on this stack (below) |
+| Fold-CP, `fast_layernorm`, two GPUs | blocked: NCCL fails on this stack (below) |
+
+Targeted `fast_layernorm` checks (`scripts/qualification/layernorm_stream_diag.py`), pre-fix:
+
+- **Side-stream correctness: fails.** On a non-default stream, with a controlled delay before the input and gradient writes, every trial (5 of 5, for each shape and dtype) produced non-finite outputs and gradients. The forward kernel read the input before the delayed write on its stream completed. The same kernel on the default stream is repeatable and matches torch LayerNorm (fp32 difference 0; bf16 within 0.031).
+- **Graph capture: fails silently.** Capture raised no error, but PyTorch warned that the captured graph was empty. Replay with a new input left the LayerNorm output and the input and weight gradients stale; only the bias gradient, computed outside the extension, matched. Graph capture of `fast_layernorm` is therefore wrong without any exception, which is worse than a capture failure.
+
+### Fold-CP blocker: NCCL 2.26.2 on sm_120
+
+Every Fold-CP run (jobs 48618 and 48623) aborted with `CUDA error: an illegal memory access` in the NCCL watchdog, right after environment initialization and before the model loaded. A minimal two-process `all_reduce` reproduces it outside OpenDDE, so the cause is the communication stack, not OpenDDE (job 48626):
+
+| NCCL configuration (two RTX PRO 6000, PCIe, no NVLink, IOMMU passthrough) | Minimal all-reduce |
+|---|---|
+| 2.26.2+cuda12.2 (the `nvidia-nccl-cu12` that torch 2.7.1+cu128 pins), default P2P transport | illegal memory access |
+| 2.26.2, `NCCL_P2P_DISABLE=1` (shared-memory transport) | illegal memory access |
+| 2.26.2, `NCCL_PROTO=Simple` | illegal memory access |
+| 2.26.2, `NCCL_CUMEM_ENABLE=0` | illegal memory access |
+| 2.26.2, `NCCL_P2P_DISABLE=1 NCCL_PROTO=Simple` | illegal memory access |
+| 2.28.9+cuda12.9, preloaded from another shared environment | passes (all-reduce and send/recv) |
+| 2.30.7+cuda12.9, preloaded from another shared environment | passes |
+
+With NCCL 2.28.9 preloaded, a two-GPU Fold-CP run of `protein_200` (default LayerNorm, torch triangle kernels, deterministic) completed in 28 s. That run is information only, not a baseline: it used a library outside the pinned stack. The production `opendde` environment on gnode2 pins the same NCCL 2.26.2, so its Fold-CP mode is presumably affected as well (not tested). The Fold-CP baselines need a decision on the NCCL used for them; see the plan's dependency-pin rule.
+
+## Item 7: cross-precision draw match (pilot)
+
+Traced stock runs of `protein_200`, deterministic, bf16 and `--dtype fp32` (job 48615): all 3,005 draws matched the expected manifest in both runs, and every draw matched byte for byte under both the raw and comparison-dtype hashes. All draws are fp32 in both precisions, because the sampler runs with autocast disabled.
+
+The same holds with guidance. Rigid-contact guidance on `1a14_contact` (`--use_tfg_guidance true --enable_tf32 false`, MSA, deterministic, job 48620) drew 4,005 identical draws in bf16 and fp32 under both hashes.
+
+The native bf16-versus-fp32 contrast therefore shares its random inputs for unguided and rigid-contact runs, and the replay diagnostic is not needed. The contrast distances themselves need the frozen qualification inputs and the comparison tooling, which are not built yet.
+
+## Item 8: random-input trace
+
+Six RNG call sites carry stable symbolic names: `sampler.initial_noise`, `sampler.step_noise`, `augmentation.rotation`, `augmentation.translation`, `tfg.eps` and `tfg.outer_noise`. Each draw is captured before scaling and hashed per original sample index (`run_opendde.py --draw-trace`). `scripts/qualification/trace_tools.py` derives the expected manifest from the recorded sampling settings.
+
+| Check (`protein_200`, unguided, job 48612) | Result |
+|---|---|
+| Manifest | 3,005 expected, 3,005 observed, no missing, extra or duplicate keys |
+| Self-test: omit each site, duplicate a record, omit one and duplicate another | every fault detected |
+| Two traced stock runs | all 3,005 raw hashes equal |
+| Traced versus untraced artifacts | byte-identical |
+
+Guided runs (job 48620, `1a14`, MSA, deterministic, rigid-body guidance as in `examples/tfg`):
+
+| Check | Result |
+|---|---|
+| Manifest, contact constraint and pocket (epitope) constraint | 4,005 expected and observed each: the unguided sites plus one `tfg.outer_noise` per step; no `tfg.eps` because the default Monte Carlo standard deviation is 0 |
+| Self-test, both inputs | every fault detected |
+| Two traced contact runs | all 4,005 raw hashes equal; artifacts byte-identical |
+| Traced versus untraced contact artifacts | byte-identical |
+
+So guided stock runs with rigid contact are also byte-reproducible under the deterministic recipe.
+
+CPU unit tests (`tests/test_instrumentation.py`) cover unguided runs and guidance with zero and nonzero Monte Carlo noise, including per-site counts, scopes and unchanged outputs.
+
+## Not yet done
+
+- Fold-CP baselines: blocked on the NCCL decision above.
+- Item 7 contrast distances: need the frozen qualification inputs and paired seeds, and the comparison tooling (LDDT, ligand RMSD, chain mapping).
+- The separate qualification protocol document.
