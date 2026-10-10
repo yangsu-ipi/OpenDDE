@@ -45,6 +45,8 @@ Never used for tuning or inspected during development. A qualification that need
 
 H10 is the large held-out case (user decision, 2026-10-10): the repository has no second input above 1,000 tokens. Because D4 is tuned on, H10 tests only new seeds, not a new input, and is a weaker check than the other held-out rows. Its seeds come from the 201–299 held-out range like every other held-out run, and are never used for development.
 
+D7, H8 and H9 are synthetic nucleic acids, accepted by the user on 2026-10-10. They have no reference structure, so they test the non-protein anchor and polymer LDDT between paired `off` and candidate samples, not prediction accuracy. The H8 and H9 sequences are fixed when the inputs are frozen. Before freezing, D7 and D6 are each run once through stock `off` to confirm that the DNA-only and RNA-only paths work on the target stack. D6 is also run once with `--use_rna_msa false`, because H9 has no RNA MSA. H8 and H9 themselves are not run, because a held-out input must stay unseen until it is used. If either stock path fails, record the failure and ask the user whether to drop that input class (plan, validation matrix).
+
 ## When a held-out draw is required
 
 User decision, 2026-10-10. This narrows the plan's validation-matrix rule that every candidate is qualified once per GPU on a held-out set. The held-out set guards against selection on development results, so it is required only where this port makes a selection.
@@ -59,5 +61,4 @@ User decision, 2026-10-10. This narrows the plan's validation-matrix rule that e
 ## Open questions for approval
 
 1. **`rho` for D12.** The default is `rho=0`. A value is needed that exercises gradients through the denoiser without making the sampler diverge.
-2. **Synthetic inputs.** D7, H8 and H9 are synthetic nucleic acids with no reference structure. They test the non-protein anchor and polymer LDDT between paired samples, not accuracy. Accept them, or name deposited DNA-only and RNA-only entries instead.
-3. **Fold-CP.** The Fold-CP regression input is D1 on two GPUs (plan, validation matrix), independent of this set.
+2. **Fold-CP.** The Fold-CP regression input is D1 on two GPUs (plan, validation matrix), independent of this set.
