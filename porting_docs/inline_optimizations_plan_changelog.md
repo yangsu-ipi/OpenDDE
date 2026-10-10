@@ -2,6 +2,16 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 8 (2026-10-09)
+
+Revision 7 was checked against the confidence-head inputs, dtype handling, LayerNorm launches and the proposed cache guard. These are planning changes; no porting code was written.
+
+- The numerical gate now has two pass/fail tiers with absolute limits. The bf16-versus-fp32 comparison remains in the report but no longer acts as a hard ceiling. A candidate close to stock bf16 can be slightly farther from fp32 and fail the old rule; a large stock precision gap could also permit too much drift. The runner disables autocast for fp32, so that run is an empirical comparison, not a pure arithmetic-precision control.
+- Trunk and distogram outputs are checked on identical inputs. The confidence head gets a separate fixed-coordinate test, while its end-to-end outputs are assessed after sampling. The head consumes `x_pred_coords`, so treating its normal output as independent of sampling would misattribute a diffusion change to the head.
+- Paired-structure criteria now fix alignment, equivalent-chain assignment and ligand atom-symmetry rules before comparison. They also check ligand pose or interface contacts separately from internal ligand geometry. Otherwise equivalent structures can appear different, and a misplaced ligand can appear acceptable when its internal geometry is intact.
+- The LayerNorm stream fix gains non-default-stream forward and backward checks, plus graph capture where supported. Ordinary prediction baselines can execute `fast_layernorm` on the default stream without exposing the bug. If the pre-fix bug affected a baseline, that output is diagnostic, not an identity oracle; the corrected kernel is checked against the torch reference and end-to-end criteria instead.
+- The trunk-cache guard now checks the named tensor set and object identities alongside tensor metadata and version counters, and invalidates identity on runner-managed loads or replacements. A replacement tensor can have the same version counter as the old one. Raw storage writes cannot be certified by that counter, so the cache remains limited to a runner-managed inference lifecycle and is bypassed when external mutation cannot be ruled out.
+
 ## Revision 7 (2026-10-09)
 
 Revision 6 was reviewed against the sampler's behavior, the LayerNorm and trunk-cache code paths, checkpoint loading and gradient handling. These are planning changes; no porting code was written.

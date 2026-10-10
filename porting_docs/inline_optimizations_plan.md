@@ -1,6 +1,6 @@
 # Inline optimization porting plan
 
-Revision 7. Changes and reasons are recorded in `inline_optimizations_plan_changelog.md`.
+Revision 8. Changes and reasons are recorded in `inline_optimizations_plan_changelog.md`.
 
 ## Recorded decisions
 
@@ -126,20 +126,19 @@ On gnode2:
    - **Fold-CP, `LAYERNORM_TYPE=fast_layernorm`:** the same input on two GPUs, for the same reason under Fold-CP. Fold-CP already accepts `LAYERNORM_TYPE` as a rank-consistent setting.
    - **Single GPU, trunk cache enabled:** one run that writes the cache and one that hits it, both before the fix. Record that the hit and the miss produce byte-identical artifacts. `_trunk_with_cache` skips the cache under Fold-CP, so the cache fix can only be exercised on a single GPU.
 
-   Reason: once the fixes are in place, the unmodified output is no longer available from this branch for a direct comparison. A baseline that never runs the changed code cannot show the change is safe.
-7. Measure the precision yardstick for `fast` qualification. On the qualification inputs and paired seeds, run stock `off` with the default bf16 and with `--dtype fp32`, and record how far the bf16 results drift from fp32 at each tier described in the gate below. This is how far stock already moves when only arithmetic precision changes. Reason: under the deterministic recipe, repeated `off` runs at a fixed seed are expected to be byte-identical (step 0, item 3). A tolerance based on that repeatability would be zero and would reject any rounding change.
+   Record the pre-fix behavior of `fast_layernorm` forward and backward on a non-default CUDA stream, and of CUDA graph capture where supported. These targeted checks may fail before the fix; retain their results rather than treating failure as a baseline artifact to match. Reason: ordinary inference can run the kernel on the default stream without exposing the launch-stream bug. The prediction baselines still check that the fix does not change outputs where stock runs correctly.
+7. Measure a precision comparison for `fast` qualification. On the qualification inputs and paired seeds, run stock `off` with the default bf16 and with `--dtype fp32`, and record their distance on the metrics below. Report each candidate's distance from both stock runs. Use this as calibration, not a hard pass/fail ceiling or a claim that fp32 is ground truth: `--dtype fp32` disables autocast and may change the executed path, while its distance from bf16 can be near zero or unusually large for a particular case. Reason: fixed-seed `off` repeatability may be byte-exact and cannot by itself set a useful tolerance for changed arithmetic.
 
 Gate and decision:
 - If stock output is not reproducible under any triangle-kernel configuration, stop and ask the user: the `exact` contract cannot be tested as written.
 - A failing stock smoke run or unusable stock triangle fallback blocks the baseline until its cause is diagnosed. If an optional cuEquivariance, `fast_layernorm` or kit Triton path fails, record the failure and continue the baseline and exact work through the available stock path. Qualify that optimized path only after it works. Propose a dependency-pin change to the user only if a required target path has no suitable fallback and the alternative stack has been tested.
 - Use the phase profile to rank the groups by expected gain. Drop or postpone a group whose phase is too small to matter. Decide on `big` after measuring `fast` memory on the provisioned A100 as well as sm_120.
 - Before tuning any `fast` kernel, freeze the qualification inputs, paired seeds, the acceptance criteria below, guidance-success criteria, and a pool of reserved held-out inputs and seeds. Reason: thresholds chosen after seeing optimized outputs would make a marginal kernel look qualified.
-- The `fast` and `big` acceptance criteria have three tiers, all declared before tuning:
-  1. **Trunk and confidence outputs.** Compare the trunk's single and pair representations, the distogram and the confidence-head outputs with `off` on identical inputs, with tight per-tensor limits. These stages involve no sampling, so differences come from arithmetic alone.
-  2. **End-to-end sampled structures.** Compare paired samples with robust metrics: a high percentile of per-atom coordinate error, and LDDT between paired samples, per chain and per ligand. Do not use the maximum error. Reason: even with identical injected noise, a 200-step diffusion sampler can turn a small numerical change into a different outcome for a flexible loop, a ligand pose or a chain-symmetry choice. Most atoms stay close and a few diverge.
-  3. **Precision yardstick.** A candidate must stay no further from stock `--dtype fp32` than stock bf16 is, on the same paired metrics, using the step 0 item 7 measurements. Reason: this is a measured, non-zero reference for how much stock itself moves when only arithmetic precision changes.
+- The `fast` and `big` acceptance criteria have two pass/fail tiers, both declared before tuning:
+  1. **Non-sampling outputs.** Compare the trunk's single and pair representations and the distogram with `off` on identical inputs, with tight per-tensor limits. Test the confidence head separately with identical supplied `x_pred_coords` and other inputs. Reason: the head normally consumes sampled coordinates, so comparing its end-to-end outputs cannot isolate arithmetic changes in the head.
+  2. **End-to-end sampled structures.** Compare paired samples with predeclared limits on a high percentile of per-atom coordinate error and protein LDDT between paired samples. Define the alignment, equivalent-chain assignment and ligand atom-symmetry mapping before calculating these metrics. Check ligand pose or interface contacts separately; internal ligand geometry alone can remain unchanged when the ligand moves to the wrong site. Do not use the maximum atom error as the sole gate. Reason: even with identical injected noise, a 200-step sampler can send a flexible loop, a ligand pose or a chain-symmetry choice to a different outcome.
 
-  Domain criteria apply on top of these: LDDT or DockQ against a reference structure where one exists, confidence-ranking agreement, and guidance success rates. Record stock seed-to-seed variation as context only. It is not an allowance in itself.
+  Apply domain criteria on top of these: LDDT or DockQ against a reference where appropriate, ligand-pose quality where a ligand reference exists, end-to-end confidence and ranking agreement, and guidance success rates. Set absolute per-case limits before tuning. Report the step 0 item 7 precision comparison and stock seed-to-seed variation as context; neither grants an automatic error allowance.
 
 Reason: the kit's numbers come from H100 on another software stack and OpenDDE version. Without a local profile there is no basis for the order or the scope.
 
@@ -152,7 +151,7 @@ The modes, all measured against the 1.2 defaults (bf16, TF32 off, `LAYERNORM_TYP
   - "Prediction artifacts" are the files listed in step 0, item 3.
   - Run `exact` comparisons with the triangle-kernel configuration that step 0 found reproducible. If only `torch` triangle kernels are reproducible, the byte-identity check uses them. Runs with `auto` are then compared within the agreed tolerance and documented as such.
   - In default, non-deterministic runs, `exact` matches `off` in distribution, not bit for bit. The user docs must say so.
-- `fast`: deterministic across repeated runs in the same environment when the underlying kernels are deterministic, finite throughout, and within the predeclared three-tier acceptance criteria against `off` (step 0 gate): tight limits on trunk and confidence outputs, robust paired-sample metrics, and the bf16-versus-fp32 precision yardstick. Report stock seed-to-seed variation separately as context. It may select qualified Triton kernels. It does not change the global LayerNorm implementation merely because the mode changed.
+- `fast`: deterministic across repeated runs in the same environment when the underlying kernels are deterministic, finite throughout, and within the predeclared two-tier acceptance criteria against `off` (step 0 gate): tight limits on non-sampling outputs and fixed-input confidence-head tests, plus paired-sample and domain metrics. Report the bf16-versus-fp32 comparison and stock seed-to-seed variation separately as context. It may select qualified Triton kernels. It does not change the global LayerNorm implementation merely because the mode changed.
 - `big`: the same numerical class as `fast`, with lower peak device memory. It exists only if measurements on the target cards justify it.
 
 Add one native configuration object for mode, GPU capability, per-optimization decisions and fallbacks. Expose it through the existing config system and CLI as `--optimization_mode {off,exact,fast,big}`, defaulting to `off`, consistent with flags such as `--triatt_kernel` and `--enable_tf32`.
@@ -208,7 +207,7 @@ Fix these two OpenDDE issues in the same step, outside any mode:
 
    Two mechanisms make this concrete:
    - **Hash the bytes that are loaded.** When the cache is enabled, read the checkpoint file once into memory, hash those bytes, and pass the same buffer to `torch.load`. This replaces the current direct `torch.load(checkpoint_path, ...)` in `runner/inference.py` on that path only. The default path is unchanged. Reason: hashing the file and then reading it again with `torch.load` leaves a window in which the file can change between the two reads. The cost is about 2.6 GB of extra host memory while loading.
-   - **Detect weight changes with tensor version counters.** When the digest is recorded, snapshot each parameter's and buffer's `_version` counter, which PyTorch increments on every in-place change. Before each cache lookup, compare the counters, and bypass the cache if any changed. `load_state_dict` copies weights in place, so it also increments the counters. Reason: this check is cheap and covers both post-load mutation and a later `load_state_dict` without hashing again.
+   - **Track the loaded tensor set as well as its versions.** After strict loading, snapshot each named parameter's and buffer's object identity, shape, dtype, device and `_version` counter. Before each cache lookup, require the same named set and snapshot values; otherwise bypass the cache. Invalidate the identity explicitly when runner code calls `load_state_dict` or replaces a tensor. Version counters catch ordinary in-place changes but do not establish identity when a tensor is replaced with one at the same version, and they cannot certify arbitrary writes through raw storage. Limit cache use to the runner-managed inference lifecycle; bypass it if external mutation of the loaded model cannot be ruled out. Test parameter and buffer replacement with matching version counters as well as in-place mutation.
 
    Strict loading is already the default (`load_strict: True` in `opendde/config/model_base.py`), so the non-strict bypass affects only unusual setups.
 
@@ -224,10 +223,10 @@ The 1.2 guidance path is a hard boundary:
 - The other exact changes may stay enabled if their operator-level and end-to-end tests pass with guidance on.
 
 Gate: all existing CPU tests pass; the exact operator tests pass; deterministic `exact` and `off` outputs match on sm_120 before work moves to fast kernels. After each unconditional fix, and before adding the exact changes, rerun the step 0 item 6 baselines and compare:
-- after the LayerNorm stream fix: the `fast_layernorm` baselines, single-GPU and Fold-CP, and the default-LayerNorm Fold-CP baseline;
+- after the LayerNorm stream fix: the `fast_layernorm` baselines, single-GPU and Fold-CP, and the default-LayerNorm Fold-CP baseline. Also require correct forward and backward behavior on a non-default CUDA stream, and graph capture where supported. A pre-fix failure in those targeted checks should become a post-fix pass, not be matched as output;
 - after the trunk-cache fix: the default-LayerNorm Fold-CP baseline, and a single-GPU cache miss followed by a cache hit. Both must match the pre-fix artifacts. Also confirm that the cache is still skipped under Fold-CP.
 
-Where the stock runs were reproducible, require byte identity; otherwise use the tolerance fixed from those runs. If two GPUs are unavailable, hold the Fold-CP parts of this gate open and do not claim Fold-CP `off` is preserved.
+Where the stock runs were reproducible, require byte identity; otherwise use the tolerance fixed from those runs. If the targeted stream checks show that a pre-fix `fast_layernorm` baseline was affected by the bug, treat its artifacts as diagnostic rather than an identity oracle: compare the corrected kernel with the torch LayerNorm reference and the agreed end-to-end criteria, and report the artifact differences. If two GPUs are unavailable, hold the Fold-CP parts of this gate open and do not claim Fold-CP `off` is preserved.
 
 Keep exact changes behind the mode gate throughout this port so `off` remains the unmodified 1.2 path for A/B comparison. After each change passes the A100 and sm_120 gates, record whether it is a candidate for default promotion in a later release. Candidates are the host schedule, structural-token sync, JSON encoding, template deduplication and the hoists. A separate promotion decision would update the `off` contract, docs and tests. Reason: keeping two paths for an identical result costs maintenance, but changing the baseline during qualification would invalidate comparisons.
 
@@ -278,7 +277,7 @@ Guidance rules:
 
 Test four cases separately: unguided, generic guidance (with `rho=0` and `rho>0`), rigid contact, and epitope guidance. Exact scheduling must not change intervention timing or random-number consumption. Fast mode must keep guidance success rates.
 
-Gate: end-to-end unguided and guided runs pass the predeclared three-tier numerical criteria, determinism and constraint-satisfaction checks on the qualification inputs and a fresh held-out set on sm_120, then on sm_80. Use paired seeds against `off` and report the failures as well as the pass rate.
+Gate: end-to-end unguided and guided runs pass the predeclared two-tier numerical and domain criteria, determinism and constraint-satisfaction checks on the qualification inputs and a fresh held-out set on sm_120, then on sm_80. Use paired seeds against `off` and report the failures as well as the pass rate.
 
 ### 5. Port single-GPU large-input memory handling (conditional)
 
@@ -326,21 +325,21 @@ The fork will need to absorb future upstream releases, and inline changes spread
 
 ## Validation matrix
 
-Use named, fixed small, medium and large inputs for both tuning and qualification. Before the first `fast` row is tuned, set the three-tier acceptance criteria (step 0 gate) and the domain criteria, using the step 0 precision yardstick. Record seed-to-seed variation as context. Reserve a pool of inputs and seeds that will not be used for tuning. Cover:
+Use named, fixed small, medium and large inputs for both tuning and qualification. Before the first `fast` row is tuned, set the two-tier acceptance and domain criteria (step 0 gate). Record the step 0 precision comparison and seed-to-seed variation as context. Reserve a pool of inputs and seeds that will not be used for tuning. Cover:
 - protein-only;
 - ligand and covalent-bond;
 - template and MSA;
 - multi-job and multi-seed;
 - unguided, generic guidance with `rho=0` and with `rho>0`, rigid contact, and epitope guidance;
-- Fold-CP regression: `--optimization_mode` other than `off` is rejected under Fold-CP. Fold-CP `off` outputs are unchanged by the port, including the two bug fixes, compared byte for byte with the step 0 baselines under the deterministic recipe, with both the default and `fast_layernorm` LayerNorm. First check that two stock Fold-CP runs reproduce each other, as in step 0; if they do not, compare within the agreed tolerance instead. On gnode2 this needs two whole GPUs and `--mem=58G`. If Fold-CP support is later added for an exact change, `exact` and `off` must also match under Fold-CP.
+- Fold-CP regression: `--optimization_mode` other than `off` is rejected under Fold-CP. Compare Fold-CP `off` outputs with the step 0 baselines under the deterministic recipe, with both the default and `fast_layernorm` LayerNorm. Require byte identity where stock was reproducible and unaffected by the stream bug; otherwise use the agreed tolerance or the corrected-kernel reference in step 2. On gnode2 this needs two whole GPUs and `--mem=58G`. If Fold-CP support is later added for an exact change, `exact` and `off` must also match under Fold-CP.
 
-For `fast` and `big`, define the three-tier limits, confidence and constraint-satisfaction criteria before tuning. Compare each candidate with `off` on paired seeds during development. Then qualify it once per GPU on a held-out set drawn from the reserved pool.
+For `fast` and `big`, define the two-tier limits, confidence and constraint-satisfaction criteria before tuning. Fix the alignment, equivalent-chain assignment and ligand atom-symmetry rules in the qualification protocol. Compare each candidate with `off` on paired seeds during development. Then qualify it once per GPU on a held-out set drawn from the reserved pool.
 - A held-out failure rejects that candidate.
 - Once a held-out set has been seen, it is used up: any retry after changes draws a fresh set from the pool.
 - Record which held-out sets have been used, and for which candidate.
 - If the pool runs out, add new reserved inputs and seeds before tuning continues, not after seeing results.
 
-Record the absolute limits, the bf16-versus-fp32 yardstick, and the stock seed-to-seed variation. A small, medium and large size label alone is not enough to establish the numerical envelope.
+Record the absolute limits, the bf16-versus-fp32 comparison, and the stock seed-to-seed variation. A small, medium and large size label alone is not enough to establish the numerical envelope.
 
 For each mode, record:
 - cold start and second-run latency;
@@ -374,8 +373,8 @@ For A100, use the same Python, torch 2.7.1+cu128, Triton and cuEquivariance vers
 - CLI defaults do not identify which overlapping options the user supplied. Dispatch must record explicit options before applying those defaults.
 - Guidance with `rho>0` needs gradients through the denoiser. Fused sampler kernels without autograd support must step aside, or guidance silently weakens.
 - Kernels without backward support must also step aside when only module parameters require gradients; checking inputs alone would miss that case. Normal inference runs under `@torch.no_grad()` (`InferenceRunner.predict`), so check grad mode first to keep the common path cheap. The model's parameters keep `requires_grad=True`, so with guidance `rho>0` every optimized denoiser site falls back to stock.
-- Paired-seed comparisons of sampled structures are heavy-tailed: a small numerical change can switch a flexible region to a different outcome. Limits based on the maximum error, or on near-zero fixed-seed repeatability, would reject benign changes. The three-tier criteria and the precision yardstick address this.
-- A regression baseline that never runs the changed code proves nothing. The LayerNorm stream fix needs `fast_layernorm` baselines, and the trunk-cache fix can only be exercised on a single GPU.
+- Paired-seed comparisons of sampled structures are heavy-tailed: a small numerical change can switch a flexible region to a different outcome. Limits based on the maximum error, or on near-zero fixed-seed repeatability, would reject benign changes. The two-tier criteria use absolute limits; the precision comparison helps interpret them without becoming an automatic allowance.
+- A regression baseline that never runs the changed code proves nothing. The LayerNorm stream fix needs `fast_layernorm` baselines plus a non-default-stream test, and the trunk-cache fix can only be exercised on a single GPU.
 - Guidance mutates sampler state between denoising steps. Graph capture and fused schedules must either be proven compatible or step aside.
 - Copying more of `opt_core` than needed would bring in tens of thousands of lines and a large maintenance burden. The port needs a dependency inventory and a selected source subset.
 - The existing Fold-CP and the overlay's tensor-parallel code solve overlapping problems with different state layouts. Combining them is riskier than benchmarking the native path first.
@@ -384,9 +383,9 @@ For A100, use the same Python, torch 2.7.1+cu128, Triton and cuEquivariance vers
 
 Add these documents as the port advances:
 
-- The step 0 environment check, stock and Fold-CP reproducibility results, prediction-artifact lists, pre-fix regression baselines with their source commit, the bf16-versus-fp32 yardstick and baseline profiles.
+- The step 0 environment check, stock and Fold-CP reproducibility results, prediction-artifact lists, pre-fix regression baselines and stream-test results with their source commit, the bf16-versus-fp32 comparison and baseline profiles.
 - A source-to-destination map for each imported or rewritten optimization, including provenance and license notes.
-- A separate qualification protocol, for example `porting_docs/qualification_protocol.md`, started in step 0. It holds the numerical contract, the three-tier criteria and their limits, the precision yardstick, the named qualification inputs, the reserved held-out pool, and a log of which held-out sets each candidate used. The plan keeps the strategy and points to the protocol for test detail. Reason: the plan is long enough that mixing strategy with test procedure makes both harder to follow.
+- A separate qualification protocol, for example `porting_docs/qualification_protocol.md`, started in step 0. It holds the numerical contract; the two-tier and domain criteria with absolute limits; the alignment, equivalent-chain and ligand-symmetry rules; the precision comparison; the named qualification inputs; the reserved held-out pool; and a log of which held-out sets each candidate used. The plan keeps the strategy and points to the protocol for test detail. Reason: the plan is long enough that mixing strategy with test procedure makes both harder to follow.
 - GPU qualification tables for sm_80 and sm_120, including refused and fallback shapes.
 - Benchmark reports with commands, environment fingerprints, warm or cold status, timings, memory and output comparisons.
 - Decisions that change scope, especially go or no-go per group after step 0, the A100 capacity and `big` decision, the trunk-cache identity, any global LayerNorm selection design, dependency-pin changes, any lifting of the Fold-CP restriction, any change to the decision not to upstream the bug fixes, and the Fold-CP versus `rowpair_tp` result.
