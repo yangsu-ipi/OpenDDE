@@ -371,6 +371,25 @@ Findings:
 
 Controls measured before the near-duplicate gate (job 49252's measurements) now fail it as well, because they lack same-seed pair distances; that comes from the fail-closed evaluator, not the tightening. D1's jitter control now reports a failure only for that reason; it passes every gate its measurement covers, so D1's documented jitter limitation stands. The audit rerun leaves one flagged group, the flexible and epitope median reference fnonnat limit (0.06), which awaits the third harmless contrast.
 
+### Third harmless contrast (`fast_layernorm`)
+
+Declared before the run (protocol C8; gnode2 copy `ln/declaration.md`). Jobs 49308 and 49309 ran stock bf16 at commit `4a515b2` with `LAYERNORM_TYPE=fast_layernorm` and the tier 1 `off` recipe on D1-D15, with the random-input trace; analysis job 49312 (CPU) compared it with the tier 1 `off` run (D14 and D15: the Zn calibration `off`). Outputs in `/data/yang.su/opendde-step0/ln/`.
+
+- **Validity.** A preflight asserted that the extension loaded, and no row log shows the torch fallback warning. Every traced random input matches `off` under the raw hash (15 of 15 rows). No prediction CIF is byte-identical to `off`'s (0 of 160).
+- **Verdict: 14 of 16 jobs pass every gate.** D11 and D12 fail the flexible pairwise interface Fnat, at least 0.70: 0.681 and 0.645. The three harmless contrasts give, on D3, D11, D12 and D13 `1a14`:
+
+| Contrast | D3 | D11 | D12 | D13 `1a14` |
+|---|---|---|---|---|
+| bf16 vs fp32 | 0.874 | 0.854 | 0.871 | 0.874 |
+| Kernel swap | 0.827 | 0.723 | 0.720 | 0.827 |
+| `fast_layernorm` | 0.844 | 0.681 | 0.645 | 0.844 |
+
+  These rows have only 3 same-outcome pairs each under `fast_layernorm`, so the gated minimum rests on few pairs. The limit was 0.60 until the audit tightened it to bf16 versus fp32's doubled value; 0.60 would have passed. No negative control on these rows fails this gate alone (collapsed D11 and D12, the only controls it rejects there, fail two other gates each), and the held-out flexible rows use D8's 0.55.
+- **The kernel-set fnonnat limit is independently validated.** The flexible and epitope median reference fnonnat rise is at most 0.019 (D12) against 0.06; it exceeds the precision-only 0.015, confirming that bf16 versus fp32 alone underestimates harmless variation for this statistic.
+- **The other tightened limit holds:** median reference lDDT drop at most 0.0016 against 0.008.
+- **Closest margins among passing gates:** the near-duplicate count reaches its cap of 3 on D3 and D13 `1a14` (bf16 versus fp32 gave at most 2, the kernel swap 1); stable-row median reference fnonnat rise 0.0145 (D9) against 0.02; D8's NAG pocket Jaccard 0.75 against 0.6; D11's mean constrained distance 7.70 Å against `off`'s 8.00 Å, a 0.29 Å change against the 0.5 Å tolerance (bf16 versus fp32: 0.0004 Å).
+- **Audit rerun with this contrast in place of the kernel swap** (`ln/limit_audit_layernorm.json`): besides the interface Fnat failure, values exceed the precision-only limit but pass the current limit for the lowest per-chain-pair Fnat (0.020 against 0.05), the stable-row fnonnat rise and the pocket Jaccard.
+
 ## Item 8: random-input trace
 
 Six RNG call sites carry stable symbolic names: `sampler.initial_noise`, `sampler.step_noise`, `augmentation.rotation`, `augmentation.translation`, `tfg.eps` and `tfg.outer_noise`. Each draw is captured before scaling and hashed per original sample index (`run_opendde.py --draw-trace`). `scripts/qualification/trace_tools.py` derives the expected manifest from the recorded sampling settings.
