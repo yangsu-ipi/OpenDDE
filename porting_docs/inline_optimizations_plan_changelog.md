@@ -2,6 +2,21 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 23 (2026-10-11)
+
+The tier 2 proposal was reviewed against the development control results and the current evaluator. The numerical values in C9 remain proposals; this revision changes documentation only. It does not amend the frozen input manifest, implement gates, run stock calibration or start the optimization port.
+
+- Require the evaluator to fail on missing held-out class rules, an incomplete ten-sample job, an unsuccessful reference mapping or an absent applicable gate. Add the per-polymer-type reference lDDT and new-interface-contact gates promised by the protocol, set ipTM's status as gated or report-only, calibrate any new limits from stock, then rerun both harmless stock contrasts and all negative controls.
+  - *Reason:* the 14-of-14 pass demonstrates the draft development checks, but `tier2_limits.json` has no H1-H10 mappings, the reference ensemble calculation filters unsuccessful samples, and C9 omits new-contact and ipTM checks named earlier in the protocol. A held-out pass would not yet mean that every declared criterion ran.
+- Keep the C9 numbers as provisional and add a perturbed partial-collapse control. If the ensemble gate cannot reject it at ten samples, recalibrate the statistic or sample count before freezing.
+  - *Reason:* the 0.01 Å duplicate gate catches exact copies, while the 0.1-10 flexible-row spread ratio can admit an ensemble that has lost modes but retains slight variation.
+- Accept D1 as a low-confidence, no-MSA path check with an explicit atom-level noise limitation. A local-geometry gate is conditional on needing that narrower claim.
+  - *Reason:* D1 passes the 0.5 Å-per-coordinate jitter control because its stock bf16/fp32 contrast is larger; jitter fails on every other development row. Raising D1's paired sensitivity beyond its stock behavior would be an unsupported limit.
+- Choose a Zn gate, calibrated on a distinct development-only case. The exact case needs approval and a recorded amendment to the frozen inputs; H3/H5 remain unseen. Keep P4G and D4 Mg report-only, and request a scope decision if stock Zn proves too mobile for a discriminating coordination or pocket gate.
+  - *Reason:* H3/H5 contain three Zn ions, and the D4 Mg observation cannot justify an ion-placement claim for Zn. A held-out Zn limit cannot be set after opening those rows.
+- Update the Step 0 status: sm_120 single-cycle tier 1 is approved, reference feasibility and existing controls have run, and the remaining work is tier 2 enforcement, partial-collapse testing and Zn calibration.
+  - *Reason:* the older text still presented completed stock work as future work and described now-resolved D6/D8 controls as open.
+
 ## Revision 22 (2026-10-10)
 
 Revision 21's acceptance changes were checked against the stock data already on gnode2 (item 7 outputs and calibration job 48816). Four points did not hold up as written. This revision changes documentation only; no hook, reference fetch or GPU run was started.
