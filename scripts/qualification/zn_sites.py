@@ -22,7 +22,9 @@ atoms within ``COORD`` of a Zn ion. For each row and job it records:
   ion with a coordinating atom is matched one-to-one to a candidate ion by
   pocket-relative distance (the candidate's polymer atoms within ``POCKET`` of
   the ``off`` ion superposed onto ``off``'s). Per matched ion: that distance and
-  the Jaccard overlap of the two ions' coordinating residues.
+  the Jaccard overlap of the two ions' coordinating residues. The summary
+  counts, in same-outcome pairs (anchor RMSD at most ``SAME_OUTCOME``), the
+  matched ions within ``SAME_SITE`` of each other: the proposed Zn gate.
 
 Ions without any coordinating atom are counted but not matched. The script
 reports quantities only; limits belong in the qualification protocol.
@@ -35,13 +37,15 @@ from typing import Any
 
 import numpy as np
 from compare_structures import _samples, load_coords
-from qual_structures import kabsch
+from qual_structures import anchor_distance, build_reference, kabsch
 from reference_metrics import reference_map, row_reference, score_sample
 from scipy.optimize import linear_sum_assignment
 
 from opendde.data.inference.json_to_feature import SampleDictToFeatures
 
 COORD = 2.8
+SAME_SITE = 2.0
+SAME_OUTCOME = 2.0
 POCKET = 8.0
 DONORS = ("N", "O", "S")
 
@@ -215,6 +219,7 @@ def measure_row(row, off_run: Path, cand_run: Path, seed_pairs):
         polymer = np.where(
             np.isin(atoms.mol_type, ("protein", "dna", "rna")) & (atoms.element != "H")
         )[0]
+        anchor_ref = build_reference(atoms, job)
         reference = row_reference(row, job["name"])
         rmap = reference_map(atoms, reference) if reference else None
         sites = deposited_sites(rmap) if rmap else []
@@ -248,6 +253,7 @@ def measure_row(row, off_run: Path, cand_run: Path, seed_pairs):
                     "seeds": [seed_a, seed_b],
                     "k": k,
                     "status": "ok",
+                    "anchor_rmsd": anchor_distance(anchor_ref, xyz_a, xyz_b),
                     "paired": pair_ions(atoms, xyz_a, xyz_b, ions, donors, polymer),
                 }
                 if rmap is not None:
@@ -274,6 +280,20 @@ def summarize(entry: dict[str, Any]) -> dict[str, Any]:
         "paired_same_ligands": sum(1 for j in jac if j == 1.0),
         "paired_ions": len(jac),
     }
+    same = [
+        i for s in ok if s["anchor_rmsd"] <= SAME_OUTCOME for i in s["paired"]["ions"]
+    ]
+    within = sum(
+        1
+        for i in same
+        if i["pocket_distance"] is not None and i["pocket_distance"] <= SAME_SITE
+    )
+    summary["same_outcome_samples"] = sum(
+        1 for s in ok if s["anchor_rmsd"] <= SAME_OUTCOME
+    )
+    summary["same_site"] = within
+    summary["same_site_of"] = len(same)
+    summary["same_site_fraction"] = within / len(same) if same else None
     sites = {}
     for s in ok:
         for tag in ("off", "cand"):

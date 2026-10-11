@@ -80,3 +80,49 @@ def test_pocket_superpose_needs_three_atoms():
     assert n == 4
     ref_r, _ = kabsch(xyz[:4], xyz[:4])
     assert np.allclose(r, ref_r)
+
+
+def _control_toy():
+    """A His coordinating a Zn, and a free Asp 20 A away."""
+    import make_controls as mc
+
+    names = ["CG", "CD2", "CE1", "ND1", "NE2", "CG", "OD1", "OD2", "ZN"]
+    xyz = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.2, 0.8, 0.0],
+            [1.2, -0.8, 0.0],
+            [0.0, -1.3, 0.0],
+            [2.0, 0.0, 0.0],
+            [20.0, 0.0, 0.0],
+            [21.2, 0.7, 0.0],
+            [21.2, -0.7, 0.0],
+            [4.1, 0.0, 0.0],
+        ]
+    )
+    atoms = SimpleNamespace(
+        chain_id=np.array(["A"] * 8 + ["B"]),
+        res_id=np.array([1] * 5 + [2] * 3 + [1]),
+        res_name=np.array(["HIS"] * 5 + ["ASP"] * 3 + ["ZN"]),
+        atom_name=np.array(names),
+        element=np.array(["C", "C", "C", "N", "N", "C", "O", "O", "ZN"]),
+        mol_type=np.array(["protein"] * 8 + ["ligand"]),
+    )
+    return mc, atoms, xyz
+
+
+def test_zn_moved_leaves_the_pocket():
+    mc, atoms, xyz = _control_toy()
+    out = mc.zn_moved(atoms, xyz, np.random.default_rng(0))
+    assert np.linalg.norm(out[8] - xyz[8]) == pytest.approx(6.0)
+    assert np.linalg.norm(out[:8] - out[8], axis=1).min() > zn.COORD
+    assert np.array_equal(out[:8], xyz[:8])
+
+
+def test_zn_wrong_site_binds_a_free_donor():
+    mc, atoms, xyz = _control_toy()
+    out = mc.zn_wrong_site(atoms, xyz, np.random.default_rng(0))
+    d = np.linalg.norm(out[[6, 7]] - out[8], axis=1)
+    assert d.min() == pytest.approx(mc.ZN_BOND)
+    assert np.linalg.norm(out[[3, 4]] - out[8], axis=1).min() > 8.0
+    assert np.array_equal(out[:8], xyz[:8])

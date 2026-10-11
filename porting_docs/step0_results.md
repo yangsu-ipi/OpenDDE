@@ -267,6 +267,17 @@ Jobs 49181-49183 (stock `off` bf16, fp32 and `torch` triangle kernels, commit `0
 - **Structures.** All ten pairs per row and contrast are same-outcome (anchor RMSD at most 1.75 Å). Lowest same-outcome lDDT: D14 0.989 under both; D15 0.94995 under fp32 and 0.964 under the kernel swap, so D15 would fail the proposed stable-class lDDT limit of 0.95 under the precision contrast and needs a row override if it joins the stable class. Ranking-score differences are at most 0.002; reference lDDT and Fnat medians move by at most 0.005.
 - **Deposited Zn sites are not reproduced.** In D14, the constant-domain site (heavy His167, light Asn142/Asn143) holds a Zn coordinated by His167 and Asn143 (2 of its 3 deposited ligands) in 9 of 10 `off` samples; D14's two other sites with polymer ligands are never occupied. D15's two sites are each partly occupied in 1 of 10 samples. Stock instead places Zn at its own preferred sites: D14 heavy His61 (10 of 10 samples), light Asp156/His194 (9), heavy His167 with light Asn143 (9), light His96 with peptide Glu18 (4); D15 light His52 (8), light Asp150/His188 (6). Deposited-site occupancy is therefore reported, not gated.
 - **Stock placement is reproducible under harmless changes.** Of the ions `off` binds (39 in D14, 20 in D15), the paired candidate ion sits within 2.0 Å in the pocket frame for 37 of 39 and 19 of 20 under fp32, and 38 of 39 and 19 of 20 under the kernel swap; the coordinating-residue sets are identical for 36 of 39 and 20 of 20 in both. The exceptions: one D14 ion in seed 102 sample 0 moves 40 Å under both contrasts, one D14 ion in seed 101 sample 0 moves 24 Å under fp32, and a single-Asp D15 ion moves 4.6-4.8 Å. A seed change (101 against 102, different random inputs) keeps 14 of 20 and 7 of 10.
+- **Zn negative controls** (job 49203, `make_controls.py` kinds `zn_moved` and `zn_wrong_site`, built from stock `off`). In every sample one bound Zn, chosen with the sample's own random generator, either moves 6 Å out of its pocket away from its coordinating atoms (further in 2 Å steps up to 12 Å if that clashes) or moves 2.1 Å from a free His, Asp, Glu or Cys donor at least 8 Å from every Zn and 2.5 Å from every other heavy atom. Two D14 samples had no clash-free exit up to 12 Å and were copied unchanged; every other sample was changed. Polymer coordinates are untouched, so every sample pair stays same-outcome.
+
+| Contrast | D14: same site / bound `off` ions | D15 |
+|---|---|---|
+| fp32 (harmless) | 37 / 39 (0.95) | 19 / 20 (0.95) |
+| Kernel swap (harmless) | 38 / 39 (0.97) | 19 / 20 (0.95) |
+| Seed 101 against 102 (same-outcome pairs only) | 14 / 20 (0.70) | 3 / 6 (0.50) |
+| Moved Zn | 31 / 39 (0.79) | 10 / 20 (0.50) |
+| Wrong site | 29 / 39 (0.74) | 10 / 20 (0.50) |
+
+  "Same site" means the paired candidate ion lies within 2.0 Å of the `off` ion in the `off` pocket frame, counted over same-outcome pairs. A limit of 0.85 passes both harmless contrasts on both rows and fails both controls on both rows. The margin to the moved-Zn control on D14 is small because only one of four ions moves per sample and two samples were unchanged; a fault that displaces Zn in only a few samples would pass.
 
 ## Item 8: random-input trace
 
