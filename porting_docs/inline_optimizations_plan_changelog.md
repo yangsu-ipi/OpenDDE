@@ -2,6 +2,21 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 21 (2026-10-10)
+
+Step 0 has frozen inputs and stock contrasts, but acceptance limits are still proposals. This revision updates the plan and `qualification_protocol.md` after a critical review of those proposals. It changes documentation only; no tier 1 hook, ported kernel or GPU run was started.
+
+- Keep the hard-requirement, tier 1 and tier 2 structure, but add a bidirectional ensemble gate that applies even when no paired samples are same-outcome. Require per-polymer-type lDDT and a separate interface-contact gate where meaningful.
+  - *Reason:* D10 and H5 had `N_min = 0`, so every pair could switch and all same-outcome structure checks could be skipped. An all-polymer score can also hide a minority-chain or polymer-type regression.
+- Keep 2.0 Å as an outcome classifier, replace the blanket `stock count minus 3` count rule with proposed class floors, and demote the twice-the-stock-maximum `E` and `L` values to diagnostic drafts pending stock-only review.
+  - *Reason:* the 2.0 Å cutoff separates the observed stable and switched pairs, but the old count rule allowed three switches on rows with 10 of 10 stock matches and all ten on D10. D1's draft 8.5 Å p95 allowance and 0.76 lDDT floor are too weak to assume they preserve its structure. The former 1% binomial calculation relied on unverified sample independence.
+- Make the three-configuration tier 1 stock calibration the next Step 0 task. Require artifact-neutral private hooks and fixed confidence-head inputs; set tensor-specific floors and ceilings after stock measurements, not by an automatic multiple or fp32 cap. Check A100 stock limits separately when that GPU is provisioned.
+  - *Reason:* tier 1 has no measured limits yet. A zero stock contrast can make an automatic cap impossible for a numerically different valid kernel, while a large contrast can make it too permissive; sm_120 measurements cannot establish sm_80 behavior. Freeze each GPU's limits before tuning on that GPU so the unprovisioned A100 does not block unrelated sm_120 work.
+- Retain 6OI, ATR, NAG and PCG as gated ligands and P4G and D4 Mg as report-only. Flag Zn as a separate pre-freeze scope decision; reconcile the D9 confidence-score claim with the Step 0 report.
+  - *Reason:* D4 Mg mobility does not establish that the three Zn ions in H3/H5 are disposable, and the proposed 0.004 stable-row ranking-score maximum conflicts with D9's reported 0.02-0.03 contrast.
+- Keep H1/H2/H3/H4/H7 flexible, H6 stable by analogy with D9, and H10 tied to D4. Give H8/H9 a provisional uncertain-outcome class and H5 a mandatory ensemble gate; define held-out draws as two seeds with five samples each.
+  - *Reason:* H8's distinct strands and H9's lack of RNA MSA weaken the stable-outcome analogy to D7/D6. Count limits are undefined without a fixed held-out sample count, and an epitope count floor of zero cannot be the only structure gate.
+
 ## Revision 20 (2026-10-10)
 
 Step 0 is under way. This revision records the user's decision on when a held-out draw is required, matching the qualification protocol (commit `7c832df`). No porting code was written.
