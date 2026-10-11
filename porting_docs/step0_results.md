@@ -312,6 +312,54 @@ Control definition and applicable rows recorded before measurement (protocol C8;
 
 With the gate added, both harmless contrasts still pass every gate on all 16 jobs, and both control sizes fail on every applicable job. Without it, the 0.1 Å control passes on D3, D8-D12, D13 `1a14` and D14, and the half-size control on D3, D11, D12, D13 `1a14` and D14; on the stable rows the copies also fail the outcome count, because a copy of sample 0 is paired with `off`'s sample 1-3. The median same-seed spread ratio could not serve: bf16 versus fp32 alone gives 0.18 on D3.
 
+### Limit provenance audit
+
+`scripts/qualification/limit_audit.py` (protocol C8) reads the current evaluation outputs of both harmless contrasts (`tier2v2/eval_precision.json` and `eval_kernel.json`, evaluation 49271; same `tier2_limits.json` and `tier2_gates.py` as the committed files) and writes `tier2v2/limit_audit.json`. Each gated value is put on a scale where the limit is an upper bound (deficit from 1 for lDDT, Fnat, pocket Jaccard and Zn same-site; |log ratio| for the spread ratio). Limits are grouped by gate and value, with per-type lDDT pooled into the all-polymer limit it shares (C9). The precision-only limit is twice the worst bf16-versus-fp32 value, rounded up to 1, 1.5, 2, 2.5, 3, 4, 5, 6 or 8 times a power of ten (C9's doubling rule). A group needs action only when the kernel swap is binding and the current limit is looser than the precision-only limit.
+
+| Gate (limit) | Classes | Limit, as badness | bf16 vs fp32 worst | Kernel swap worst | Binding | Precision-only | Action |
+|---|---|---|---|---|---|---|---|
+| `ensemble_contact_frequency` (0.2) | stable | 0.2 | 0.0919 (D9) | 0.0758 (D9) | precision | 0.2 | none |
+| `ensemble_contact_frequency` (1.0) | epitope, flexible | 1 | 0.745 (D8) | 0.755 (D10) | kernel | 1.5 | none |
+| `ensemble_plddt_median` (1.5) | all | 1.5 | 0.763 (D1) | 0.213 (D8) | precision | 2 | none |
+| `ensemble_ref_fnat_median` (0.05) | reference rows | 0.05 | 0.0104 (D9) | 0.0052 (D9) | precision | 0.025 | none |
+| `ensemble_ref_fnat_min_pair_median` (0.05) | reference rows | 0.05 | 0.0062 (D5) | 0 | precision | 0.015 | none |
+| `ensemble_ref_fnonnat_median` (0.02) | stable | 0.02 | 0.0047 (D9) | 0.0043 (D2) | precision | 0.01 | none |
+| `ensemble_ref_fnonnat_median` (0.06) | epitope, flexible | 0.06 | 0.0074 (D8) | 0.0283 (D12) | kernel | 0.015 | **rederive: kernel fails** |
+| `ensemble_ref_lddt_*_lowest` (0.02) | reference rows | 0.02 | 0.0111 (D8) | 0.0104 (D8) | precision | 0.025 | none |
+| `ensemble_ref_lddt_*_median` (0.01) | reference rows | 0.01 | 0.0031 (D8) | 0.0037 (D10) | kernel | 0.008 | **rederive: kernel passes** |
+| `ensemble_spread_ratio` (0.1-10) | epitope, flexible | 2.30 | 1.61 (D3) | 0.413 (D12) | precision | 4 | none |
+| `ensemble_spread_ratio` (0.8-1.25) | low, stable | 0.223 | 0.0655 (D14) | 0.0527 (D9) | precision | 0.15 | none |
+| `lddt_*` (0.78) | low | 0.22 | 0.190 (D1) | 0.0052 (D1) | precision | 0.4 | none |
+| `lddt_*` (0.85) | D8 | 0.15 | 0.110 (D8) | 0.0733 (D8) | precision | 0.25 | none |
+| `lddt_*` (0.90) | D15 | 0.1 | 0.0500 (D15) | 0.0358 (D15) | precision | 0.15 | none |
+| `lddt_*` (0.95) | epitope, flexible, stable | 0.05 | 0.0269 (D9) | 0.0307 (D3) | kernel | 0.06 | none |
+| `ligand_pocket` (0.6) | D4, D5, D8 | 0.4 | 0.0909 (D4) | 0.0769 (D4) | precision | 0.2 | none |
+| `ligand_rmsd` (2.0 Å) | D4, D5, D8 | 2 | 0.934 (D4) | 0.862 (D4) | precision | 2 | none |
+| `mean_plddt` (2.0) | all | 2 | 1.03 (D1) | 1.01 (D8) | precision | 2.5 | none |
+| `p95_error` (1.0 Å) | D4-D7 | 1 | 0.287 (D6) | 0.258 (D6) | precision | 0.6 | none |
+| `pair_interface_fnat` (0.55) | D8 | 0.45 | 0.339 (D8) | 0.245 (D8) | precision | 0.8 | none |
+| `pair_interface_fnat` (0.60) | D3, D11, D12, D13 `1a14` | 0.4 | 0.146 (D11) | 0.280 (D12) | kernel | 0.3 | **rederive: kernel passes** |
+| `pair_interface_fnat` (0.70) | D9, D10 | 0.3 | 0.219 (D9) | 0.170 (D9) | precision | 0.5 | none |
+| `pair_interface_fnat` (0.90) | stable | 0.1 | 0.0677 (D15) | 0.0519 (D15) | precision | 0.15 | none |
+| `pair_interface_fnonnat` (0.15) | stable | 0.15 | 0.0709 (D15) | 0.0699 (D15) | precision | 0.15 | none |
+| `pair_interface_fnonnat` (0.40) | D10 | 0.4 | 0.198 (D10) | no same-outcome pair | precision | 0.4 | none |
+| `pair_interface_fnonnat` (0.60) | D9 | 0.6 | 0.278 (D9) | 0.226 (D9) | precision | 0.6 | none |
+| `pair_interface_fnonnat` (0.80) | flexible | 0.8 | 0.395 (D8) | 0.394 (D12) | precision | 0.8 | none |
+| `ranking_score` (0.01) | low, stable | 0.01 | 0.0041 (D5) | 0.0004 (D15) | precision | 0.01 | none |
+| `ranking_score` (0.05) | D9 | 0.05 | 0.0241 (D9) | 0.0103 (D9) | precision | 0.05 | none |
+| `ranking_score` (0.10) | epitope, flexible | 0.1 | 0.0783 (D8) | 0.0531 (D8) | precision | 0.2 | none |
+| `zn_same_site` (0.85) | D14, D15 | 0.15 | 0.0513 (D14) | 0.0500 (D15) | precision | 0.15 | none |
+
+Rules, not stock-variation limits: outcome-count floors, guidance counts and tolerances (C7), the 0.01 Å exact-duplicate floor and the near-duplicate count (declared from bf16 versus fp32 only, C8). The confidence limits, ligand limits, the p95 limit, the same-outcome lDDT rule (stock minimum minus 0.05, capped at 0.95), the outcome-count rule and the guidance tolerances were proposed in commit `983367e` (2026-10-11 02:25 UTC), before the kernel-swap run (job 48901, finished 05:54 UTC), so the kernel swap cannot have set them.
+
+Findings:
+- **One limit was set by the kernel swap and cannot be rederived from precision alone:** the flexible and epitope median reference fnonnat rise, 0.06. Its value is the doubled kernel-swap maximum on D12 (0.028); bf16 versus fp32 gives at most 0.0074, and the precision-only limit 0.015 would fail the harmless kernel swap. Precision alone therefore underestimates harmless variation for this statistic. The limit also applies to H1-H5 and H7. No development negative control depends on it: every control job that fails it also fails at least one other gate.
+- **Two limits are looser than precision alone supports, and the kernel swap passes the tighter value:** the median reference lDDT drop, 0.01 against a precision-only 0.008 (kernel swap 0.0037), and the flexible pairwise interface Fnat, 0.60 against a precision-only 0.70 (kernel swap 0.720, margin 0.020). The Fnat limit applies only to D3, D11, D12 and D13 `1a14`; held-out flexible rows take D8's 0.55. Tightening a limit cannot make a failing control pass, and bf16 versus fp32 passes the precision-only value by construction.
+- **Kernel binding without action:** the flexible and epitope contact-frequency L1 (1.0 against a precision-only 1.5) and the same-outcome lDDT 0.95 (precision-only 0.94; the limit also follows the earlier precision rule).
+- **Confirmed clean:** the Zn threshold (precision binding), D10's paired limits (no kernel-swap pair) and the near-duplicate gate.
+
+`tier2_limits.json` is unchanged; the proposed values await the user's decision (protocol C8).
+
 ## Item 8: random-input trace
 
 Six RNG call sites carry stable symbolic names: `sampler.initial_noise`, `sampler.step_noise`, `augmentation.rotation`, `augmentation.translation`, `tfg.eps` and `tfg.outer_noise`. Each draw is captured before scaling and hashed per original sample index (`run_opendde.py --draw-trace`). `scripts/qualification/trace_tools.py` derives the expected manifest from the recorded sampling settings.
