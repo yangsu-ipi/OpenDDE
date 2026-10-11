@@ -137,20 +137,22 @@ Compared on identical inputs, per row and seed:
 
 Limits are not set yet: no stock measurement of these tensors exists. Do this stock-only calibration next, before tuning a `fast` kernel. Capture the development rows in three stock configurations: bf16 with the default cuEquivariance triangle kernels, bf16 with stock `torch` triangle kernels, and fp32. Use the same recorded `off` inputs for every fixed-input confidence-head comparison; a native fp32 run with different head inputs is a separate contrast. Add two wrapper-private hooks in `run_opendde.py`, one to capture tensors and one to substitute recorded head inputs. Check that enabling the capture hook leaves stock prediction artifacts byte-identical, and keep the hooks off timing runs. Budget about three GPU-hours on sm_120 as an estimate, not a guaranteed runtime. Do not run held-out inputs for calibration.
 
-**Calibration done** (jobs 48900-48903; step 0 results, tier 1 calibration). Capture and replay were verified artifact-neutral on all 13 rows. Proposed limits, per quantity and row class, for review; none is frozen:
+**Calibration done** (full cycles: jobs 48900-48903; single cycle: jobs 49092-49095; step 0 results). Capture and replay were verified artifact-neutral on all 13 rows. With the default ten recycling cycles, a harmless kernel swap moves the pair representation 15-18% on the 1a14 inputs and D8 against 2-3% elsewhere, so full-cycle trunk limits would be weak on those rows. With one cycle every row behaves alike (pair error 1.8-3.0% under the swap, 2.9-4.1% in fp32).
 
-| Quantity | Stable and low-confidence rows (D1, D2, D4-D7, D13 `7r6r`) | 1a14 rows (D3, D9-D12, D13 `1a14`) and D8 |
+**Approved by the user on 2026-10-11 for sm_120:** tier 1 runs as a separate run per row with `--cycle 1 --sample 1`, seeds 101 and 102, deterministic, for the candidate and `off`, and one set of limits applies to every row. Full-cycle trunk metrics from the tier 2 runs are reported, not gated. These limits are frozen for sm_120 together with the remaining tier 2 and domain limits (section E); A100 needs its own stock check first.
+
+| Quantity (single cycle) | Approved limit | Stock maximum: kernel swap / fp32 |
 |---|---|---|
-| Input embedding, relative error | ≤ 0.005 | ≤ 0.005 |
-| Single representation, relative error | ≤ 0.03 | ≤ 0.03 |
-| Pair representation, relative error | ≤ 0.10 (D1: ≤ 0.40) | ≤ 0.50 |
-| Pair representation, p99.9 error / RMS | ≤ 1.0 (D1: ≤ 2.5) | ≤ 3.0 |
-| Distogram, changed most likely bins with reference margin ≥ 0.1 | ≤ 0.1% | ≤ 0.2% |
-| Distogram, largest probability difference | reported | reported |
-| Fixed-input head: pLDDT, PAE, PDE, resolved probability | ≤ 0.01 | ≤ 0.01 |
-| Fixed-input head: pTM, ipTM, `0.8 ipTM + 0.2 pTM` | ≤ 0.005 | ≤ 0.005 |
+| Input embedding, relative error | ≤ 0.005 | 0 / 0.0018 |
+| Single representation, relative error | ≤ 0.02 | 0.0072 / 0.0091 |
+| Pair representation, relative error | ≤ 0.10 | 0.0301 / 0.0408 |
+| Pair representation, p99.9 error / RMS | ≤ 0.8 | 0.30 / 0.37 |
+| Distogram, changed most likely bins with reference margin ≥ 0.1 | ≤ 0.1% | 0 / 0 |
+| Distogram, largest probability difference | reported | 0.072 / 0.118 |
+| Fixed-input head: pLDDT, PAE, PDE, resolved probability | ≤ 0.01 | 0.0020 / 0 |
+| Fixed-input head: pTM, ipTM, `0.8 ipTM + 0.2 pTM` | ≤ 0.005 | < 1e-4 / 0 |
 
-Each trunk limit is about twice the largest kernel-swap or fp32 value for its class, rounded up (stable rows: pair error 0.045 and p99.9 ratio 0.45 in fp32; D1: 0.184 and 1.20; 1a14 and D8: 0.236 and 1.51); the multiple is a proposal, not an automatic rule. The head limits are floors, because both stock contrasts are at or near zero there (the head runs in fp32 in every configuration). The 1a14 and D8 trunk limits are weak, because recycling amplifies differences on those inputs (pair error 15-24% under a harmless swap); on those rows tier 1 adds little beyond finiteness and the head test. A tighter check would capture the trunk after a single recycling cycle (`--cycle 1`), which a further stock calibration could measure.
+The trunk limits are about twice the larger stock value, rounded up; the multiple was a judgement on these measurements, not an automatic rule. The distogram and head limits are floors, because both stock contrasts are at or near zero there (the head runs in fp32 in every configuration). Holding the cycle count to one does not skip any trunk module: each runs once. The input embedding has no triangle kernels and was bit-identical under the swap, so a candidate that moves it beyond 0.005 is changing something other than the trunk kernels.
 
 Set each tier 1 limit from the stock measurements before inspecting a candidate. Record the kernel-swap and precision contrasts, but do not make twice the swap maximum or the fp32 difference an automatic limit: a zero or tiny contrast could demand impossible bit identity, while a large contrast could permit a weak gate. Predeclare a nonzero numerical floor and a meaningful ceiling for each tensor quantity, with a rule for a zero reference RMS. Treat changed distogram argmax bins near a tie separately from changes with a material top-two probability margin; freeze that margin and its limit from stock results. Reason: the argmax fraction alone can change under negligible probability differences.
 
@@ -213,7 +215,7 @@ Held-out inputs have no calibration of their own, and running stock on them now 
 ### E. Work remaining before acceptance is frozen
 
 1. **Reference feasibility check (stock only): done** (job 48887). Ten samples suffice for a reference-based ensemble gate on D2, D3, D4, D5 and D9-D13. Open: a discriminating ensemble gate for D8 (more samples, or an interface statistic that does not rely on the deposited interfaces), a negative control for single-chain D6, and confirmation of the draft limits against the C8 controls.
-2. **Tier 1 calibration (stock only): done** (jobs 48900-48903). Hooks are artifact-neutral on all 13 rows; proposed tier 1 limits are in section B for review. The `torch`-kernel run passes every draft tier 2 gate. Open: approve or revise the tier 1 limits, and decide whether to add a single-cycle trunk capture for the 1a14 and D8 rows.
+2. **Tier 1 calibration (stock only): done** (jobs 48900-48903). Hooks are artifact-neutral on all 13 rows; proposed tier 1 limits are in section B for review. The `torch`-kernel run passes every draft tier 2 gate. The single-cycle calibration (jobs 49092-49095) supports one set of tier 1 limits for every row; the user approved the single-cycle design and limits on 2026-10-11 (section B).
 3. **Tier 2 limits.** From development stock contrasts, set the ensemble limits, per-type and interface lDDT limits, the interface-contact limits, D1's lDDT limit and per-row confidence limits. Build the negative controls and confirm that every gate rejects them and the positive control passes. If a row has no discriminating non-vacuous gate, its acceptance remains unresolved.
 4. **Zn decision:** gate Zn coordination using a development-only calibration case, or state that ion placement is outside the qualified claim. P4G and D4 Mg remain report-only; H3 and H5 remain held out.
 5. **Freeze per GPU.** Freeze the held-out class rules and sm_120 limits before any sm_120 candidate is tuned or qualified; do not use held-out runs to set limits. Repeat the stock calibration and freeze the applicable limits on the provisioned A100 before A100 tuning or qualification. Sm_120 work need not wait for A100 provisioning, but sm_120 results alone do not establish sm_80 limits.

@@ -211,6 +211,23 @@ Tier 2 positive control, `off` versus the kernel swap, against the revision 22 d
 
 The harmless kernel swap passes every draft tier 2 gate, so none of them is too strict for it.
 
+### Single-cycle tier 1 calibration
+
+Jobs 49092-49095, stock only, commit `84f3d8e`: the same three configurations with tier 1 capture, run with `--cycle 1 --sample 1` on the eight distinct trunk inputs D1-D8 (D9-D13 reuse D2's and D3's trunk inputs; the full calibration gave them identical trunk metrics). One cycle still runs every trunk module once; it only drops the repeated recycling. Largest value over seeds 101 and 102:
+
+| Quantity | Kernel swap, D1-D8 | fp32, D1-D8 | Full-cycle range, for comparison (swap / fp32) |
+|---|---|---|---|
+| Input embedding, relative error | 0 | 0.0012-0.0018 | same |
+| Single representation, relative error | 0.0045-0.0072 | 0.0074-0.0091 | 0.005-0.012 / 0.008-0.014 |
+| Pair representation, relative error | 0.0183-0.0301 | 0.0292-0.0408 | 0.018-0.181 / 0.037-0.236 |
+| Pair representation, p99.9 error / RMS | 0.12-0.30 | 0.30-0.37 | 0.11-1.35 / 0.34-1.51 |
+| Distogram, largest probability difference | 0.013-0.072 | 0.031-0.118 | 0.015-0.330 / 0.045-0.543 |
+| Distogram, changed bins with margin ≥ 0.1 | 0 | 0 | up to 0.06% / 0.08% |
+| Fixed-input head, PAE / PDE probability | ≤ 0.0020 | 0 | same |
+| Fixed-input head, pLDDT, pTM, ipTM | < 1e-4 | 0 | same |
+
+With one cycle, the 1a14 input (D3) and D8 behave like every other row: pair error 2.2% under the kernel swap against 15.5% and 18.1% with ten cycles, and D1's fp32 pair error falls from 18.4% to 4.0%. The spread across rows shrinks from a factor of ten to under two, so a single set of tier 1 limits can serve every row. A single-cycle `off` run of all eight inputs took about 8 min (sum of per-row times), against about 40 min for the ten-cycle, five-sample run.
+
 ## Item 8: random-input trace
 
 Six RNG call sites carry stable symbolic names: `sampler.initial_noise`, `sampler.step_noise`, `augmentation.rotation`, `augmentation.translation`, `tfg.eps` and `tfg.outer_noise`. Each draw is captured before scaling and hashed per original sample index (`run_opendde.py --draw-trace`). `scripts/qualification/trace_tools.py` derives the expected manifest from the recorded sampling settings.
