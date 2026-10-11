@@ -279,6 +279,25 @@ Jobs 49181-49183 (stock `off` bf16, fp32 and `torch` triangle kernels, commit `0
 
   "Same site" means the paired candidate ion lies within 2.0 Å of the `off` ion in the `off` pocket frame, counted over same-outcome pairs. A limit of 0.85 passes both harmless contrasts on both rows and fails both controls on both rows. The margin to the moved-Zn control on D14 is small because only one of four ions moves per sample and two samples were unchanged; a fault that displaces Zn in only a few samples would pass.
 
+### Fail-closed tier 2 evaluation
+
+Measurement jobs 49232-49242 and evaluation job 49252 (CPU), from the revised `tier2_gates.py` (protocol C9). Run directories combine the earlier stock runs: item 7 bf16/fp32 and tier 1 `off`/`torch`-kernel runs for D1-D13, the Zn calibration runs for D14 and D15. Every reference score succeeded on every sample of every row.
+
+| Contrast or control | Jobs passing | Notes |
+|---|---|---|
+| bf16 vs fp32 | 16 of 16 | |
+| Kernel swap | 16 of 16 | D10's same-outcome gates not applicable (no same-outcome pair; count floor 0) |
+| Seed 101 vs 102 | 0 of 16 | different random inputs; also fails the sample-count gates by construction |
+| Displaced chain | 0 of 12 | |
+| Hinge | 0 of 14 | |
+| Jitter | 1 of 14 | D1 passes (documented limitation) |
+| Collapsed | 0 of 14 | |
+| Ligand out of pocket | 0 of 3 | |
+| Guidance removed | 0 of 3 | |
+| Moved Zn, wrong-site Zn | 0 of 2 each | |
+
+New-gate stock maxima (harmless contrasts) against the limits: same-outcome pairwise new-contact fraction 0.071 on stable rows (0.15), 0.278 on D9 (0.60), 0.198 on D10 (0.40) and 0.395 on flexible rows (0.80); per-type reference lDDT drop 0.004 median and 0.011 lowest (0.01 / 0.02); median reference fnonnat rise 0.005 on stable rows (0.02) and 0.028 on flexible rows (0.06); median lowest per-chain-pair Fnat drop 0.006 (0.05).
+
 ## Item 8: random-input trace
 
 Six RNG call sites carry stable symbolic names: `sampler.initial_noise`, `sampler.step_noise`, `augmentation.rotation`, `augmentation.translation`, `tfg.eps` and `tfg.outer_noise`. Each draw is captured before scaling and hashed per original sample index (`run_opendde.py --draw-trace`). `scripts/qualification/trace_tools.py` derives the expected manifest from the recorded sampling settings.

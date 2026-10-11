@@ -1,8 +1,13 @@
 {
- "status": "proposed 2026-10-11, not frozen (qualification_protocol.md, tier 2)",
+ "status": "proposed 2026-10-11, not frozen (qualification_protocol.md, tier 2, C9 and D)",
  "gpu": "sm_120",
+ "seeds": 2,
+ "samples_per_seed": 5,
  "ligand_rmsd_max": 2.0,
  "ligand_pocket_min": 0.6,
+ "duplicate_min_anchor_rmsd": 0.01,
+ "zn_same_site_min": 0.85,
+ "zn_min_matched": 10,
  "classes": {
   "stable": {
    "n_min": 9,
@@ -19,7 +24,12 @@
     1.25
    ],
    "contact_freq_l1_max": 0.2,
-   "plddt_median_delta": 1.5
+   "plddt_median_delta": 1.5,
+   "pair_fnonnat_max": 0.15,
+   "ref_type_lddt_median_drop": 0.01,
+   "ref_type_lddt_lowest_drop": 0.02,
+   "ref_fnonnat_median_rise": 0.02,
+   "ref_fnat_min_pair_median_drop": 0.05
   },
   "low": {
    "n_min": 7,
@@ -31,7 +41,9 @@
     0.8,
     1.25
    ],
-   "plddt_median_delta": 1.5
+   "plddt_median_delta": 1.5,
+   "ref_type_lddt_median_drop": 0.01,
+   "ref_type_lddt_lowest_drop": 0.02
   },
   "flexible": {
    "n_min": 2,
@@ -47,7 +59,12 @@
     10
    ],
    "contact_freq_l1_max": 1.0,
-   "plddt_median_delta": 1.5
+   "plddt_median_delta": 1.5,
+   "pair_fnonnat_max": 0.8,
+   "ref_type_lddt_median_drop": 0.01,
+   "ref_type_lddt_lowest_drop": 0.02,
+   "ref_fnonnat_median_rise": 0.06,
+   "ref_fnat_min_pair_median_drop": 0.05
   },
   "epitope": {
    "n_min": 0,
@@ -67,7 +84,26 @@
    "guidance": {
     "kind": "epitope",
     "slack": 1
-   }
+   },
+   "pair_fnonnat_max": 0.4,
+   "ref_type_lddt_median_drop": 0.01,
+   "ref_type_lddt_lowest_drop": 0.02,
+   "ref_fnonnat_median_rise": 0.06,
+   "ref_fnat_min_pair_median_drop": 0.05
+  },
+  "nucleic": {
+   "n_min": 2,
+   "lddt_min": 0.9,
+   "pair_fnat_min": 0.55,
+   "pair_fnonnat_max": 0.8,
+   "ranking_score_max": 0.1,
+   "plddt_max": 2.0,
+   "spread_ratio": [
+    0.1,
+    10
+   ],
+   "contact_freq_l1_max": 1.0,
+   "plddt_median_delta": 1.5
   }
  },
  "rows": {
@@ -108,7 +144,8 @@
    "guidance": {
     "kind": "contacts",
     "min": 9
-   }
+   },
+   "pair_fnonnat_max": 0.6
   },
   "D10": {
    "class": "epitope"
@@ -133,7 +170,67 @@
   },
   "D13/1a14_unconstrained": {
    "class": "flexible"
+  },
+  "D14": {
+   "class": "stable"
+  },
+  "D15": {
+   "class": "stable",
+   "lddt_min": 0.9
+  },
+  "H1": {
+   "class": "flexible",
+   "lddt_min": 0.85,
+   "pair_fnat_min": 0.55
+  },
+  "H2": {
+   "class": "flexible",
+   "lddt_min": 0.85,
+   "pair_fnat_min": 0.55
+  },
+  "H3": {
+   "class": "flexible",
+   "lddt_min": 0.85,
+   "pair_fnat_min": 0.55
+  },
+  "H4": {
+   "class": "flexible",
+   "lddt_min": 0.85,
+   "pair_fnat_min": 0.55
+  },
+  "H5": {
+   "class": "epitope",
+   "lddt_min": 0.85,
+   "pair_fnat_min": 0.55
+  },
+  "H6": {
+   "class": "stable",
+   "pair_fnat_min": 0.7,
+   "pair_fnonnat_max": 0.6,
+   "ranking_score_max": 0.05,
+   "guidance": {
+    "kind": "contacts",
+    "slack": 1
+   }
+  },
+  "H7": {
+   "class": "flexible",
+   "lddt_min": 0.85,
+   "pair_fnat_min": 0.55,
+   "guidance": {
+    "kind": "contacts",
+    "slack": 1
+   }
+  },
+  "H8": {
+   "class": "nucleic"
+  },
+  "H9": {
+   "class": "nucleic"
+  },
+  "H10": {
+   "class": "stable",
+   "p95_max": 1.0
   }
- },
- "duplicate_min_anchor_rmsd": 0.01
+ }
 }
