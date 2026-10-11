@@ -2,6 +2,23 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 22 (2026-10-10)
+
+Revision 21's acceptance changes were checked against the stock data already on gnode2 (item 7 outputs and calibration job 48816). Four points did not hold up as written. This revision changes documentation only; no hook, reference fetch or GPU run was started.
+
+- Replace the nearest-sample ensemble gate with a distribution-based one: lDDT or DockQ against frozen deposited structures where they exist, intrinsic ensemble statistics (mean pLDDT, ipTM, within-ensemble spread) elsewhere. Raise the sample count for a class if ten samples cannot separate negative controls from stock; a row that still lacks a discriminating gate stays unresolved. Keep nearest-sample distances as a report.
+  - *Reason:* stock bf16 versus fp32 already gives nearest-sample distances of 13.8 Å (D3), 15.6 Å (D8), 11.0 Å (D10) and 18 Å (D11, D12) at ten samples. Any limit stock passes would be near 20 Å and could not detect a displaced chain, so revision 21's rule would have left about half the rows unresolved.
+- Make lDDT (all polymer, per type, interface) the main same-outcome gate; gate the p95 per-atom error only on D4-D7, whose stock same-outcome pairs sit at most 0.34 Å from each other. Add a concrete interface-contact metric (Fnat-style preserved and new interchain residue contacts within 5 Å).
+  - *Reason:* in same-outcome pairs the p95 error tracks anchor RMSD (3.7-4.2 Å at 1.7-1.94 Å on D1 and D8), so near the cutoff a p95 limit only restates the 2.0 Å classifier.
+- Give D1 a low-confidence class: count floor 7, an lDDT limit from stock, no tight per-atom check.
+  - *Reason:* D1's per-atom pLDDT never exceeds 0.62 (mean 0.49), so no confident region exists for the region-specific check revision 21 suggested, and one stock pair sat at 1.94 Å, which makes a 9-of-10 floor likely to fail a harmless candidate.
+- Set confidence limits per row from stock, and record the D9 reconciliation: a near-constant per-seed `ranking_score` offset (about 0.022 on seed 101, about 0.005 on seed 102) with near-identical structures. The earlier 0.004 stable-row claim omitted D9.
+  - *Reason:* guided rows carry seed-dependent confidence offsets; tier 1's fixed-input head test isolates head arithmetic, so the end-to-end gate is coarser.
+- Require controls before freezing: the stock `torch`-triangle-kernel run must pass every tier 2 gate, used only for validation, and constructed negative controls (displaced minority chain, collapsed ensemble, ligand moved out of its pocket) must fail.
+  - *Reason:* without candidates, these are the only evidence that limits are neither too strict nor vacuous; using the positive control to set limits would make it circular.
+- Call the 2.0 Å cutoff a proposal frozen with the other limits.
+  - *Reason:* revision 21's plan called it frozen while the protocol froze nothing in the criteria.
+
 ## Revision 21 (2026-10-10)
 
 Step 0 has frozen inputs and stock contrasts, but acceptance limits are still proposals. This revision updates the plan and `qualification_protocol.md` after a critical review of those proposals. It changes documentation only; no tier 1 hook, ported kernel or GPU run was started.

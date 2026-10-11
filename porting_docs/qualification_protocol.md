@@ -1,6 +1,6 @@
 # Qualification protocol
 
-Status: **inputs frozen on 2026-10-10 (user approval); acceptance criteria not frozen.** The qualification inputs, paired development seeds, sample-index pairing, reserved held-out pool and symmetry-completeness screen below are fixed; `scripts/qualification/inputs/manifest.json` and `digests.json` record them. The next Step 0 task is stock-only tier 1 calibration with private hooks. The plan requires tier 1, tier 2 and domain limits to be frozen for a target GPU before a `fast` kernel is tuned there. No held-out output is inspected to set a limit.
+Status: **inputs frozen on 2026-10-10 (user approval); acceptance criteria not frozen.** The qualification inputs, paired development seeds, sample-index pairing, reserved held-out pool and symmetry-completeness screen below are fixed; `scripts/qualification/inputs/manifest.json` and `digests.json` record them. The next Step 0 tasks are stock-only: the reference-structure feasibility check and tier 1 calibration with private hooks (section E). The plan requires tier 1, tier 2 and domain limits to be frozen for a target GPU before a `fast` kernel is tuned there. No held-out output is inspected to set a limit.
 
 ## Development set
 
@@ -112,7 +112,7 @@ Measured on sm_120 before any candidate exists (step 0 results, item 7; table th
 - **Flexible multi-chain inputs** (D3, D8, D10, D11, D12): precision alone moves about half the paired samples to a different chain arrangement, up to 16–20 Å anchor RMSD, as far as seed-to-seed variation. Paired-sample limits on these inputs need a form that tolerates such switches, such as limits on medians or on the fraction of pairs beyond a threshold, rather than per-sample maxima.
 - **Ligands:** the specific ligand 6OI moved at most 0.93 Å; the PEG fragment P4G and Mg²⁺ ions in D4 jump sites under a precision change and between seeds; D8's NAG follows its chain. Pose limits should distinguish specific ligands from additives and ions.
 - **D12 gradient check:** constrained distances differ by up to 3.7 Å between precisions, about as much as switching `rho` from 1.0 to 0, so the check needs an aggregate form (for example the mean constrained distance over all samples and seeds) rather than a per-pair limit.
-- **Confidence:** `ranking_score` differences are at most 0.002 on D1, D2, D4, D6 and D7, 0.02-0.03 on D9 and D10, and up to 0.17 on flexible rows. The top-ranked sample changes on some flexible rows. The D9 values must be reconciled with the smaller stable-row maximum claimed in the draft acceptance criteria before that criterion is frozen.
+- **Confidence:** `ranking_score` differences are at most 0.002 on D1, D2, D4, D6 and D7, 0.004 on D5, 0.02-0.03 on D9 and D10, and up to 0.17 on flexible rows. The top-ranked sample changes on some flexible rows. Reconciled for D9 (revision 22): every seed-101 pair differs by 0.021-0.024 and every seed-102 pair by 0.001-0.005, while the structures differ by only 0.1-0.9 Å anchor RMSD. That is a near-constant confidence offset per seed, not structural drift. The earlier draft's 0.004 stable-row maximum omitted D9 and was wrong.
 - **D5** (templates) is stable: 0.04 Å anchor RMSD and ATR within 0.45 Å between precisions.
 
 ## Acceptance criteria (revised proposal, not frozen)
@@ -140,52 +140,66 @@ Set each tier 1 limit from the stock measurements before inspecting a candidate.
 
 ### C. Tier 2: sampled structures
 
-A pair is **same-outcome** when its anchor RMSD is at most 2.0 Å. Keep this as a classification cutoff: every bf16-versus-fp32 pair on the stable rows was within 1.94 Å, while switched pairs on flexible rows were about 9-20 Å apart. The classification alone does not establish that a structure is acceptable.
+A pair is **same-outcome** when its anchor RMSD is at most 2.0 Å. This is a proposed classification cutoff, frozen together with the other limits: every bf16-versus-fp32 pair on the stable rows was within 1.94 Å, while switched pairs on flexible rows were about 9-20 Å apart. The classification alone does not establish that a structure is acceptable.
 
-1. **Outcome agreement.** Proposed count floors are 9 of 10 for stable rows, 2 of 10 for flexible rows, and 0 of 10 for the epitope rows D10 and H5. Stable stock pairs matched 10 of 10, so allowing three switches would be too permissive. Five of ten stock precision pairs matched on several flexible rows; the lower floor avoids treating their switches as automatic failures, but it is acceptable only with the independent ensemble gate below. The epitope count floor is zero because only one of ten stock precision pairs matched; it never waives the ensemble or guidance gates. Do not use the former `stock count minus 3` rule or its 1% binomial claim: the ten samples share two seeds, and independence has not been established.
-2. **Ensemble agreement, including switched pairs.** On every row and job, compare the candidate and `off` sets in both directions using nearest-sample anchor RMSD after the same chain-assignment rules (`compare_structures.py --set-level` already reports these distances). Freeze an absolute limit and outlier policy for each development class from stock-only precision and seed contrasts, then apply the corresponding fixed rule to held-out rows. Test that a deliberately displaced minority chain or collapsed candidate ensemble does not pass. A row with zero same-outcome pairs still has a pass/fail structure test; if stock data cannot support a discriminating ensemble rule, leave that row's acceptance unresolved and do not qualify it by a vacuous paired gate. Reason: `N_min = 0` would otherwise allow every D10 or H5 structure check below to be skipped.
-3. **Same-outcome accuracy.** In each same-outcome pair, gate the 95th percentile of polymer heavy-atom error after the anchor fit and symmetric polymer lDDT. Gate lDDT for all polymer atoms and separately for each polymer type present, using the type-restricted comparison already reported by the harness. Add a predeclared interchain/interface-contact gate on multichain rows whose stock structures are meaningful; choose its contact definition and absolute limit from development stock contrasts before candidate outputs are seen. Report maximum atom error but do not gate on it alone. The draft `E` and `L` values below are not final limits: twice a stock maximum is not automatically safe, and D1's draft 8.5 Å p95 allowance and 0.76 lDDT floor are too weak for a purportedly tight preservation check. Review D1's local flexibility and set an independently justified limit or a region-specific check before freezing this tier.
-4. **Specific ligands**, in same-outcome pairs: the proposed symmetry-aware RMSD limit is 2.0 Å and pocket Jaccard minimum is 0.6. The gated ligands are D4's 6OI, D5's ATR, D8's NAG and H2's PCG. PCG uses these predeclared limits despite having no held-out-specific calibration; do not adjust them after H2 is opened. Report P4G and D4's Mg ions without a pose gate: both moved sites under the stock precision or seed contrast. H3 and H5's Zn ions are also reported for now, but the D4 Mg observation is not evidence that Zn placement is expendable. Before freezing, either add a development-only Zn case and a stock-calibrated coordination or pocket gate, or state explicitly that ion placement is outside the qualified claim. Keep H3 and H5 unseen in either case.
-5. **Confidence.** The draft limits are |Δ `ranking_score`| ≤ 0.01 on stable rows and ≤ 0.10 in same-outcome pairs on other rows, and |Δ mean pLDDT| ≤ 2.0 in same-outcome pairs. Do not freeze them until the D9 contrast is reconciled: the Step 0 report gives D9 a 0.02-0.03 maximum ranking-score difference, whereas the previous draft called the stable-row maximum 0.004, and all D9 pairs were same-outcome. Inspect the raw comparison and definitions, then correct the claim or the limit. Report sample ranking order without gating near-tied scores.
-6. **Guidance.**
+**Row classes** (development; held-out classes in D):
+- **Stable:** D2, D4, D5, D6, D7, D9 and D13's `7r6r` job. All ten stock precision pairs were same-outcome, with margin: anchor RMSD at most 1.17 Å.
+- **Low-confidence:** D1. Its per-atom pLDDT never exceeds 0.62 (mean 0.49; a synthetic sequence without MSA), so it has no confident region to anchor a tight structure gate, and one stock pair sat at 1.94 Å, just under the cutoff. D1 stays for coverage of the no-MSA path, small shapes and Fold-CP.
+- **Flexible:** D3 and D13's `1a14` job, D8, D11, D12. About half the stock precision pairs switched.
+- **Epitope:** D10. One of ten stock precision pairs matched.
+
+1. **Outcome agreement.** Proposed count floors: 9 of 10 for stable rows, 7 of 10 for the low-confidence class, 2 of 10 for flexible rows and 0 of 10 for epitope rows. Stable rows matched 10 of 10 with margin; D1's floor allows for its pair near the cutoff. The lower floors avoid treating precision-like switches as automatic failures and never waive the ensemble, guidance or other gates. The former `stock count minus 3` rule and its 1% binomial claim are withdrawn: the ten samples share two seeds and are not independent.
+2. **Ensemble agreement, on every row.** Compare the candidate's and `off`'s sample sets as distributions, not sample by sample:
+   - **Rows with a deposited structure:** the distribution of lDDT (all polymer atoms, and per polymer type) of each sample against the deposited reference, plus interface metrics where the reference has interfaces (DockQ if available in the pinned tooling, otherwise the interface-contact metric in C4). Gate the shift of the median and of the lower quantile between candidate and `off`. References: D2 `7r6r`, D3 and D9-D13 `1a14`, D4 `7wux`, D5 `9fm7`, D6 `9gmw`, D8 `9lh2`; held-out H2 `7pzb`, H3 and H5 `9sat`, H4 and H6 `9xqn`, H7 `9lh2`, H10 `7wux`. Each reference mmCIF is fetched once and frozen by digest, like D5's templates. Freezing a held-out row's reference reads only the deposited file, never a held-out prediction. Atoms are matched after per-chain sequence alignment and the declared chain assignment; residues absent from the deposited structure are excluded.
+   - **Rows without a deposited structure** (D1, D7; held-out H1, H8, H9): intrinsic ensemble statistics, namely the distributions of mean pLDDT and, where defined, ipTM, and the within-ensemble spread (median pairwise anchor RMSD).
+   - **Limits** come from the stock precision and seed contrasts on development rows only. If ten samples cannot separate the negative controls (C8) from stock, raise the sample count for that class (for example four seeds of five) before freezing, rather than loosening the gate. A row that still has no discriminating, non-vacuous ensemble gate stays unresolved and is not qualified.
+   - Nearest-sample distances (`compare_structures.py --set-level`) are reported only. At ten samples they cannot discriminate: stock bf16 versus fp32 already gives 13.8 Å (D3), 15.6 Å (D8), 11.0 Å (D10) and 18 Å (D11, D12).
+3. **Same-outcome accuracy.** lDDT is the main local gate, because it needs no superposition: all polymer atoms, each polymer type present, and the interface (C4). The 95th-percentile per-atom error `E` is gated only on rows whose same-outcome stock pairs sit far below the cutoff (D4, D5, D6, D7: anchor RMSD at most 0.34 Å; draft `E` 1.0 Å). Elsewhere it is reported: in same-outcome pairs it tracks anchor RMSD (pairs at 1.7-1.94 Å have p95 errors of 3.7-4.2 Å on D1 and D8), so a limit there would only restate the 2.0 Å cutoff. The maximum atom error is reported, never gated alone. D1 gets an lDDT limit set from its stock contrast, without a tight per-atom check.
+4. **Interface contacts**, on multichain rows in same-outcome pairs: the fraction of `off`'s interchain residue contacts (any heavy-atom pair within 5 Å) that the candidate preserves, and the fraction of the candidate's interchain contacts that `off` lacks, in the manner of DockQ's Fnat. Limits from development stock contrasts.
+5. **Specific ligands**, in same-outcome pairs: the proposed symmetry-aware RMSD limit is 2.0 Å and pocket Jaccard minimum is 0.6. The gated ligands are D4's 6OI, D5's ATR, D8's NAG and H2's PCG. PCG uses these predeclared limits despite having no held-out-specific calibration; do not adjust them after H2 is opened. Report P4G and D4's Mg ions without a pose gate: both moved sites under the stock precision or seed contrast. H3 and H5's Zn ions are also reported for now, but the D4 Mg observation is not evidence that Zn placement is expendable. Before freezing, either add a development-only Zn case and a stock-calibrated coordination or pocket gate, or state explicitly that ion placement is outside the qualified claim. Keep H3 and H5 unseen in either case.
+6. **Confidence.** Limits are set per row from that row's stock contrast, with a floor, because guided rows carry seed-dependent offsets (D9: about 0.022 on seed 101, about 0.005 on seed 102, with near-identical structures). Tier 1's fixed-input head test isolates arithmetic changes in the confidence head, so this end-to-end gate is a coarser check. Draft starting points: |Δ `ranking_score`| ≤ 0.01 on D2, D4, D5, D6 and D7, ≤ 0.05 on D9, ≤ 0.10 in same-outcome pairs elsewhere, and |Δ mean pLDDT| ≤ 2.0 in same-outcome pairs. Report sample ranking order without gating near-tied scores.
+7. **Guidance.**
    - D9 rigid contact: all contacts within bounds in at least 9 of 10 samples; stock 10/10.
    - D10 epitope: OpenDDE's rule is met in at least as many samples as `off` minus 1; stock 10/10.
    - D11: the mean constrained distance over the 10 samples is within 0.5 Å of `off`'s; stock 8.00 Å in both precisions. The restraint holds distances at its 8 Å bound, so a success count is meaningless here.
    - D12, the gradient check: the mean constrained distance is within 1.0 Å of `off`'s and at most 7.0 Å. Stock: 5.76 Å in bf16, 6.14 Å in fp32. A zeroed gradient gives 8.0 Å, as at `rho=0`.
    - Held-out guided rows: success in at least as many samples as `off` minus 1.
+8. **Controls before freezing.** Set the limits from the stock precision and seed contrasts, then validate them without any candidate:
+   - **Positive control:** the stock bf16 run with `torch` triangle kernels, which the tier 1 calibration produces, is a harmless same-precision change and must pass every tier 2 gate. It validates the limits and is not used to set them; using it for both would make the check circular. If it fails, revisit the limits before freezing.
+   - **Negative controls**, built from stock outputs, must fail: a displaced minority chain, a collapsed ensemble (every candidate sample replaced by one `off` sample), and a specific ligand moved out of its pocket.
 
-Stock calibration and earlier draft limits for the development rows. The `E` and `L` columns are **diagnostic drafts, not pass limits**; they must be reviewed alongside the new per-type, interface and ensemble gates before the freeze. The proposed count floors follow the row classes above.
+Stock calibration and draft limits for the development rows. `E` and `L` are **diagnostic drafts, not pass limits**; they are reassessed with the per-type, interface and ensemble gates before the freeze. `E` applies only where marked.
 
-| Row | Proposed `N_min` | Draft `E` (p95 error) | Draft `L` (lDDT) | Stock bf16 vs fp32: same-outcome pairs, max p95 / min lDDT |
-|---|---|---|---|---|
-| D1 | 9 | 8.5 Å | 0.76 | 10, 4.04 Å / 0.810 |
-| D2, D13 `7r6r` | 9 | 4.0 Å | 0.94 | 10, 1.97 Å / 0.994 |
-| D3, D13 `1a14` | 2 | 4.0 Å | 0.92 | 5, 1.78 Å / 0.975 |
-| D4 | 9 | 1.0 Å | 0.94 | 10, 0.25 Å / 0.999 |
-| D5 | 9 | 1.0 Å | 0.94 | 10, 0.10 Å / 0.997 |
-| D6 | 9 | 1.0 Å | 0.93 | 10, 0.29 Å / 0.982 |
-| D7 | 9 | 1.0 Å | 0.94 | 10, 0.25 Å / 0.998 |
-| D8 | 2 | 8.5 Å | 0.84 | 5, 4.18 Å / 0.890 |
-| D9 | 9 | 4.0 Å | 0.92 | 10, 1.82 Å / 0.973 |
-| D10 | 0 | 6.0 Å | 0.92 | 1, 2.96 Å / 0.973 |
-| D11 | 2 | 3.0 Å | 0.94 | 5, 1.38 Å / 0.990 |
-| D12 | 2 | 3.0 Å | 0.94 | 5, 1.30 Å / 0.992 |
+| Row | Class | Proposed `N_min` | Draft `E` (p95 error) | Draft `L` (lDDT) | Stock bf16 vs fp32: same-outcome pairs, max p95 / min lDDT |
+|---|---|---|---|---|---|
+| D1 | low-confidence | 7 | reported | from stock, to set | 10, 4.04 Å / 0.810 |
+| D2, D13 `7r6r` | stable | 9 | reported | 0.94 | 10, 1.97 Å / 0.994 |
+| D3, D13 `1a14` | flexible | 2 | reported | 0.92 | 5, 1.78 Å / 0.975 |
+| D4 | stable | 9 | 1.0 Å (gated) | 0.94 | 10, 0.25 Å / 0.999 |
+| D5 | stable | 9 | 1.0 Å (gated) | 0.94 | 10, 0.10 Å / 0.997 |
+| D6 | stable | 9 | 1.0 Å (gated) | 0.93 | 10, 0.29 Å / 0.982 |
+| D7 | stable | 9 | 1.0 Å (gated) | 0.94 | 10, 0.25 Å / 0.998 |
+| D8 | flexible | 2 | reported | 0.84 | 5, 4.18 Å / 0.890 |
+| D9 | stable | 9 | reported | 0.92 | 10, 1.82 Å / 0.973 |
+| D10 | epitope | 0 | reported | 0.92 | 1, 2.96 Å / 0.973 |
+| D11 | flexible | 2 | reported | 0.94 | 5, 1.38 Å / 0.990 |
+| D12 | flexible | 2 | reported | 0.94 | 5, 1.30 Å / 0.992 |
 
 ### D. Held-out rows
 
-Held-out inputs have no calibration of their own, and running stock on them now would expose them. Freeze their class assignments and absolute limits from development data before any held-out run. The `E` and `L` values below remain draft values until the development limits are settled. Every class, including epitope, must pass the ensemble gate.
-- **Stable:** H6 (rigid contact, like D9), with proposed `N_min` 9 and draft `E` 4.0 Å, `L` 0.92. H10 is the D4 input with new seeds, so it uses D4's final limits; it tests new seeds rather than a new large input.
-- **Flexible:** H1 (693 residues, no MSA), H2 (protein-DNA with ligands, two copies of each), H3 and H4 (three chains), H7 (covalent glycan with guidance), with proposed `N_min` 2 and draft `E` 8.5 Å, `L` 0.84.
-- **Nucleic-acid outcome uncertain:** H8 (two distinct DNA strands) and H9 (RNA hairpin without RNA MSA), with proposed `N_min` 2 but draft same-outcome `E` 4.0 Å and nucleic-acid lDDT `L` 0.92. D7 is self-complementary and D6 uses RNA MSA, so their 10-of-10 stock precision match does not establish that H8 or H9 will have stable outcome counts. The separate ensemble gate prevents this lower count floor from excusing arbitrary drift.
-- **Epitope:** H5, like D10, with proposed `N_min` 0 and draft `E` 8.5 Å, `L` 0.84. Its ensemble and guidance gates are mandatory even if no pairs match.
+Held-out inputs have no calibration of their own, and running stock on them now would expose them. Freeze their class assignments and absolute limits from development data before any held-out run. Every class must pass the ensemble gate: reference-based for H2-H7 and H10, intrinsic for H1, H8 and H9.
+- **Stable:** H6 (rigid contact, like D9), with proposed `N_min` 9 and draft `L` 0.92. H10 is the D4 input with new seeds, so it uses D4's final limits; it tests new seeds rather than a new large input.
+- **Flexible:** H1 (693 residues, no MSA), H2 (protein-DNA with ligands, two copies of each), H3 and H4 (three chains), H7 (covalent glycan with guidance), with proposed `N_min` 2 and draft `L` 0.84.
+- **Nucleic-acid outcome uncertain:** H8 (two distinct DNA strands) and H9 (RNA hairpin without RNA MSA), with proposed `N_min` 2 and draft nucleic-acid lDDT `L` 0.92. D7 is self-complementary and D6 uses RNA MSA, so their 10-of-10 stock precision match does not establish that H8 or H9 will have stable outcome counts.
+- **Epitope:** H5, like D10, with proposed `N_min` 0 and draft `L` 0.84. Its ensemble and guidance gates are mandatory even if no pairs match.
 
 ### E. Work remaining before acceptance is frozen
 
-1. Build the wrapper-private tier 1 hooks, prove capture is artifact-neutral, and run the three stock configurations on the development set. Freeze tensor-specific floors, ceilings and tie handling from stock results. This stock-only work can start now; it is not kernel tuning.
-2. From development stock contrasts, freeze the bidirectional ensemble limit and outlier policy, per-polymer-type lDDT limits, and interchain/interface-contact definitions and limits. Exercise them against a displaced minority chain and a collapsed ensemble before candidate outputs exist. If a row has no discriminating non-vacuous gate, its acceptance remains unresolved.
-3. Reassess all draft `E` and `L` limits, especially D1, without using twice the stock maximum as an automatic allowance. Reconcile D9's raw ranking-score contrast with the stated confidence limits. Do not freeze the table above until these checks pass.
-4. Decide whether Zn coordination is gated using a development-only calibration case or explicitly outside the qualified claim. P4G and D4 Mg remain report-only; H3 and H5 remain held out.
-5. Freeze the held-out class rules and sm_120 limits before any sm_120 candidate is tuned or qualified; do not use held-out runs to set limits. Repeat the stock calibration and freeze the applicable limits on the provisioned A100 before A100 tuning or qualification. Sm_120 work need not wait for A100 provisioning, but sm_120 results alone do not establish sm_80 limits.
+1. **Reference feasibility check (stock only).** Fetch and digest the development reference mmCIFs, then compute reference lDDT and interface-contact distributions for the existing item 7 outputs (bf16 versus fp32, seed 101 versus 102). Decide from it whether ten samples per row suffice for the ensemble gate or a class needs more. Fetch and digest the held-out references without running held-out inputs.
+2. **Tier 1 calibration (stock only).** Build the wrapper-private hooks, prove capture is artifact-neutral, and run the three stock configurations on the development set. Freeze tensor-specific floors, ceilings and tie handling from stock results. The `torch`-kernel run also serves as the tier 2 positive control.
+3. **Tier 2 limits.** From development stock contrasts, set the ensemble limits, per-type and interface lDDT limits, the interface-contact limits, D1's lDDT limit and per-row confidence limits. Build the negative controls and confirm that every gate rejects them and the positive control passes. If a row has no discriminating non-vacuous gate, its acceptance remains unresolved.
+4. **Zn decision:** gate Zn coordination using a development-only calibration case, or state that ion placement is outside the qualified claim. P4G and D4 Mg remain report-only; H3 and H5 remain held out.
+5. **Freeze per GPU.** Freeze the held-out class rules and sm_120 limits before any sm_120 candidate is tuned or qualified; do not use held-out runs to set limits. Repeat the stock calibration and freeze the applicable limits on the provisioned A100 before A100 tuning or qualification. Sm_120 work need not wait for A100 provisioning, but sm_120 results alone do not establish sm_80 limits.
 
 ## Notes
 
