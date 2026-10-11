@@ -36,6 +36,10 @@ LDDT_SETTINGS = {
     "symmetric": True,
 }
 POCKET_DISTANCE = 4.0
+# OpenDDE's epitope rule (opendde/tfg/epitope_guidance.py): a residue is reached
+# when one of its heavy atoms is within GATE of a paratope heavy atom.
+EPITOPE_GATE = 5.0
+ATOM_ERROR_PERCENTILES = (50, 95, 99)
 # RDKit's conjugated terminal group pattern (MolAlign symmetrizeTerminalAtoms).
 TERMINAL_GROUP = Chem.MolFromSmarts(
     "[O,N;D1;$([O,N;D1]-[*]=[O,N;D1]),$([O,N;D1]=[*]-[O,N;D1])]~[*]"
@@ -366,6 +370,7 @@ class Reference:
     ligands: list[LigandChain]
     contacts: list[dict[str, Any]] = field(default_factory=list)
     anchor_type: str = ""
+    epitope: dict[str, Any] | None = None
 
 
 def _ligand_chains(atom_array, layout: ChainLayout, cap: int) -> list[LigandChain]:
@@ -457,8 +462,62 @@ def build_reference(
         residue_key=residue_key,
         ligands=_ligand_chains(atom_array, layout, cap),
         contacts=contacts,
+        epitope=_epitope(atom_array, layout, job),
         anchor_type=f"{anchor_type} {anchor_name}",
     )
+
+
+def _epitope(atom_array, layout: ChainLayout, job: dict[str, Any]):
+    epitope = (job.get("constraint") or {}).get("epitope")
+    if not epitope:
+        return None
+    if epitope.get("paratope", "all") != "all":
+        raise ValueError("only paratope 'all' is supported by the harness")
+    heavy = atom_array.element != "H"
+    residues = []
+    seen = set()
+    for res in epitope["residues"]:
+        chain = layout.entity_chains[str(res["entity"])][int(res.get("copy", 1)) - 1]
+        key = (chain, int(res["position"]))
+        if key in seen:
+            continue
+        seen.add(key)
+        idx = np.where(
+            (atom_array.chain_id == chain) & (atom_array.res_id == key[1]) & heavy
+        )[0]
+        if not len(idx):
+            raise ValueError(f"epitope residue {key} has no heavy atoms")
+        residues.append(idx)
+    movable = (job.get("constraint") or {}).get("movable_chains") or []
+    paratope = np.where(np.isin(atom_array.chain_id, movable) & heavy)[0]
+    if not len(paratope):
+        raise ValueError("epitope paratope is empty")
+    k = max(1, math.ceil(float(epitope.get("min_fraction", 1.0)) * len(residues)))
+    return {"residues": residues, "paratope": paratope, "k": k}
+
+
+def guidance_status(ref: Reference, xyz: np.ndarray) -> dict[str, Any] | None:
+    """Constraint satisfaction of one structure: every contact within its
+    bounds, and OpenDDE's epitope rule (at least K residues reached)."""
+    out: dict[str, Any] = {}
+    if ref.contacts:
+        dists = [
+            float(np.linalg.norm(xyz[c["atoms"][0]] - xyz[c["atoms"][1]]))
+            for c in ref.contacts
+        ]
+        out["contacts_ok"] = all(
+            c["min"] <= d <= c["max"] for c, d in zip(ref.contacts, dists)
+        )
+        out["contact_mean"] = float(np.mean(dists))
+    if ref.epitope:
+        tree = cKDTree(xyz[ref.epitope["paratope"]])
+        reached = sum(
+            bool((tree.query(xyz[idx])[0] <= EPITOPE_GATE).any())
+            for idx in ref.epitope["residues"]
+        )
+        out["epitope_reached"] = reached
+        out["epitope_ok"] = reached >= ref.epitope["k"]
+    return out or None
 
 
 def _secondary(ref: Reference, a: np.ndarray, b_fit: np.ndarray) -> float:
@@ -511,6 +570,11 @@ def compare_pair(ref: Reference, a: np.ndarray, b: np.ndarray) -> dict[str, Any]
     out["anchor_rmsd"] = anchor_rmsd
     keep = ref.polymer_mask & ~ref.exclude_mask
     out["polymer_rmsd"] = rmsd(a[keep], b_fit[keep])
+    errors = np.linalg.norm(a[keep] - b_fit[keep], axis=1)
+    out["atom_error"] = {
+        f"p{q}": float(np.percentile(errors, q)) for q in ATOM_ERROR_PERCENTILES
+    }
+    out["atom_error"]["max"] = float(errors.max())
 
     lddt = {}
     status = "ok"
@@ -570,5 +634,15 @@ def compare_pair(ref: Reference, a: np.ndarray, b: np.ndarray) -> dict[str, Any]
                 }
             )
         out["contacts"] = rows
+    guidance_a, guidance_b = guidance_status(ref, a), guidance_status(ref, b_fit)
+    if guidance_a is not None:
+        out["guidance"] = {"a": guidance_a, "b": guidance_b}
     out["status"] = status
     return out
+
+
+def anchor_distance(ref: Reference, a: np.ndarray, b: np.ndarray) -> float:
+    """Anchor RMSD under the declared assignment rule, for set-level matching."""
+    if not (np.isfinite(a).all() and np.isfinite(b).all()):
+        return float("inf")
+    return choose_assignment(ref, a, b)[0][0]

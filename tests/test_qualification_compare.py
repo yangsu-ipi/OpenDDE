@@ -191,3 +191,24 @@ def test_lddt_without_contacts_is_inconclusive():
     near = np.array([[0.0, 0, 0], [5.0, 0, 0]])
     score, pairs = qs.lddt_score(atoms, near, near, mask, mask, key)
     assert pairs == 1 and score == pytest.approx(1.0)
+
+
+def test_epitope_rule_and_atom_error_percentiles():
+    atoms, job = _homodimer()
+    job["constraint"] = {
+        "movable_chains": ["B"],
+        "epitope": {
+            "residues": [{"entity": "1", "copy": 1, "position": "1", "residue": "A"}],
+            "paratope": "all",
+            "min_fraction": 1.0,
+        },
+    }
+    ref = qs.build_reference(atoms, job)
+    a = atoms.coord.astype(np.float64)
+    assert qs.guidance_status(ref, a) == {"epitope_reached": 0, "epitope_ok": False}
+    close = a.copy()
+    close[6] = close[0] + np.array([0.0, 4.0, 0.0])
+    assert qs.guidance_status(ref, close)["epitope_ok"]
+    result = qs.compare_pair(ref, a, a)
+    assert result["atom_error"]["p95"] == pytest.approx(0, abs=1e-6)
+    assert result["guidance"]["a"] == result["guidance"]["b"]

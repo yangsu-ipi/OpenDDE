@@ -115,6 +115,74 @@ Measured on sm_120 before any candidate exists (step 0 results, item 7; table th
 - **Confidence:** `ranking_score` differences are ≤ 0.002 on stable inputs and up to 0.17 on flexible ones; the top-ranked sample changes on some flexible rows.
 - **D5** (templates) is stable: 0.04 Å anchor RMSD and ATR within 0.45 Å between precisions.
 
+## Acceptance criteria (proposal, not frozen)
+
+Proposed 2026-10-10 from stock calibration only (item 7 and job 48816); no candidate exists. Applies to `fast` and `big` against `off` on the same commit, GPU and stack. Every development row runs seeds 101 and 102 with 5 samples, giving 10 paired samples per row (per job for D13); held-out rows use their drawn held-out seeds.
+
+### A. Hard requirements (every row)
+
+1. Every coordinate and confidence value is finite.
+2. Every traced random input equals `off`'s under the raw hash (`trace_tools.py compare --hash raw`), so pairs are truly paired.
+3. Two candidate runs under the deterministic recipe give byte-identical prediction artifacts.
+4. `off` passes its drift check against the step 0 baseline (plan, validation matrix).
+5. Every comparison is conclusive. The symmetry screen showed every input exhaustively searchable, so an inconclusive result is a failure; no resolution test is declared.
+
+### B. Tier 1: non-sampling outputs
+
+Compared on identical inputs, per row and seed:
+- **Trunk:** the single and pair representations the trunk passes to the distogram and confidence stages, by relative Frobenius error and by the 99.9th percentile of absolute error divided by the tensor's RMS.
+- **Distogram:** the largest absolute difference in bin probabilities, and the fraction of token pairs whose most likely bin changes.
+- **Confidence head on fixed inputs:** the candidate's confidence head is fed `off`'s recorded `s_inputs`, single and pair representations and `x_pred_coords`. Compared: the largest absolute difference in pLDDT, PAE, PDE and resolved probabilities, the per-atom expected pLDDT, and `ptm`, `iptm` and `ranking_score`.
+
+Limits are not set yet: no stock measurement of these tensors exists. Proposed calibration: capture them for every development row in stock bf16 with the default cuEquivariance triangle kernels, with stock `torch` triangle kernels (a same-precision kernel swap, the closest stock analogue of a `fast` kernel), and in fp32. Proposed rule: each limit is twice the largest kernel-swap difference for that quantity and row, rounded up to one significant figure, and never above the bf16-versus-fp32 difference. This needs two wrapper-private hooks in `run_opendde.py`: one to capture these tensors, one to substitute recorded confidence-head inputs.
+
+### C. Tier 2: sampled structures
+
+A pair is **same-outcome** when its anchor RMSD is at most 2.0 Å. Calibration: every bf16-versus-fp32 pair on the stable rows is within 1.94 Å, while switched pairs on flexible rows are 9–20 Å apart.
+
+1. **Outcome agreement.** At least `N_min` of the 10 pairs are same-outcome. `N_min` is the stock bf16-versus-fp32 count minus 3, floored at 0. On a flexible row, where stock switched 5 of 10 pairs, a candidate with the same even odds of switching would fall below `N_min` about 1% of the time.
+2. **Same-outcome accuracy.** In every same-outcome pair, the 95th percentile of per-atom error (polymer heavy atoms after the anchor fit) is at most `E`, and polymer lDDT is at least `L`. `E` is twice the stock bf16-versus-fp32 maximum, rounded up to 0.5 Å, with a floor of 1.0 Å. `L` is that minimum minus 0.05, rounded down to 0.01, with a cap of 0.95. The maximum atom error is reported but not gated (plan).
+3. **Specific ligands**, in same-outcome pairs: symmetry-aware RMSD at most 2.0 Å and pocket Jaccard at least 0.6. Calibration: at most 0.93 Å and at least 0.91. The gated ligands are D4's 6OI, D5's ATR, D8's NAG and H2's PCG. Single-atom ions (Mg²⁺, Zn²⁺) and the PEG additive P4G are reported only: they change sites under a precision change.
+4. **Confidence.** On stable rows (`N_min` ≥ 7), every pair has |Δ `ranking_score`| ≤ 0.01; calibration maximum 0.004. On the other rows, same-outcome pairs have |Δ `ranking_score`| ≤ 0.10; calibration maximum 0.078. All rows: |Δ mean pLDDT| ≤ 2.0 in same-outcome pairs; calibration maximum 1.03. The order of samples by ranking is reported, not gated: on near-identical samples, score differences of 0.001 reorder them.
+5. **Guidance.**
+   - D9 rigid contact: all contacts within bounds in at least 9 of 10 samples; stock 10/10.
+   - D10 epitope: OpenDDE's rule is met in at least as many samples as `off` minus 1; stock 10/10.
+   - D11: the mean constrained distance over the 10 samples is within 0.5 Å of `off`'s; stock 8.00 Å in both precisions. The restraint holds distances at its 8 Å bound, so a success count is meaningless here.
+   - D12, the gradient check: the mean constrained distance is within 1.0 Å of `off`'s and at most 7.0 Å. Stock: 5.76 Å in bf16, 6.14 Å in fp32. A zeroed gradient gives 8.0 Å, as at `rho=0`.
+   - Held-out guided rows: success in at least as many samples as `off` minus 1.
+
+Proposed limits for the development rows, by these rules:
+
+| Row | `N_min` | `E` (p95 error) | `L` (lDDT) | Stock bf16 vs fp32: same-outcome pairs, max p95 / min lDDT |
+|---|---|---|---|---|
+| D1 | 7 | 8.5 Å | 0.76 | 10, 4.04 Å / 0.810 |
+| D2, D13 `7r6r` | 7 | 4.0 Å | 0.94 | 10, 1.97 Å / 0.994 |
+| D3, D13 `1a14` | 2 | 4.0 Å | 0.92 | 5, 1.78 Å / 0.975 |
+| D4 | 7 | 1.0 Å | 0.94 | 10, 0.25 Å / 0.999 |
+| D5 | 7 | 1.0 Å | 0.94 | 10, 0.10 Å / 0.997 |
+| D6 | 7 | 1.0 Å | 0.93 | 10, 0.29 Å / 0.982 |
+| D7 | 7 | 1.0 Å | 0.94 | 10, 0.25 Å / 0.998 |
+| D8 | 2 | 8.5 Å | 0.84 | 5, 4.18 Å / 0.890 |
+| D9 | 7 | 4.0 Å | 0.92 | 10, 1.82 Å / 0.973 |
+| D10 | 0 | 6.0 Å | 0.92 | 1, 2.96 Å / 0.973 |
+| D11 | 2 | 3.0 Å | 0.94 | 5, 1.38 Å / 0.990 |
+| D12 | 2 | 3.0 Å | 0.94 | 5, 1.30 Å / 0.992 |
+
+### D. Held-out rows
+
+Held-out inputs have no calibration of their own, and running stock on them now would expose them. Each is assigned a class now, by analogy with the development rows, and uses that class's default limits:
+- **Stable**, using the loosest stable development limits (`N_min` 7, `E` 4.0 Å, `L` 0.92): H6 (rigid contact, like D9), H8 (DNA, like D7), H9 (RNA hairpin, like D6). H10 is the D4 input, so it uses D4's limits.
+- **Flexible**, using the loosest flexible development limits (`N_min` 2, `E` 8.5 Å, `L` 0.84): H1 (693 residues, no MSA), H2 (protein–DNA with ligands, two copies of each), H3 and H4 (three chains), H7 (covalent glycan with guidance).
+- **Epitope** (`N_min` 0, `E` 8.5 Å, `L` 0.84): H5, like D10.
+
+### E. Decisions needed before freezing
+
+- The overall structure: hard requirements, tier 1, and tier 2 built on same-outcome pairs.
+- The same-outcome threshold (2.0 Å) and the limit rules: twice the calibration maximum with floors; `N_min` = stock count minus 3.
+- The gated ligand list, with ions and P4G reported only.
+- The held-out class assignments.
+- The tier 1 calibration run and its hooks, then tier 1 limits by the stated rule.
+
 ## Notes
 
 - **Fold-CP.** The Fold-CP regression input is D1 on two GPUs (plan, validation matrix), independent of this set.

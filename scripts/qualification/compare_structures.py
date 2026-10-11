@@ -14,6 +14,11 @@ compared with sample k of seed ``b`` in RUN_B for each ``a:b`` pair; the
 default pairs every development seed with itself. RUN_A and RUN_B may be the
 same directory for a seed-to-seed contrast.
 
+``--set-level`` adds, per row and job, the anchor RMSD from every RUN_B sample
+(all seeds) to its nearest RUN_A sample (all seeds), and the reverse. A change
+that only moves samples between outcomes stock already produces keeps these
+small even when paired samples differ.
+
 Metrics follow ``qual_structures.py`` and the protocol's comparison rules.
 Rows with ``comparison.exclude_constraint_window`` in the manifest exclude the
 constraint residues and their neighbours from structure metrics.
@@ -26,7 +31,7 @@ from typing import Any
 
 import numpy as np
 from biotite.structure.io import pdbx
-from qual_structures import build_reference, compare_pair
+from qual_structures import anchor_distance, build_reference, compare_pair
 from scipy.stats import kendalltau
 
 from opendde.data.inference.json_to_feature import SampleDictToFeatures
@@ -75,13 +80,57 @@ def _is_guided(row: dict[str, Any]) -> bool:
     )
 
 
-def compare_row(row, run_a: Path, run_b: Path, seed_pairs) -> list[dict[str, Any]]:
+def _set_level(ref, atom_array, job, row, run_a: Path, run_b: Path, seeds_a, seeds_b):
+    def load_all(run, seeds):
+        out = []
+        for seed in seeds:
+            pred = run / row["id"] / job["name"] / f"seed_{seed}" / "predictions"
+            for k, path in sorted(_samples(pred, job["name"]).items()):
+                out.append((f"{seed}:{k}", load_coords(path, atom_array)))
+        return out
+
+    a_all, b_all = load_all(run_a, seeds_a), load_all(run_b, seeds_b)
+    if not a_all or not b_all:
+        return {"status": "fail: missing samples"}
+    dist = np.array(
+        [[anchor_distance(ref, xa, xb) for _, xb in b_all] for _, xa in a_all]
+    )
+    return {
+        "status": "ok",
+        "a_samples": [k for k, _ in a_all],
+        "b_samples": [k for k, _ in b_all],
+        "b_to_nearest_a": dist.min(axis=0).tolist(),
+        "a_to_nearest_b": dist.min(axis=1).tolist(),
+    }
+
+
+def compare_row(
+    row, run_a: Path, run_b: Path, seed_pairs, set_level=False
+) -> list[dict[str, Any]]:
     jobs = json.loads(Path(row["input"]).read_text())
     window = (row.get("comparison") or {}).get("exclude_constraint_window")
     results = []
     for job in jobs:
         atom_array = SampleDictToFeatures(job, _is_guided(row)).get_atom_array()
         ref = build_reference(atom_array, job, exclude_window=window)
+        if set_level:
+            results.append(
+                {
+                    "id": row["id"],
+                    "job": job["name"],
+                    "set_level": _set_level(
+                        ref,
+                        atom_array,
+                        job,
+                        row,
+                        run_a,
+                        run_b,
+                        sorted({a for a, _ in seed_pairs}),
+                        sorted({b for _, b in seed_pairs}),
+                    ),
+                    "status": "ok",
+                }
+            )
         for seed_a, seed_b in seed_pairs:
             dir_a = run_a / row["id"] / job["name"] / f"seed_{seed_a}" / "predictions"
             dir_b = run_b / row["id"] / job["name"] / f"seed_{seed_b}" / "predictions"
@@ -143,6 +192,13 @@ def _worst(samples) -> str:
 
 
 def summarize(entry: dict[str, Any]) -> dict[str, Any]:
+    if "set_level" in entry:
+        sl = entry["set_level"]
+        out = {k: entry[k] for k in ("id", "job", "status")}
+        if sl.get("status") == "ok":
+            out["set_b_to_a_max"] = max(sl["b_to_nearest_a"])
+            out["set_a_to_b_max"] = max(sl["a_to_nearest_b"])
+        return out
     samples = entry.get("samples") or []
     out = {k: entry[k] for k in ("id", "job", "seeds", "status")}
     if not samples:
@@ -178,6 +234,7 @@ def main() -> int:
     parser.add_argument("run_b", type=Path)
     parser.add_argument("--rows", required=True)
     parser.add_argument("--seed-pairs")
+    parser.add_argument("--set-level", action="store_true")
     parser.add_argument(
         "--manifest",
         type=Path,
@@ -195,7 +252,11 @@ def main() -> int:
         seed_pairs = [(s, s) for s in manifest["development_seeds"]]
     entries = []
     for row_id in args.rows.split(","):
-        entries.extend(compare_row(rows[row_id], args.run_a, args.run_b, seed_pairs))
+        entries.extend(
+            compare_row(
+                rows[row_id], args.run_a, args.run_b, seed_pairs, args.set_level
+            )
+        )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(
         json.dumps(
