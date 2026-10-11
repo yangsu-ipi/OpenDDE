@@ -2,6 +2,27 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 24 (2026-10-11)
+
+Review of revision 23 against the evaluator code and the stock ensemble measurements. Documentation only; the C9 numbers remain proposals.
+
+- Add a within-seed ensemble statistic (median same-seed pairwise anchor RMSD, or a per-row near-duplicate count) for the partial-collapse test, alongside the whole-set spread.
+  - *Reason:* with two seeds of five, 25 of the 45 sample pairs cross seeds, so the whole-set median cannot move even under a complete collapse within each seed. Retuning the 0.1-10 window cannot fix this.
+- Define the partial-collapse control exactly: 3 of 5 samples per seed replaced by perturbed copies of that seed's sample 0, at two perturbation sizes tied to the row's stock closest same-seed pair, with the rows required to reject it declared before measuring. Expect flexible rows to need more samples.
+  - *Reason:* "perturbed enough to clear 0.01 Å" lets the control be made trivially detectable or undetectable. Harmless stock contrasts already resemble a partial collapse on flexible rows: D3 bf16 versus fp32 cut the whole-set spread from 10.47 to 2.10 Å and the closest same-seed pair from 1.30 to 0.31 Å; the kernel swap brought D11's to 0.34 Å and D10's to 0.41 Å. On D7 (spread 0.25 Å) a partial collapse is not a meaningful failure.
+- Replace "exactly two seeds and five samples" with the seeds and sample count declared for the row's class.
+  - *Reason:* C2 and C8 allow raising the sample count; a fixed count would contradict them.
+- Make every gate report pass, fail or a declared not-applicable, and name the evaluator's current silent passes as fixture cases: missing ranking-score and pLDDT differences default to 0.0, guidance and ligand gates are skipped when their entries are absent, the spread gate is skipped when `off`'s spread is 0, and contact frequency returns no value when `off` has no interchain contacts.
+  - *Reason:* a general "absent gates fail" rule is easy to implement incompletely; listing the known cases makes the tests specific.
+- Note that `score_sample` already computes per-type reference lDDT, reference fnonnat and per-chain-pair Fnat; `measure_row` discards them. Calibrate a gate on the minimum per-chain-pair reference Fnat, or record why it stays reported.
+  - *Reason:* per-chain-pair Fnat addresses the plan's concern that an all-polymer average can hide a minority-chain interface.
+- Make ipTM report-only on reference-free rows.
+  - *Reason:* among development rows without a reference, only D7 has two chains, so a gate would rest on one row.
+- Zn: allow case selection from H3/H5's inputs and deposited sites (never their predictions); assign equivalent Zn ions to sites after the chain assignment; add a wrong-site control alongside the moved-Zn control. Align the plan's status line with E's scope-decision fallback.
+  - *Reason:* without site assignment, two swapped ions look like displacements; displacement alone is the easy control.
+- Reorder the remaining work: Zn case selection first, then the fail-closed evaluator, then the partial-collapse test, then any extra flexible-row samples.
+  - *Reason:* the Zn case needs user approval and an input amendment, the longest wait; the evaluator and partial-collapse work rescore existing outputs on CPU; extra samples need GPU time on six of the 14 development jobs.
+
 ## Revision 23 (2026-10-11)
 
 The tier 2 proposal was reviewed against the development control results and the current evaluator. The numerical values in C9 remain proposals; this revision changes documentation only. It does not amend the frozen input manifest, implement gates, run stock calibration or start the optimization port.
