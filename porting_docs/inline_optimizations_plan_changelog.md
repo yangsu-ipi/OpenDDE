@@ -2,6 +2,17 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 26 (2026-10-11)
+
+Documentation only. The sm_120 tier 2 numeric proposal is acceptable for planning; the acceptance contract is not frozen, and no optimization port or new calibration run was started.
+
+- Require a per-limit provenance audit before treating the stock `torch` triangle-kernel swap as an independent positive control. If it influenced a limit, rederive that limit without it and retest, or use a different independent harmless same-precision control. Keep a numeric value only if the independent derivation and check support it.
+  - *Reason:* C8 called the kernel swap independent, while C9 said both the precision contrast and kernel swap set the new limits. A control used to choose its own threshold cannot validate that threshold independently.
+- Keep 0.85 at 2.0 Å with at least 10 matched ions as a proposed stock-relative Zn placement check, not a claim about deposited-site occupancy or coordination chemistry. Make a Zn `n/a` an unresolved aggregate outcome that blocks a full Zn-qualified pass for H3/H5; test the low-match and zero-same-outcome cases before freeze.
+  - *Reason:* D14/D15 stock outputs reproduce their own Zn sites, not most deposited sites. H3 can meet its two-same-outcome floor with at most six ion comparisons, and H5 can meet its zero floor with none. The current evaluator records Zn `n/a` but still reports the row as passing.
+- Update status and remove stale statements that Zn stock calibration and partial-collapse testing remain to be done. Keep held-out assignments under explicit freeze review and A100 limits separate.
+  - *Reason:* the development Zn controls and near-duplicate results are recorded in step 0 results; stale text obscured the remaining provenance and Zn-applicability tasks.
+
 ## Revision 25 (2026-10-11)
 
 Status update only; no requirement changes.
