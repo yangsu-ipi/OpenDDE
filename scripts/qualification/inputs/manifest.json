@@ -47,6 +47,10 @@
    "flags": [
     "--use_msa",
     "true"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/7r6r.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/7r6r.cif"
    ]
   },
   {
@@ -58,6 +62,10 @@
    "flags": [
     "--use_msa",
     "true"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/1a14.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/1a14.cif"
    ]
   },
   {
@@ -69,6 +77,10 @@
    "flags": [
     "--use_msa",
     "true"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/7wux.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/7wux.cif"
    ]
   },
   {
@@ -91,9 +103,11 @@
     "data.template.prot_template_cache_dir={out}/template_cache"
    ],
    "external_data": [
-    "${OPENDDE_QUAL_DATA}/template_mmcif"
+    "${OPENDDE_QUAL_DATA}/template_mmcif",
+    "${OPENDDE_QUAL_DATA}/references/9fm7.cif"
    ],
-   "note": "Templates: kalign 2.04 and the four mmCIF files fetched once from PDBe (5ocm, 3zgy, 5a9s, 5a9r), checked by freeze_inputs.py check --external; no network access during runs."
+   "note": "Templates: kalign 2.04 and the four mmCIF files fetched once from PDBe (5ocm, 3zgy, 5a9s, 5a9r), checked by freeze_inputs.py check --external; no network access during runs.",
+   "reference": "${OPENDDE_QUAL_DATA}/references/9fm7.cif"
   },
   {
    "id": "D6",
@@ -106,6 +120,10 @@
     "true",
     "--use_rna_msa",
     "true"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/9gmw.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/9gmw.cif"
    ]
   },
   {
@@ -128,6 +146,10 @@
    "flags": [
     "--use_msa",
     "true"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/9lh2.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/9lh2.cif"
    ]
   },
   {
@@ -143,6 +165,10 @@
     "true",
     "--enable_tf32",
     "false"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/1a14.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/1a14.cif"
    ]
   },
   {
@@ -158,6 +184,10 @@
     "true",
     "--enable_tf32",
     "false"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/1a14.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/1a14.cif"
    ]
   },
   {
@@ -179,7 +209,11 @@
    },
    "comparison": {
     "exclude_constraint_window": 3
-   }
+   },
+   "reference": "${OPENDDE_QUAL_DATA}/references/1a14.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/1a14.cif"
+   ]
   },
   {
    "id": "D12",
@@ -203,7 +237,11 @@
    ],
    "comparison": {
     "exclude_constraint_window": 3
-   }
+   },
+   "reference": "${OPENDDE_QUAL_DATA}/references/1a14.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/1a14.cif"
+   ]
   },
   {
    "id": "D13",
@@ -215,7 +253,15 @@
     "--use_msa",
     "true"
    ],
-   "note": "two jobs: 7r6r and 1a14_unconstrained"
+   "note": "two jobs: 7r6r and 1a14_unconstrained",
+   "reference": {
+    "7r6r": "${OPENDDE_QUAL_DATA}/references/7r6r.cif",
+    "1a14_unconstrained": "${OPENDDE_QUAL_DATA}/references/1a14.cif"
+   },
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/7r6r.cif",
+    "${OPENDDE_QUAL_DATA}/references/1a14.cif"
+   ]
   },
   {
    "id": "H1",
@@ -237,6 +283,10 @@
    "flags": [
     "--use_msa",
     "true"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/7pzb.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/7pzb.cif"
    ]
   },
   {
@@ -248,6 +298,10 @@
    "flags": [
     "--use_msa",
     "true"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/9sat.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/9sat.cif"
    ]
   },
   {
@@ -259,6 +313,10 @@
    "flags": [
     "--use_msa",
     "true"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/9xqn.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/9xqn.cif"
    ]
   },
   {
@@ -274,6 +332,10 @@
     "true",
     "--enable_tf32",
     "false"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/9sat.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/9sat.cif"
    ]
   },
   {
@@ -289,6 +351,10 @@
     "true",
     "--enable_tf32",
     "false"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/9xqn.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/9xqn.cif"
    ]
   },
   {
@@ -304,6 +370,10 @@
     "true",
     "--enable_tf32",
     "false"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/9lh2.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/9lh2.cif"
    ]
   },
   {
@@ -339,11 +409,15 @@
    "flags": [
     "--use_msa",
     "true"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/7wux.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/7wux.cif"
    ]
   }
  ],
  "host_environment": {
-  "OPENDDE_QUAL_DATA": "private qualification data directory holding template_mmcif/",
+  "OPENDDE_QUAL_DATA": "private qualification data directory holding template_mmcif/ and references/",
   "OPENDDE_QUAL_KALIGN": "kalign 2.04 binary"
  }
 }

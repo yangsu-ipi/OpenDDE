@@ -149,6 +149,32 @@ What this shows:
 - D5's manifest row now sets that directory, `fetch_remote=false` and a per-run template cache, through the host variables `OPENDDE_QUAL_DATA` and `OPENDDE_QUAL_KALIGN`; `external_digests.json` holds the four files' SHA-256 (`freeze_inputs.py check --external`).
 - Job 48810 ran D5 at bf16 and fp32 from the frozen data: the bf16 seed-101 artifacts are byte-identical to the fetch run's (15 files), and the results are in the table above.
 
+### Reference feasibility check (ensemble gate)
+
+Job 48887 (CPU), stock only, after the revision 22 decision to base the tier 2 ensemble gate on deposited structures. The nine reference entries (development 7r6r, 1a14, 7wux, 9fm7, 9gmw, 9lh2; held-out 7pzb, 9sat, 9xqn) were fetched once from PDBe into the read-only `${OPENDDE_QUAL_DATA}/references/` and added to `external_digests.json`; no held-out input was run. `reference_metrics.py` scored all 140 bf16 and 140 fp32 item 7 samples (13 rows, two seeds of five) against them: reference-directional lDDT of polymer heavy atoms, and Fnat-style interface contacts (deposited interchain residue contacts within 5 Å that the prediction reproduces). The `9fm7` asymmetric unit holds one chain of the predicted dimer, so it is scored against assembly 1 (lDDT 0.90, Fnat 0.91). The 9gmw reference resolves 56 of D6's 86 nucleotides.
+
+| Row | Reference lDDT median, bf16 / fp32 (seed 101 / 102) | Fnat median, bf16 / fp32 | Displaced-chain control: lDDT / Fnat median | Ensemble spread, bf16 / fp32 |
+|---|---|---|---|---|
+| D2 | 0.789 / 0.788 (0.787 / 0.791) | 0.684 / 0.684 | 0.650 / 0.297 | 3.88 / 3.84 Å |
+| D3 | 0.876 / 0.879 (0.876 / 0.879) | 0.448 / 0.453 | 0.845 / 0.026 | 10.47 / 2.10 Å |
+| D4 | 0.923 / 0.923 (0.923 / 0.923) | 0.897 / 0.901 | 0.855 / 0.426 | 3.54 / 3.53 Å |
+| D5 | 0.908 / 0.908 (0.910 / 0.907) | 0.904 / 0.898 | 0.744 / 0.188 | 0.84 / 0.82 Å |
+| D6 | 0.824 / 0.823 (0.823 / 0.825) | single chain | not applicable | 1.94 / 1.98 Å |
+| D8 | 0.783 / 0.780 (0.784 / 0.783) | 0.069 / 0.062 | 0.782 / 0.069 | 5.94 / 16.21 Å |
+| D9 | 0.909 / 0.910 (0.909 / 0.910) | 0.812 / 0.802 | 0.860 / 0.208 | 0.59 / 0.59 Å |
+| D10 | 0.884 / 0.882 (0.883 / 0.884) | 0.469 / 0.479 | 0.852 / 0.062 | 10.58 / 12.86 Å |
+| D11 | 0.904 / 0.905 (0.905 / 0.903) | 0.816 / 0.816 | 0.878 / 0.026 | 12.06 / 16.16 Å |
+| D12 | 0.903 / 0.904 (0.903 / 0.903) | 0.816 / 0.816 | 0.877 / 0.026 | 12.01 / 15.67 Å |
+
+The control moves the smallest mapped polymer chain 8 Å outward and turns it 20° in every bf16 sample, then rescores. Ensemble spread is the median pairwise anchor RMSD among a run's ten samples; a collapsed ensemble has spread 0. D13's jobs match D2 and D3. Rows without a reference: D1 mean pLDDT median 48.0 / 48.8, spread 4.53 / 4.58 Å; D7 96.2 / 96.1, spread 0.25 / 0.25 Å.
+
+What this shows:
+- With ten samples, the median reference lDDT of stock bf16 and fp32 agrees within 0.004 on every row, as do the two seeds, and the median Fnat within 0.010. The displaced-chain control lowers the median lDDT by 0.026-0.164 and the median Fnat by 0.39-0.79 on every reference row except D8. A distribution gate on reference lDDT and Fnat is therefore feasible at ten samples for D2, D3, D4, D5 and D9-D12 (and D13).
+- D8 is the exception: stock reproduces almost none of 9lh2's deposited interfaces (Fnat about 0.07, worst chain pair 0), so moving a chain changes neither metric. The reference gate checks only D8's chains individually.
+- The interface results match the inputs' design: unconstrained 1a14 (D3) misses the antibody-antigen interface (worst-pair Fnat 0), and rigid-contact guidance (D9) recovers it (0.70-0.72).
+- Ensemble spread separates a collapsed ensemble from stock on every row, but varies widely between precisions on flexible rows (D3 10.47 versus 2.10 Å, D8 5.94 versus 16.21 Å), so any spread limit must be a loose ratio.
+- D6 is a single chain, so the displaced-chain control does not apply; it needs another negative control.
+
 ## Item 8: random-input trace
 
 Six RNG call sites carry stable symbolic names: `sampler.initial_noise`, `sampler.step_noise`, `augmentation.rotation`, `augmentation.translation`, `tfg.eps` and `tfg.outer_noise`. Each draw is captured before scaling and hashed per original sample index (`run_opendde.py --draw-trace`). `scripts/qualification/trace_tools.py` derives the expected manifest from the recorded sampling settings.
