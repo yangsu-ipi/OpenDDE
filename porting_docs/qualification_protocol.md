@@ -187,36 +187,49 @@ A pair is **same-outcome** when its anchor RMSD is at most 2.0 Å. This is a pro
    - **Positive control:** the stock bf16 run with `torch` triangle kernels, which the tier 1 calibration produces, is a harmless same-precision change and must pass every tier 2 gate. It validates the limits and is not used to set them; using it for both would make the check circular. If it fails, revisit the limits before freezing. **Result (job 48903): it passes every revision 22 draft gate** (step 0 results, tier 2 positive control); the closest margins are D8's same-outcome lDDT (0.927 against 0.84) and D12's mean constrained distance (0.41 Å against 1.0 Å).
    - **Negative controls**, built from stock outputs, must fail: a displaced minority chain, a collapsed ensemble (every candidate sample replaced by one `off` sample), and a specific ligand moved out of its pocket.
 
-Stock calibration and draft limits for the development rows. `E` and `L` are **diagnostic drafts, not pass limits**; they are reassessed with the per-type, interface and ensemble gates before the freeze. `E` applies only where marked.
+### C9. Proposed tier 2 limits (2026-10-11, not frozen)
 
-| Row | Class | Proposed `N_min` | Draft `E` (p95 error) | Draft `L` (lDDT) | Stock bf16 vs fp32: same-outcome pairs, max p95 / min lDDT |
-|---|---|---|---|---|---|
-| D1 | low-confidence | 7 | reported | from stock, to set | 10, 4.04 Å / 0.810 |
-| D2, D13 `7r6r` | stable | 9 | reported | 0.94 | 10, 1.97 Å / 0.994 |
-| D3, D13 `1a14` | flexible | 2 | reported | 0.92 | 5, 1.78 Å / 0.975 |
-| D4 | stable | 9 | 1.0 Å (gated) | 0.94 | 10, 0.25 Å / 0.999 |
-| D5 | stable | 9 | 1.0 Å (gated) | 0.94 | 10, 0.10 Å / 0.997 |
-| D6 | stable | 9 | 1.0 Å (gated) | 0.93 | 10, 0.29 Å / 0.982 |
-| D7 | stable | 9 | 1.0 Å (gated) | 0.94 | 10, 0.25 Å / 0.998 |
-| D8 | flexible | 2 | reported | 0.84 | 5, 4.18 Å / 0.890 |
-| D9 | stable | 9 | reported | 0.92 | 10, 1.82 Å / 0.973 |
-| D10 | epitope | 0 | reported | 0.92 | 1, 2.96 Å / 0.973 |
-| D11 | flexible | 2 | reported | 0.94 | 5, 1.38 Å / 0.990 |
-| D12 | flexible | 2 | reported | 0.94 | 5, 1.30 Å / 0.992 |
+Proposed after measuring every gate on two harmless stock contrasts (bf16 versus fp32 from item 7, and `off` versus the `torch` triangle-kernel swap from the tier 1 calibration) and on six negative-control sets built from stock `off` outputs (`make_controls.py`; step 0 results, tier 2 negative controls). The limits file is `scripts/qualification/inputs/tier2_limits.json`; `tier2_gates.py measure` computes the quantities and `tier2_gates.py evaluate` applies it. Quality gates are one-sided: a candidate may be better than `off`.
+
+| Gate | Stable (D2, D4-D7, D9, D13 `7r6r`) | Low-confidence (D1) | Flexible (D3, D8, D11, D12, D13 `1a14`) | Epitope (D10) |
+|---|---|---|---|---|
+| Same-outcome pairs (anchor ≤ 2.0 Å), at least | 9 of 10 | 7 | 2 | 0 |
+| Same-outcome lDDT, all polymer and each polymer type, at least | 0.95 | 0.78 | 0.95 (D8: 0.85) | 0.95 |
+| p95 per-atom error in same-outcome pairs, at most | 1.0 Å on D4-D7; reported elsewhere | reported | reported | reported |
+| Pairwise interface Fnat in same-outcome pairs, at least | 0.90 (D9: 0.70) | single chain | 0.60 (D8: 0.55) | 0.70 |
+| Gated ligands (6OI, ATR, NAG, PCG) in same-outcome pairs | RMSD ≤ 2.0 Å, pocket Jaccard ≥ 0.6 | - | same | - |
+| \|Δ `ranking_score`\|, at most | 0.01, every pair (D9: 0.05) | 0.01, every pair | 0.10, same-outcome pairs | 0.10, same-outcome pairs |
+| \|Δ mean pLDDT\| in same-outcome pairs, at most | 2.0 | 2.0 | 2.0 | 2.0 |
+| Ensemble: drop in median / lowest reference lDDT, at most | 0.01 / 0.02 | no reference | 0.01 / 0.02 | 0.01 / 0.02 |
+| Ensemble: drop in median reference Fnat, at most | 0.05 | - | 0.05 | 0.05 |
+| Ensemble spread ratio, candidate / `off` | 0.8-1.25 | 0.8-1.25 | 0.1-10 | 0.1-10 |
+| Ensemble contact-frequency L1, at most | 0.2 | - | 1.0 | 1.0 |
+| Ensemble \|Δ median pLDDT\|, at most | 1.5 | 1.5 | 1.5 | 1.5 |
+| Closest same-seed sample pair, anchor RMSD, at least | 0.01 Å | 0.01 Å | 0.01 Å | 0.01 Å |
+
+Guidance gates are unchanged from C7: D9 contacts in at least 9 of 10 samples; D10 epitope success in at least `off` minus 1; D11 mean constrained distance within 0.5 Å; D12 within 1.0 Å and at most 7.0 Å.
+
+Evaluation (job outputs `eval_*.json`):
+- **Harmless stock contrasts pass everywhere:** bf16 versus fp32 and the kernel swap pass every gate on all 14 jobs. Their tightest margins: D8 same-outcome lDDT 0.890 (limit 0.85), D8 interface Fnat 0.661 (limit 0.55), D9 ranking score 0.024 (limit 0.05), D12 guidance 0.41 Å (limit 1.0 Å), D8 lowest reference lDDT drop 0.011 (limit 0.02).
+- **Every negative control fails on every row it applies to except one:** displaced chain (11 jobs), hinge (14), collapsed ensemble (14), gated ligand moved out of its pocket (D4, D5, D8), and guidance removed (D11's `rho=0` samples as D9 and D12 candidates, D3's unconstrained samples as a D10 candidate). The exception is coordinate jitter on D1, which passes: D1's own bf16-versus-fp32 contrast moves atoms more (p95 up to 4.0 Å, lDDT 0.81) than 0.5 Å noise does (lDDT 0.83). D1 therefore detects gross failures (hinge, collapse, switched outcomes) but not uniform small noise; jitter fails on every other row.
+- **The duplicate-sample gate is needed:** without it, the collapsed control (each seed's samples replaced by its sample 0) passed on D3, D8, D9, D10 and D13's `1a14` job. Every stock run's closest same-seed pair is at least 0.10 Å (D7); a collapsed ensemble repeats samples exactly. A partial collapse that still varies samples slightly is not caught on flexible rows at ten samples.
+- **D8 is resolved by the contact-frequency and paired gates, not the reference gate:** its displaced-chain control fails the outcome count, its hinge the reference gates, its jitter the lDDT and ligand gates, and its collapsed control the duplicate gate.
+- **Stock seed-to-seed contrasts fail the paired gates**, as expected for different random inputs; they inform the ensemble gates only.
 
 ### D. Held-out rows
 
 Held-out inputs have no calibration of their own, and running stock on them now would expose them. Freeze their class assignments and absolute limits from development data before any held-out run. Every class must pass the ensemble gate: reference-based for H2-H7 and H10, intrinsic for H1, H8 and H9.
-- **Stable:** H6 (rigid contact, like D9), with proposed `N_min` 9 and draft `L` 0.92. H10 is the D4 input with new seeds, so it uses D4's final limits; it tests new seeds rather than a new large input.
-- **Flexible:** H1 (693 residues, no MSA), H2 (protein-DNA with ligands, two copies of each), H3 and H4 (three chains), H7 (covalent glycan with guidance), with proposed `N_min` 2 and draft `L` 0.84.
-- **Nucleic-acid outcome uncertain:** H8 (two distinct DNA strands) and H9 (RNA hairpin without RNA MSA), with proposed `N_min` 2 and draft nucleic-acid lDDT `L` 0.92. D7 is self-complementary and D6 uses RNA MSA, so their 10-of-10 stock precision match does not establish that H8 or H9 will have stable outcome counts.
-- **Epitope:** H5, like D10, with proposed `N_min` 0 and draft `L` 0.84. Its ensemble and guidance gates are mandatory even if no pairs match.
+Held-out rows use the C9 limits of their class at that class's loosest development setting, because no held-out input is calibrated (proposed, not frozen):
+- **Stable:** H6 (rigid contact, like D9) uses the stable class with D9's overrides (interface Fnat 0.70, |Δ `ranking_score`| 0.05) and contact success in at least `off` minus 1 samples. H10 is the D4 input with new seeds, so it uses D4's limits, including the 1.0 Å p95 gate; it tests new seeds rather than a new large input.
+- **Flexible:** H1 (693 residues, no MSA), H2 (protein-DNA with ligands, two copies of each), H3 and H4 (three chains) and H7 (covalent glycan with guidance) use the flexible class with D8's overrides (same-outcome lDDT 0.85, interface Fnat 0.55); H7 also needs contact success in at least `off` minus 1 samples. H2's PCG is a gated ligand.
+- **Nucleic-acid outcome uncertain:** H8 (two distinct DNA strands) and H9 (RNA hairpin without RNA MSA) use count floor 2, same-outcome lDDT 0.90, spread ratio 0.1-10 and contact-frequency L1 at most 1.0 (H8), with the shared confidence, pLDDT and duplicate gates. D7 is self-complementary and D6 uses RNA MSA, so their 10-of-10 stock precision match does not establish that H8 or H9 will have stable outcome counts.
+- **Epitope:** H5, like D10, uses the epitope class with D8's lDDT and interface overrides (0.85, 0.55). Its ensemble and guidance gates are mandatory even if no pairs match.
 
 ### E. Work remaining before acceptance is frozen
 
 1. **Reference feasibility check (stock only): done** (job 48887). Ten samples suffice for a reference-based ensemble gate on D2, D3, D4, D5 and D9-D13. Open: a discriminating ensemble gate for D8 (more samples, or an interface statistic that does not rely on the deposited interfaces), a negative control for single-chain D6, and confirmation of the draft limits against the C8 controls.
 2. **Tier 1 calibration (stock only): done** (jobs 48900-48903). Hooks are artifact-neutral on all 13 rows; proposed tier 1 limits are in section B for review. The `torch`-kernel run passes every draft tier 2 gate. The single-cycle calibration (jobs 49092-49095) supports one set of tier 1 limits for every row; the user approved the single-cycle design and limits on 2026-10-11 (section B).
-3. **Tier 2 limits.** From development stock contrasts, set the ensemble limits, per-type and interface lDDT limits, the interface-contact limits, D1's lDDT limit and per-row confidence limits. Build the negative controls and confirm that every gate rejects them and the positive control passes. If a row has no discriminating non-vacuous gate, its acceptance remains unresolved.
+3. **Tier 2 limits: proposed** (C9, `tier2_limits.json`). Both harmless stock contrasts pass every gate on all 14 jobs, and every negative control fails on every applicable row except jitter on low-confidence D1. Open: approve or revise the limits, and accept that D1 does not detect uniform small noise.
 4. **Zn decision:** gate Zn coordination using a development-only calibration case, or state that ion placement is outside the qualified claim. P4G and D4 Mg remain report-only; H3 and H5 remain held out.
 5. **Freeze per GPU.** Freeze the held-out class rules and sm_120 limits before any sm_120 candidate is tuned or qualified; do not use held-out runs to set limits. Repeat the stock calibration and freeze the applicable limits on the provisioned A100 before A100 tuning or qualification. Sm_120 work need not wait for A100 provisioning, but sm_120 results alone do not establish sm_80 limits.
 

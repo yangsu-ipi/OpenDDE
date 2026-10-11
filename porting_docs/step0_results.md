@@ -228,6 +228,37 @@ Jobs 49092-49095, stock only, commit `84f3d8e`: the same three configurations wi
 
 With one cycle, the 1a14 input (D3) and D8 behave like every other row: pair error 2.2% under the kernel swap against 15.5% and 18.1% with ten cycles, and D1's fp32 pair error falls from 18.4% to 4.0%. The spread across rows shrinks from a factor of ten to under two, so a single set of tier 1 limits can serve every row. A single-cycle `off` run of all eight inputs took about 8 min (sum of per-row times), against about 40 min for the ten-cycle, five-sample run.
 
+### Tier 2 negative controls and limit proposal
+
+Jobs 49121 (control build) and 49134-49142 (measurements), stock only, CPU. `make_controls.py` built six negative-control candidate runs from the stock `off` run of the tier 1 calibration (job 48900), copying confidence files unchanged so only structures differ:
+- **displaced:** the smallest polymer chain moved 8 Å and turned 20° in every sample (11 multichain jobs);
+- **hinge:** the last 30% of the largest chain turned 20° about the hinge residue (all 14 jobs, including single-chain D1 and D6);
+- **jitter:** Gaussian noise of 0.5 Å per coordinate on every heavy atom (14 jobs);
+- **collapsed:** each seed's samples replaced by its sample 0 (14 jobs);
+- **ligand out:** each gated ligand moved 6 Å outward (D4, D5, D8);
+- **guidance removed:** stock D11 (`rho=0`, generic restraint) as the D9 and D12 candidate, and stock unconstrained D3 as the D10 candidate.
+
+`tier2_gates.py measure` scored these and three stock contrasts (bf16 versus fp32 from item 7, the kernel swap, and seed 101 versus 102) on paired, ensemble and guidance quantities. It adds a pairwise interface metric (the fraction of `off`'s interchain residue contacts within 5 Å that the candidate keeps), an ensemble contact-frequency distance (normalized L1 between the two runs' interchain contact frequencies, keyed by entity and residue), and the closest same-seed sample pair. `tier2_gates.py evaluate` applied the proposed limits (`scripts/qualification/inputs/tier2_limits.json`; protocol C9):
+
+| Contrast or control | Jobs passing every gate |
+|---|---|
+| bf16 vs fp32 | 14 of 14 |
+| Kernel swap | 14 of 14 |
+| Seed 101 vs 102 (different random inputs; context) | 1 of 14 |
+| Displaced chain | 0 of 11 |
+| Hinge | 0 of 14 |
+| Jitter | 1 of 14 (D1) |
+| Collapsed ensemble | 0 of 14 |
+| Ligand out | 0 of 3 |
+| Guidance removed | 0 of 3 |
+
+Notable results:
+- A displaced DNA strand in D2 leaves the protein anchor unchanged, so its pairs stay same-outcome; the per-type DNA lDDT (0.546), the pairwise interface Fnat (0.43), the reference ensemble and the contact frequency (0.60) catch it.
+- On D8 the displaced chain is not in contact in stock predictions, so contact frequency barely moves (0.05); every pair switches outcome, so the count gate catches it.
+- The D12 gradient check rejects the guidance-removed control: stock `rho=0` samples give a mean constrained distance of 8.00 Å against 5.76 Å.
+- Before the duplicate-sample gate, the collapsed control passed on D3, D8, D9, D10 and D13's `1a14` job; with it, every collapsed job fails (repeated samples have anchor RMSD 0, against at least 0.10 Å between any two stock samples of one seed).
+- D1 jitter passes because D1's own precision contrast exceeds the noise; this is the limit of what a low-confidence input can show.
+
 ## Item 8: random-input trace
 
 Six RNG call sites carry stable symbolic names: `sampler.initial_noise`, `sampler.step_noise`, `augmentation.rotation`, `augmentation.translation`, `tfg.eps` and `tfg.outer_noise`. Each draw is captured before scaling and hashed per original sample index (`run_opendde.py --draw-trace`). `scripts/qualification/trace_tools.py` derives the expected manifest from the recorded sampling settings.

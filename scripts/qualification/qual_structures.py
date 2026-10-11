@@ -36,6 +36,8 @@ LDDT_SETTINGS = {
     "symmetric": True,
 }
 POCKET_DISTANCE = 4.0
+# Interchain residue contact: any heavy-atom pair within this distance (DockQ's Fnat).
+INTERFACE_DISTANCE = 5.0
 # OpenDDE's epitope rule (opendde/tfg/epitope_guidance.py): a residue is reached
 # when one of its heavy atoms is within GATE of a paratope heavy atom.
 EPITOPE_GATE = 5.0
@@ -321,6 +323,21 @@ def contact_pair_count(xyz_a, xyz_b, atom_mask, partner_mask, residue_key, radiu
     return int(len(np.union1d(found[0], found[1])))
 
 
+def interchain_contacts(xyz, mask, chain_id, residue_key) -> set[tuple[str, str]]:
+    """Residue pairs on different chains with a heavy-atom pair within
+    ``INTERFACE_DISTANCE``, as sorted residue-key pairs."""
+    idx = np.where(mask)[0]
+    if len(idx) < 2:
+        return set()
+    pairs = cKDTree(xyz[idx]).query_pairs(INTERFACE_DISTANCE, output_type="ndarray")
+    i, j = idx[pairs[:, 0]], idx[pairs[:, 1]]
+    keep = chain_id[i] != chain_id[j]
+    out = set()
+    for a, b in zip(residue_key[i[keep]], residue_key[j[keep]]):
+        out.add((a, b) if a < b else (b, a))
+    return out
+
+
 def lddt_score(atom_array, xyz_a, xyz_b, atom_mask, partner_mask, residue_key):
     """(score, pair count). Score is None when no contacts exist (inconclusive)."""
     pairs = contact_pair_count(
@@ -355,6 +372,7 @@ class LigandChain:
     mol: Any
     maps: list
     truncated: bool
+    res_name: str = ""
 
 
 @dataclass
@@ -390,7 +408,8 @@ def _ligand_chains(atom_array, layout: ChainLayout, cap: int) -> list[LigandChai
         }
         mol = ligand_mol(atom_array, idx, fixed)
         maps, truncated = symmetry_maps(mol, cap)
-        out.append(LigandChain(str(chain), idx, mol, maps, truncated))
+        res_name = "+".join(dict.fromkeys(atom_array.res_name[idx].tolist()))
+        out.append(LigandChain(str(chain), idx, mol, maps, truncated, res_name))
     return out
 
 
@@ -586,6 +605,24 @@ def compare_pair(ref: Reference, a: np.ndarray, b: np.ndarray) -> dict[str, Any]
             status = "inconclusive: no lDDT contacts"
     out["lddt"] = lddt
 
+    interface_mask = ref.polymer_mask & ~ref.exclude_mask
+    if len(set(ref.atom_array.chain_id[interface_mask].tolist())) > 1:
+        chain_id = np.asarray(ref.atom_array.chain_id)
+        contacts_a = interchain_contacts(a, interface_mask, chain_id, ref.residue_key)
+        contacts_b = interchain_contacts(
+            b_fit, interface_mask, chain_id, ref.residue_key
+        )
+        out["interface"] = {
+            "contacts_a": len(contacts_a),
+            "contacts_b": len(contacts_b),
+            "fnat": len(contacts_a & contacts_b) / len(contacts_a)
+            if contacts_a
+            else None,
+            "fnonnat": len(contacts_b - contacts_a) / len(contacts_b)
+            if contacts_b
+            else None,
+        }
+
     polymer_xyz_a, polymer_xyz_b = a[ref.polymer_mask], b_fit[ref.polymer_mask]
     polymer_res = ref.residue_key[ref.polymer_mask]
     ligands = []
@@ -601,6 +638,7 @@ def compare_pair(ref: Reference, a: np.ndarray, b: np.ndarray) -> dict[str, Any]
         ligands.append(
             {
                 "chain": lig.chain,
+                "res_name": lig.res_name,
                 "heavy_atoms": len(lig.indices),
                 "maps": len(lig.maps),
                 "truncated": lig.truncated,

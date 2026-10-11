@@ -1,0 +1,139 @@
+{
+ "status": "proposed 2026-10-11, not frozen (qualification_protocol.md, tier 2)",
+ "gpu": "sm_120",
+ "ligand_rmsd_max": 2.0,
+ "ligand_pocket_min": 0.6,
+ "classes": {
+  "stable": {
+   "n_min": 9,
+   "lddt_min": 0.95,
+   "pair_fnat_min": 0.9,
+   "ranking_score_max": 0.01,
+   "ranking_all_pairs": true,
+   "plddt_max": 2.0,
+   "ref_lddt_median_drop": 0.01,
+   "ref_lddt_lowest_drop": 0.02,
+   "ref_fnat_median_drop": 0.05,
+   "spread_ratio": [
+    0.8,
+    1.25
+   ],
+   "contact_freq_l1_max": 0.2,
+   "plddt_median_delta": 1.5
+  },
+  "low": {
+   "n_min": 7,
+   "lddt_min": 0.78,
+   "ranking_score_max": 0.01,
+   "ranking_all_pairs": true,
+   "plddt_max": 2.0,
+   "spread_ratio": [
+    0.8,
+    1.25
+   ],
+   "plddt_median_delta": 1.5
+  },
+  "flexible": {
+   "n_min": 2,
+   "lddt_min": 0.95,
+   "pair_fnat_min": 0.6,
+   "ranking_score_max": 0.1,
+   "plddt_max": 2.0,
+   "ref_lddt_median_drop": 0.01,
+   "ref_lddt_lowest_drop": 0.02,
+   "ref_fnat_median_drop": 0.05,
+   "spread_ratio": [
+    0.1,
+    10
+   ],
+   "contact_freq_l1_max": 1.0,
+   "plddt_median_delta": 1.5
+  },
+  "epitope": {
+   "n_min": 0,
+   "lddt_min": 0.95,
+   "pair_fnat_min": 0.7,
+   "ranking_score_max": 0.1,
+   "plddt_max": 2.0,
+   "ref_lddt_median_drop": 0.01,
+   "ref_lddt_lowest_drop": 0.02,
+   "ref_fnat_median_drop": 0.05,
+   "spread_ratio": [
+    0.1,
+    10
+   ],
+   "contact_freq_l1_max": 1.0,
+   "plddt_median_delta": 1.5,
+   "guidance": {
+    "kind": "epitope",
+    "slack": 1
+   }
+  }
+ },
+ "rows": {
+  "D1": {
+   "class": "low"
+  },
+  "D2": {
+   "class": "stable"
+  },
+  "D3": {
+   "class": "flexible"
+  },
+  "D4": {
+   "class": "stable",
+   "p95_max": 1.0
+  },
+  "D5": {
+   "class": "stable",
+   "p95_max": 1.0
+  },
+  "D6": {
+   "class": "stable",
+   "p95_max": 1.0
+  },
+  "D7": {
+   "class": "stable",
+   "p95_max": 1.0
+  },
+  "D8": {
+   "class": "flexible",
+   "lddt_min": 0.85,
+   "pair_fnat_min": 0.55
+  },
+  "D9": {
+   "class": "stable",
+   "pair_fnat_min": 0.7,
+   "ranking_score_max": 0.05,
+   "guidance": {
+    "kind": "contacts",
+    "min": 9
+   }
+  },
+  "D10": {
+   "class": "epitope"
+  },
+  "D11": {
+   "class": "flexible",
+   "guidance": {
+    "kind": "contact_mean",
+    "delta": 0.5
+   }
+  },
+  "D12": {
+   "class": "flexible",
+   "guidance": {
+    "kind": "contact_mean",
+    "delta": 1.0,
+    "max": 7.0
+   }
+  },
+  "D13/7r6r": {
+   "class": "stable"
+  },
+  "D13/1a14_unconstrained": {
+   "class": "flexible"
+  }
+ },
+ "duplicate_min_anchor_rmsd": 0.01
+}
