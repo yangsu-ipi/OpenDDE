@@ -2,6 +2,13 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 25 (2026-10-11)
+
+Status update only; no requirement changes.
+
+- Record that the sm_120 tier 2 stock work required by revision 24 is complete: the evaluator fails closed and encodes H1-H10, the near-duplicate gate rejects the partial-collapse control at ten samples, and D14/D15 support a proposed paired Zn gate. The remaining step before the sm_120 freeze is the user's review and approval of the tier 2 limits, held-out assignments and Zn gate.
+  - *Reason:* the status line and the validation-matrix paragraph still listed this work as outstanding (protocol E2-E4 are done; step 0 results record the jobs).
+
 ## Revision 24 (2026-10-11)
 
 Review of revision 23 against the evaluator code and the stock ensemble measurements. Documentation only; the C9 numbers remain proposals.
