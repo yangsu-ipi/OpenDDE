@@ -2,6 +2,25 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 27 (2026-10-11)
+
+Documentation only; no calibration run, limit change or port work.
+
+- Make the limit-provenance audit mechanical: tabulate, per limit, the bf16-versus-fp32 value, the kernel-swap value, the chosen limit and the binding contrast; rederive only kernel-swap-bound limits, by a written rule (the gate's existing limit-to-precision ratio), not fresh judgement. Record the near-duplicate gate, the Zn threshold and D10's paired limits as already clean.
+  - *Reason:* "rederive" without a rule is a second judgement that can drift toward whatever passes. The near-duplicate gate was declared from bf16 versus fp32 only; bf16 versus fp32 alone gives 0.95 Zn same-site on both rows; D10's kernel swap had no same-outcome pair.
+- Run a third harmless same-precision stock contrast that set no limit (preferred `LAYERNORM_TYPE=fast_layernorm`, else `--deterministic false`), recorded before measurement.
+  - *Reason:* it gives an independent false-fail estimate regardless of the audit outcome.
+- State that negative-control rejections were observed while the limits were drafted, so they show separation on the development set, not independent sensitivity; partial collapse is the exception.
+  - *Reason:* the same circularity revision 26 identified for the positive control applies in the other direction.
+- Add an unpaired Zn coordination fallback (fraction of Zn with at least two polymer donors within 2.8 Å, relative to `off`), calibrated on existing D14/D15 outputs and controls, for rows where the paired check is inconclusive. Allow capped, predeclared extra seed pairs for H3 as an alternative.
+  - *Reason:* H5 is an epitope row with a zero floor, and D10 had no same-outcome pair under the kernel swap, so extra draws may never make the paired check conclusive there.
+- Define the Zn claim outcome as a row-level `zn: qualified | unresolved | fail` separate from the gate's `n/a`, and fail an inconclusive Zn result on D14 and D15.
+  - *Reason:* those rows exist only to test Zn and stock gives 39 and 20 eligible ions there.
+- State the paired Zn check's detectable fault size: with independent ions as an approximation, a fault moving one ion in four passes 0.85 about 24-37% of the time at 10-40 ions, while one moving half the ions almost never passes; a harmless candidate fails about 9% of the time at 10 ions.
+  - *Reason:* the 10-ion minimum is a feasibility floor, and D14's moved-Zn failure at 0.79 is not a robust margin.
+- Wording: restore "the C1 count floor still applies" to the not-applicable rule; H3's floor counts pairs, not samples; the Zn minimum counts `off`-bound ions in same-outcome pairs (`same_site_of`), not ions within 2.0 Å.
+- Record the order of the remaining sm_120 work: audit, third contrast, Zn fallback, Zn claim outcome and tests, user scope decision and held-out review, freeze.
+
 ## Revision 26 (2026-10-11)
 
 Documentation only. The sm_120 tier 2 numeric proposal is acceptable for planning; the acceptance contract is not frozen, and no optimization port or new calibration run was started.
