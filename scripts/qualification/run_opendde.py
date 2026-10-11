@@ -3,7 +3,8 @@
 
 Usage:
     python scripts/qualification/run_opendde.py [--phase-timing OUT.json]
-        [--draw-trace OUT.jsonl] [--set KEY=VALUE ...] -- pred -i input.json -o out_dir ...
+        [--draw-trace OUT.jsonl] [--set KEY=VALUE ...]
+        [--tier1-capture DIR [--tier1-replay DIR]] -- pred -i input.json -o out_dir ...
 
 Everything after ``--`` is passed unchanged to the ``opendde`` CLI. Without
 either option this is equivalent to running ``opendde``. The instrumentation
@@ -24,6 +25,17 @@ for, such as ``sample_diffusion.guidance.rho=0.1`` or
 a string. It is applied to the config ``pred`` builds, before ``pred`` applies
 its own options and validates the result, so it cannot override a ``pred``
 option.
+
+``--tier1-capture`` saves, per job and seed, the non-sampling tensors tier 1
+compares (``DIR/<job>/seed_<s>/tier1.pt``): the input embedding and the
+single and pair representations passed to the distogram and confidence
+stages, the distogram probabilities, and the confidence head's inputs,
+logits and pTM/ipTM. With ``--tier1-replay`` (a capture directory from the
+reference run) the confidence head runs a second time on the recorded inputs
+(``s_inputs``, single and pair representations, ``x_pred_coords``) and that
+fixed-input result is saved instead of the native head output. The extra
+work happens after each stock stage returns and never touches the tensors the
+run writes out; Fold-CP runs are refused. Keep it off timing runs.
 """
 
 import argparse
@@ -237,18 +249,148 @@ class DrawTrace:
             )
 
 
+class Tier1Capture:
+    """Wrapper-private capture of tier 1 tensors, keyed by job and seed."""
+
+    def __init__(self, out_dir: Path, replay_dir: Path | None) -> None:
+        self.out_dir = out_dir
+        self.replay_dir = replay_dir
+        self.context: dict[str, Any] = {}
+        self.pending: dict[str, Any] = {}
+        self.written: list[str] = []
+
+    def key_dir(self, root: Path) -> Path:
+        return root / self.context["sample_name"] / f"seed_{self.context['seed']}"
+
+
+def _host(t: torch.Tensor, dtype: torch.dtype | None = None) -> torch.Tensor:
+    t = t.detach()
+    if dtype is not None:
+        t = t.to(dtype)
+    return t.to("cpu", copy=True)
+
+
+def _confidence_scalars(model: Any, kw: dict[str, Any], pae, pde) -> dict[str, Any]:
+    """pTM, ipTM and their ranking combination, computed as OpenDDE's summary
+    does, after the same residue-level conversion."""
+    from opendde.model import sample_confidence
+
+    pred_dict = kw["pred_dict"]
+    residue = model.get_residue_level_confidence_inputs(
+        input_feature_dict=kw["input_feature_dict"],
+        pae_logits=pae,
+        pde_logits=pde,
+        contact_probs=pred_dict.get(
+            "per_sample_contact_probs", pred_dict["contact_probs"]
+        ),
+        target_device=pae.device,
+    )
+    pae_prob = torch.softmax(residue["pae_logits"].float(), dim=-1)
+    bins = sample_confidence.get_bin_params(model.configs.confidence.pae)
+    ptm = sample_confidence.calculate_ptm(
+        pae_prob, has_frame=residue["token_has_frame"], **bins
+    )
+    iptm = sample_confidence.calculate_iptm(
+        pae_prob,
+        has_frame=residue["token_has_frame"],
+        asym_id=residue["token_asym_id"],
+        **bins,
+    )
+    return {"ptm": _host(ptm, torch.float32), "iptm": _host(iptm, torch.float32)}
+
+
+def _head_record(model: Any, kw: dict[str, Any], outputs) -> dict[str, Any]:
+    plddt, pae, pde, resolved = outputs
+    return {
+        "plddt_logits": _host(plddt, torch.float32),
+        "resolved_logits": _host(resolved, torch.float32),
+        "pae_logits": _host(pae, torch.float16),
+        "pde_logits": _host(pde, torch.float16),
+        **_confidence_scalars(model, kw, pae, pde),
+    }
+
+
+def _install_tier1(capture: Tier1Capture) -> None:
+    import opendde.model.opendde as model_module
+
+    model_cls = model_module.OpenDDE
+
+    def distogram_stage(fn):
+        def wrapper(model, *, pred_dict, pair_z, pair_z_spec):
+            result = fn(
+                model, pred_dict=pred_dict, pair_z=pair_z, pair_z_spec=pair_z_spec
+            )
+            if pair_z_spec is not None:
+                raise RuntimeError("tier 1 capture does not support Fold-CP")
+            with torch.autocast(device_type=pair_z.device.type, enabled=False):
+                probs = torch.softmax(model.distogram_head(pair_z).float(), dim=-1)
+            capture.pending["distogram_probs"] = _host(probs)
+            del probs
+            return result
+
+        return wrapper
+
+    def confidence_stage(fn):
+        def wrapper(model, **kw):
+            outputs = fn(model, **kw)
+            if kw.get("z_trunk_spec") is not None:
+                raise RuntimeError("tier 1 capture does not support Fold-CP")
+            record = {
+                "s_inputs": _host(kw["s_inputs"]),
+                "s_trunk": _host(kw["s_trunk"]),
+                "z_trunk": _host(kw["z_trunk"]),
+                **capture.pending,
+            }
+            capture.pending = {}
+            if capture.replay_dir is None:
+                record["x_pred_coords"] = _host(kw["x_pred_coords"], torch.float32)
+                record["head"] = _head_record(model, kw, outputs)
+            else:
+                source = capture.key_dir(capture.replay_dir) / "tier1.pt"
+                recorded = torch.load(source, map_location="cpu")
+                fixed = {}
+                for name in ("s_inputs", "s_trunk", "z_trunk", "x_pred_coords"):
+                    live = kw[name]
+                    if recorded[name].shape != live.shape:
+                        raise RuntimeError(f"tier 1 replay: {name} shape differs")
+                    fixed[name] = recorded[name].to(
+                        device=live.device, dtype=live.dtype
+                    )
+                head_kw = {k: v for k, v in kw.items() if k != "pred_dict"}
+                head_kw.update(fixed)
+                head_kw["inplace_safe"] = False
+                fixed_outputs = model.run_confidence_head(**head_kw)
+                record["head_fixed"] = _head_record(model, kw, fixed_outputs)
+                record["replay_source"] = str(source)
+                del fixed, fixed_outputs
+            target = capture.key_dir(capture.out_dir) / "tier1.pt"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            torch.save(record, target)
+            capture.written.append(str(target))
+            return outputs
+
+        return wrapper
+
+    _wrap(model_cls, "run_distogram_contact_stage", distogram_stage)
+    _wrap(model_cls, "run_confidence_head_stage", confidence_stage)
+
+
 def _wrap(owner: Any, name: str, make):
     original = getattr(owner, name)
     setattr(owner, name, make(original))
 
 
-def _install(timer: PhaseTimer | None, trace: DrawTrace | None) -> None:
+def _install(
+    timer: PhaseTimer | None,
+    trace: DrawTrace | None,
+    tier1: Tier1Capture | None = None,
+) -> None:
     import opendde.model.opendde as model_module
     import runner.dumper as dumper_module
     import runner.inference as inference_module
     from opendde.utils import instrumentation
 
-    contexts = [obj for obj in (timer, trace) if obj is not None]
+    contexts = [obj for obj in (timer, trace, tier1) if obj is not None]
 
     def staged(name):
         def make(fn):
@@ -299,6 +441,9 @@ def _install(timer: PhaseTimer | None, trace: DrawTrace | None) -> None:
 
     if timer is not None:
         instrumentation.install_phase_recorder(timer.stage)
+
+    if tier1 is not None:
+        _install_tier1(tier1)
 
     if trace is not None:
 
@@ -397,12 +542,21 @@ def main() -> int:
     parser.add_argument("--phase-timing", type=Path)
     parser.add_argument("--draw-trace", type=Path)
     parser.add_argument("--set", dest="overrides", action="append", default=[])
+    parser.add_argument("--tier1-capture", type=Path)
+    parser.add_argument("--tier1-replay", type=Path)
     options = parser.parse_args(argv[:split])
+    if options.tier1_replay and not options.tier1_capture:
+        parser.error("--tier1-replay needs --tier1-capture")
     cli_args = argv[split + 1 :]
 
     timer = PhaseTimer() if options.phase_timing else None
     trace = DrawTrace() if options.draw_trace else None
-    _install(timer, trace)
+    tier1 = (
+        Tier1Capture(options.tier1_capture, options.tier1_replay)
+        if options.tier1_capture
+        else None
+    )
+    _install(timer, trace, tier1)
     overrides = [_parse_override(text) for text in options.overrides]
     if overrides:
         _install_overrides(overrides)

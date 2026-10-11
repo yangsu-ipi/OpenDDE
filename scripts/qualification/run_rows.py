@@ -4,6 +4,7 @@
 Usage:
     python scripts/qualification/run_rows.py --rows D1,D2,... --out DIR
         [--seeds 101,102] [--draw-trace] [--phase-timing] [--manifest PATH]
+        [--tier1-capture DIR [--tier1-replay DIR]]
         [-- EXTRA_PRED_FLAGS ...]
 
 Run from the repository root. Each row runs as
@@ -16,6 +17,10 @@ the common flags. Held-out rows must be given explicit held-out seeds.
 Row flags and overrides may name host-specific locations through environment
 variables (``${OPENDDE_QUAL_DATA}``, ``${OPENDDE_QUAL_KALIGN}``), and ``{out}``
 stands for the row's output directory. An unset variable is an error.
+
+``--tier1-capture DIR`` passes ``DIR/<row>`` to ``run_opendde.py
+--tier1-capture``, and ``--tier1-replay DIR`` passes ``DIR/<row>`` as the
+recorded reference for the fixed-input confidence-head pass.
 """
 
 import argparse
@@ -48,6 +53,8 @@ def main() -> int:
     parser.add_argument("--seeds")
     parser.add_argument("--draw-trace", action="store_true")
     parser.add_argument("--phase-timing", action="store_true")
+    parser.add_argument("--tier1-capture", type=Path)
+    parser.add_argument("--tier1-replay", type=Path)
     parser.add_argument(
         "--manifest",
         type=Path,
@@ -67,6 +74,10 @@ def main() -> int:
             wrapper += ["--draw-trace", str(args.out / f"{row_id}.trace.jsonl")]
         if args.phase_timing:
             wrapper += ["--phase-timing", str(args.out / f"{row_id}.phases.json")]
+        if args.tier1_capture:
+            wrapper += ["--tier1-capture", str(args.tier1_capture / row_id)]
+        if args.tier1_replay:
+            wrapper += ["--tier1-replay", str(args.tier1_replay / row_id)]
         wrapper += ["--set", "sorted_by_ranking_score=false"]
         row_out = args.out / row_id
         for override in row.get("overrides", []):
