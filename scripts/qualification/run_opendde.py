@@ -322,8 +322,13 @@ def _install_tier1(capture: Tier1Capture) -> None:
             )
             if pair_z_spec is not None:
                 raise RuntimeError("tier 1 capture does not support Fold-CP")
-            with torch.autocast(device_type=pair_z.device.type, enabled=False):
-                probs = torch.softmax(model.distogram_head(pair_z).float(), dim=-1)
+            from opendde.utils.torch_utils import autocasting_disable_decorator
+
+            # The stock distogram path runs the head with autocast disabled and
+            # fp32 inputs (compute_distogram_contact_probs); do the same.
+            logits = autocasting_disable_decorator(True)(model.distogram_head)(pair_z)
+            probs = torch.softmax(logits.float(), dim=-1)
+            del logits
             capture.pending["distogram_probs"] = _host(probs)
             del probs
             return result
