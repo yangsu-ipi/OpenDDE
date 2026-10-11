@@ -175,6 +175,42 @@ What this shows:
 - Ensemble spread separates a collapsed ensemble from stock on every row, but varies widely between precisions on flexible rows (D3 10.47 versus 2.10 Å, D8 5.94 versus 16.21 Å), so any spread limit must be a loose ratio.
 - D6 is a single chain, so the displaced-chain control does not apply; it needs another negative control.
 
+### Tier 1 calibration and tier 2 positive control
+
+Jobs 48900-48903, stock only, commit `44e1fd1`, every development row, seeds 101 and 102, deterministic. Three configurations with the wrapper's tier 1 capture: `off` (bf16, default cuEquivariance triangle kernels), a same-precision kernel swap (bf16, `--triatt_kernel torch --trimul_kernel torch`) and fp32. The swap and fp32 runs also ran the confidence head on `off`'s recorded inputs. Hook checks: with capture on, all 13 rows' prediction artifacts were byte-identical to the item 7 bf16 run, and with capture and replay on, byte-identical to the item 7 fp32 run; on D2, replaying `off`'s own inputs gave zero difference and the hook's pTM and ipTM matched the summary JSON. Captures take 23 GB (`off`, swap) and 30 GB (fp32).
+
+Tier 1 against `off`, largest value over the two seeds. "1a14 rows" are D3, D9-D12 and D13's `1a14` job, which share the same trunk inputs; D2 and D13's `7r6r` job are identical.
+
+| Quantity | Kernel swap: other rows | Kernel swap: 1a14 rows / D8 | fp32: other rows | fp32: 1a14 rows / D8 |
+|---|---|---|---|---|
+| Input embedding, relative error | 0 | 0 / 0 | 0.0012-0.0018 | 0.0014 / 0.0015 |
+| Single representation, relative error | 0.0050-0.0063 | 0.0115 / 0.0115 | 0.0076-0.0132 | 0.0122 / 0.0143 |
+| Pair representation, relative error | 0.0178-0.0294 | 0.155 / 0.181 | 0.0370-0.184 | 0.168 / 0.236 |
+| Pair representation, p99.9 error / RMS | 0.11-0.28 | 1.15 / 1.35 | 0.34-1.20 | 1.25 / 1.51 |
+| Distogram, largest probability difference | 0.015-0.085 | 0.225 / 0.330 | 0.045-0.117 | 0.300 / 0.543 |
+| Distogram, most likely bin changed | 0.3-2.1% | 1.6% / 1.4% | 0.9-8.1% | 1.8% / 2.0% |
+| Same, reference top-two margin ≥ 0.1 | 0 | 0.058% / 0.009% | 0 | 0.080% / 0.047% |
+| Fixed-input head, PAE / PDE probability | ≤ 0.0021 | ≤ 0.0021 | 0 | 0 |
+| Fixed-input head, pLDDT / resolved probability, pTM, ipTM | < 1e-4 | < 1e-4 | 0 | 0 |
+
+D1 (no MSA, low confidence) is the outlier among the other rows in fp32: pair error 0.184 and 8.1% changed bins.
+
+What this shows:
+- The input embedding has no triangle kernels, so the swap leaves it bit-identical; fp32 moves it by about 0.15%.
+- On most rows the pair representation moves 2-3% under the swap and about 4% in fp32. On the multichain 1a14 and 9lh2 inputs it moves 15-24%: ten recycling cycles amplify small differences there, as the sampled structures already showed. A pair limit that is tight on the stable rows is weak on these.
+- Changed distogram bins are almost all near-ties: with a top-two margin of at least 0.1 the changed fraction is at most 0.08%.
+- The confidence head runs in fp32 with autocast disabled in every configuration, so on identical inputs fp32 reproduces `off`'s head exactly; the kernel swap, which reaches the head's own pairformer, moves PAE and PDE probabilities by at most 0.002 and pTM and ipTM by less than 1e-4. The fp32 contrast cannot set a head limit (it is zero).
+
+Tier 2 positive control, `off` versus the kernel swap, against the revision 22 draft gates:
+- Outcome counts: stable rows 10 of 10 (floor 9), D1 10 of 10 (floor 7), D3 8, D8 7, D11 4, D12 5 (floor 2), D10 0 (floor 0).
+- Same-outcome polymer lDDT at least 0.927 (D8, draft 0.84), 0.969 on the other flexible rows and 0.976 or more on stable rows; per-type lDDT at least 0.998 on D2, D6 and D7. p95 error on D4-D7 at most 0.26 Å (draft 1.0 Å).
+- Gated ligands: 6OI at most 0.86 Å with pocket Jaccard at least 0.92, ATR at most 0.43 Å, NAG at most 0.61 Å. (D4's 3.3 Å maximum is a report-only Mg²⁺ ion.)
+- Confidence: |Δ `ranking_score`| at most 0.0003 on D2 and D4-D7, 0.010 on D9 and 0.053 elsewhere in same-outcome pairs; |Δ mean pLDDT| at most 1.01.
+- Guidance: D9 contacts 10 of 10; D10 epitope 10 of 10, as `off`; D11 mean constrained distance 7.99 versus 8.00 Å; D12 6.17 versus 5.76 Å (draft: within 1.0 Å and at most 7.0 Å).
+- Ensemble: median reference lDDT within 0.004, lowest-sample lDDT within 0.010 and median Fnat within 0.016 of `off`; spread ratios 0.84-1.51.
+
+The harmless kernel swap passes every draft tier 2 gate, so none of them is too strict for it.
+
 ## Item 8: random-input trace
 
 Six RNG call sites carry stable symbolic names: `sampler.initial_noise`, `sampler.step_noise`, `augmentation.rotation`, `augmentation.translation`, `tfg.eps` and `tfg.outer_noise`. Each draw is captured before scaling and hashed per original sample index (`run_opendde.py --draw-trace`). `scripts/qualification/trace_tools.py` derives the expected manifest from the recorded sampling settings.

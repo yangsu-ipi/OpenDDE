@@ -137,6 +137,21 @@ Compared on identical inputs, per row and seed:
 
 Limits are not set yet: no stock measurement of these tensors exists. Do this stock-only calibration next, before tuning a `fast` kernel. Capture the development rows in three stock configurations: bf16 with the default cuEquivariance triangle kernels, bf16 with stock `torch` triangle kernels, and fp32. Use the same recorded `off` inputs for every fixed-input confidence-head comparison; a native fp32 run with different head inputs is a separate contrast. Add two wrapper-private hooks in `run_opendde.py`, one to capture tensors and one to substitute recorded head inputs. Check that enabling the capture hook leaves stock prediction artifacts byte-identical, and keep the hooks off timing runs. Budget about three GPU-hours on sm_120 as an estimate, not a guaranteed runtime. Do not run held-out inputs for calibration.
 
+**Calibration done** (jobs 48900-48903; step 0 results, tier 1 calibration). Capture and replay were verified artifact-neutral on all 13 rows. Proposed limits, per quantity and row class, for review; none is frozen:
+
+| Quantity | Stable and low-confidence rows (D1, D2, D4-D7, D13 `7r6r`) | 1a14 rows (D3, D9-D12, D13 `1a14`) and D8 |
+|---|---|---|
+| Input embedding, relative error | ≤ 0.005 | ≤ 0.005 |
+| Single representation, relative error | ≤ 0.03 | ≤ 0.03 |
+| Pair representation, relative error | ≤ 0.10 (D1: ≤ 0.40) | ≤ 0.50 |
+| Pair representation, p99.9 error / RMS | ≤ 1.0 (D1: ≤ 2.5) | ≤ 3.0 |
+| Distogram, changed most likely bins with reference margin ≥ 0.1 | ≤ 0.1% | ≤ 0.2% |
+| Distogram, largest probability difference | reported | reported |
+| Fixed-input head: pLDDT, PAE, PDE, resolved probability | ≤ 0.01 | ≤ 0.01 |
+| Fixed-input head: pTM, ipTM, `0.8 ipTM + 0.2 pTM` | ≤ 0.005 | ≤ 0.005 |
+
+Each trunk limit is about twice the largest kernel-swap or fp32 value for its class, rounded up (stable rows: pair error 0.045 and p99.9 ratio 0.45 in fp32; D1: 0.184 and 1.20; 1a14 and D8: 0.236 and 1.51); the multiple is a proposal, not an automatic rule. The head limits are floors, because both stock contrasts are at or near zero there (the head runs in fp32 in every configuration). The 1a14 and D8 trunk limits are weak, because recycling amplifies differences on those inputs (pair error 15-24% under a harmless swap); on those rows tier 1 adds little beyond finiteness and the head test. A tighter check would capture the trunk after a single recycling cycle (`--cycle 1`), which a further stock calibration could measure.
+
 Set each tier 1 limit from the stock measurements before inspecting a candidate. Record the kernel-swap and precision contrasts, but do not make twice the swap maximum or the fp32 difference an automatic limit: a zero or tiny contrast could demand impossible bit identity, while a large contrast could permit a weak gate. Predeclare a nonzero numerical floor and a meaningful ceiling for each tensor quantity, with a rule for a zero reference RMS. Treat changed distogram argmax bins near a tie separately from changes with a material top-two probability margin; freeze that margin and its limit from stock results. Reason: the argmax fraction alone can change under negligible probability differences.
 
 ### C. Tier 2: sampled structures
@@ -167,7 +182,7 @@ A pair is **same-outcome** when its anchor RMSD is at most 2.0 Å. This is a pro
    - D12, the gradient check: the mean constrained distance is within 1.0 Å of `off`'s and at most 7.0 Å. Stock: 5.76 Å in bf16, 6.14 Å in fp32. A zeroed gradient gives 8.0 Å, as at `rho=0`.
    - Held-out guided rows: success in at least as many samples as `off` minus 1.
 8. **Controls before freezing.** Set the limits from the stock precision and seed contrasts, then validate them without any candidate:
-   - **Positive control:** the stock bf16 run with `torch` triangle kernels, which the tier 1 calibration produces, is a harmless same-precision change and must pass every tier 2 gate. It validates the limits and is not used to set them; using it for both would make the check circular. If it fails, revisit the limits before freezing.
+   - **Positive control:** the stock bf16 run with `torch` triangle kernels, which the tier 1 calibration produces, is a harmless same-precision change and must pass every tier 2 gate. It validates the limits and is not used to set them; using it for both would make the check circular. If it fails, revisit the limits before freezing. **Result (job 48903): it passes every revision 22 draft gate** (step 0 results, tier 2 positive control); the closest margins are D8's same-outcome lDDT (0.927 against 0.84) and D12's mean constrained distance (0.41 Å against 1.0 Å).
    - **Negative controls**, built from stock outputs, must fail: a displaced minority chain, a collapsed ensemble (every candidate sample replaced by one `off` sample), and a specific ligand moved out of its pocket.
 
 Stock calibration and draft limits for the development rows. `E` and `L` are **diagnostic drafts, not pass limits**; they are reassessed with the per-type, interface and ensemble gates before the freeze. `E` applies only where marked.
@@ -198,7 +213,7 @@ Held-out inputs have no calibration of their own, and running stock on them now 
 ### E. Work remaining before acceptance is frozen
 
 1. **Reference feasibility check (stock only): done** (job 48887). Ten samples suffice for a reference-based ensemble gate on D2, D3, D4, D5 and D9-D13. Open: a discriminating ensemble gate for D8 (more samples, or an interface statistic that does not rely on the deposited interfaces), a negative control for single-chain D6, and confirmation of the draft limits against the C8 controls.
-2. **Tier 1 calibration (stock only).** Build the wrapper-private hooks, prove capture is artifact-neutral, and run the three stock configurations on the development set. Freeze tensor-specific floors, ceilings and tie handling from stock results. The `torch`-kernel run also serves as the tier 2 positive control.
+2. **Tier 1 calibration (stock only): done** (jobs 48900-48903). Hooks are artifact-neutral on all 13 rows; proposed tier 1 limits are in section B for review. The `torch`-kernel run passes every draft tier 2 gate. Open: approve or revise the tier 1 limits, and decide whether to add a single-cycle trunk capture for the 1a14 and D8 rows.
 3. **Tier 2 limits.** From development stock contrasts, set the ensemble limits, per-type and interface lDDT limits, the interface-contact limits, D1's lDDT limit and per-row confidence limits. Build the negative controls and confirm that every gate rejects them and the positive control passes. If a row has no discriminating non-vacuous gate, its acceptance remains unresolved.
 4. **Zn decision:** gate Zn coordination using a development-only calibration case, or state that ion placement is outside the qualified claim. P4G and D4 Mg remain report-only; H3 and H5 remain held out.
 5. **Freeze per GPU.** Freeze the held-out class rules and sm_120 limits before any sm_120 candidate is tuned or qualified; do not use held-out runs to set limits. Repeat the stock calibration and freeze the applicable limits on the provisioned A100 before A100 tuning or qualification. Sm_120 work need not wait for A100 provisioning, but sm_120 results alone do not establish sm_80 limits.
