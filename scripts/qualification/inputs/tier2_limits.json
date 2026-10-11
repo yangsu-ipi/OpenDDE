@@ -18,7 +18,7 @@
    "ranking_score_max": 0.01,
    "ranking_all_pairs": true,
    "plddt_max": 2.0,
-   "ref_lddt_median_drop": 0.01,
+   "ref_lddt_median_drop": 0.008,
    "ref_lddt_lowest_drop": 0.02,
    "ref_fnat_median_drop": 0.05,
    "spread_ratio": [
@@ -28,7 +28,7 @@
    "contact_freq_l1_max": 0.2,
    "plddt_median_delta": 1.5,
    "pair_fnonnat_max": 0.15,
-   "ref_type_lddt_median_drop": 0.01,
+   "ref_type_lddt_median_drop": 0.008,
    "ref_type_lddt_lowest_drop": 0.02,
    "ref_fnonnat_median_rise": 0.02,
    "ref_fnat_min_pair_median_drop": 0.05
@@ -44,16 +44,16 @@
     1.25
    ],
    "plddt_median_delta": 1.5,
-   "ref_type_lddt_median_drop": 0.01,
+   "ref_type_lddt_median_drop": 0.008,
    "ref_type_lddt_lowest_drop": 0.02
   },
   "flexible": {
    "n_min": 2,
    "lddt_min": 0.95,
-   "pair_fnat_min": 0.6,
+   "pair_fnat_min": 0.7,
    "ranking_score_max": 0.1,
    "plddt_max": 2.0,
-   "ref_lddt_median_drop": 0.01,
+   "ref_lddt_median_drop": 0.008,
    "ref_lddt_lowest_drop": 0.02,
    "ref_fnat_median_drop": 0.05,
    "spread_ratio": [
@@ -63,7 +63,7 @@
    "contact_freq_l1_max": 1.0,
    "plddt_median_delta": 1.5,
    "pair_fnonnat_max": 0.8,
-   "ref_type_lddt_median_drop": 0.01,
+   "ref_type_lddt_median_drop": 0.008,
    "ref_type_lddt_lowest_drop": 0.02,
    "ref_fnonnat_median_rise": 0.06,
    "ref_fnat_min_pair_median_drop": 0.05
@@ -74,7 +74,7 @@
    "pair_fnat_min": 0.7,
    "ranking_score_max": 0.1,
    "plddt_max": 2.0,
-   "ref_lddt_median_drop": 0.01,
+   "ref_lddt_median_drop": 0.008,
    "ref_lddt_lowest_drop": 0.02,
    "ref_fnat_median_drop": 0.05,
    "spread_ratio": [
@@ -88,7 +88,7 @@
     "slack": 1
    },
    "pair_fnonnat_max": 0.4,
-   "ref_type_lddt_median_drop": 0.01,
+   "ref_type_lddt_median_drop": 0.008,
    "ref_type_lddt_lowest_drop": 0.02,
    "ref_fnonnat_median_rise": 0.06,
    "ref_fnat_min_pair_median_drop": 0.05

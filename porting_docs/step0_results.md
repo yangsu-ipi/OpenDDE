@@ -358,7 +358,18 @@ Findings:
 - **Kernel binding without action:** the flexible and epitope contact-frequency L1 (1.0 against a precision-only 1.5) and the same-outcome lDDT 0.95 (precision-only 0.94; the limit also follows the earlier precision rule).
 - **Confirmed clean:** the Zn threshold (precision binding), D10's paired limits (no kernel-swap pair) and the near-duplicate gate.
 
-`tier2_limits.json` is unchanged; the proposed values await the user's decision (protocol C8).
+**Tightenings applied (2026-10-11, user decision).** `tier2_limits.json` now has median reference lDDT drop 0.008 (all-polymer and per-type) and flexible pairwise interface Fnat 0.70. Re-evaluation of every contrast and control with the tightened file (job 49299, CPU; `tier2v3/eval_*.json` and `tier2v3/limit_audit.json`):
+
+| Contrast or control | Jobs passing | Change from the previous limits |
+|---|---|---|
+| bf16 vs fp32 | 16 of 16 | none |
+| Kernel swap | 16 of 16 | none |
+| Seed 101 vs 102 | 0 of 16 | interface Fnat now also fails on D3 and D13 `1a14` |
+| Collapsed | 0 of 14 | median reference lDDT now also fails on D8 |
+| Guidance removed | 0 of 3 | median reference lDDT now also fails on D10 |
+| Displaced, hinge, jitter, ligand out, Zn moved, Zn wrong site, partial collapse (both sizes) | unchanged (D1 jitter, see below) | none from the tightening |
+
+Controls measured before the near-duplicate gate (job 49252's measurements) now fail it as well, because they lack same-seed pair distances; that comes from the fail-closed evaluator, not the tightening. D1's jitter control now reports a failure only for that reason; it passes every gate its measurement covers, so D1's documented jitter limitation stands. The audit rerun leaves one flagged group, the flexible and epitope median reference fnonnat limit (0.06), which awaits the third harmless contrast.
 
 ## Item 8: random-input trace
 
