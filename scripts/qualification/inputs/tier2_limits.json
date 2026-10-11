@@ -6,6 +6,8 @@
  "ligand_rmsd_max": 2.0,
  "ligand_pocket_min": 0.6,
  "duplicate_min_anchor_rmsd": 0.01,
+ "near_duplicate_fraction": 0.75,
+ "near_duplicate_max_pairs": 3,
  "zn_same_site_min": 0.85,
  "zn_min_matched": 10,
  "classes": {

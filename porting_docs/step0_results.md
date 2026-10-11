@@ -298,6 +298,20 @@ Measurement jobs 49232-49242 and evaluation job 49252 (CPU), from the revised `t
 
 New-gate stock maxima (harmless contrasts) against the limits: same-outcome pairwise new-contact fraction 0.071 on stable rows (0.15), 0.278 on D9 (0.60), 0.198 on D10 (0.40) and 0.395 on flexible rows (0.80); per-type reference lDDT drop 0.004 median and 0.011 lowest (0.01 / 0.02); median reference fnonnat rise 0.005 on stable rows (0.02) and 0.028 on flexible rows (0.06); median lowest per-chain-pair Fnat drop 0.006 (0.05).
 
+### Partial-collapse control
+
+Control definition and applicable rows recorded before measurement (protocol C8; copy on gnode2 at `tier2v2/partial_collapse_declaration.md`, 20:12 UTC). Build job 49254, measurement jobs 49255-49259 (stock contrasts re-measured to record every same-seed pair distance), evaluation 49271. Samples 1-3 of each seed are copies of sample 0 with Gaussian noise; size 1 is 0.1 Å, size 2 half the row's smallest stock closest-same-seed pair (0.12-0.71 Å). D7 is exempt.
+
+| Same-seed pairs below 0.75 × `off`'s closest same-seed pair (of 20) | Largest count | Jobs over 3 |
+|---|---|---|
+| bf16 vs fp32 | 2 (D3) | 0 of 16 |
+| Kernel swap | 1 | 0 of 16 |
+| Seed 101 vs 102 (10 pairs, one seed of `off`) | 5 (D3) | D3, D8, D13 `1a14` |
+| Partial collapse, 0.1 Å | 12 | 15 of 15 |
+| Partial collapse, half size | 12 | 15 of 15 |
+
+With the gate added, both harmless contrasts still pass every gate on all 16 jobs, and both control sizes fail on every applicable job. Without it, the 0.1 Å control passes on D3, D8-D12, D13 `1a14` and D14, and the half-size control on D3, D11, D12, D13 `1a14` and D14; on the stable rows the copies also fail the outcome count, because a copy of sample 0 is paired with `off`'s sample 1-3. The median same-seed spread ratio could not serve: bf16 versus fp32 alone gives 0.18 on D3.
+
 ## Item 8: random-input trace
 
 Six RNG call sites carry stable symbolic names: `sampler.initial_noise`, `sampler.step_noise`, `augmentation.rotation`, `augmentation.translation`, `tfg.eps` and `tfg.outer_noise`. Each draw is captured before scaling and hashed per original sample index (`run_opendde.py --draw-trace`). `scripts/qualification/trace_tools.py` derives the expected manifest from the recorded sampling settings.

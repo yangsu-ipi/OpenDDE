@@ -19,6 +19,11 @@ confidence arithmetic. Kinds:
   polymer chain turn 20 degrees about the hinge residue's anchor atom.
 - ``jitter``: every heavy atom moves by Gaussian noise, 0.5 A per coordinate.
 - ``collapsed``: every sample of a seed is replaced by that seed's sample 0.
+- ``partial_collapse``: samples 1-3 of each seed are replaced by copies of
+  that seed's sample 0, each with independent Gaussian noise on every heavy
+  atom, scaled so the copy's expected RMSD to its source is ``--copy-rmsd``
+  (a number, or a JSON file mapping ``row/job`` to a number). Samples 0 and
+  4 are kept.
 - ``ligand_out``: each gated ligand (6OI, ATR, NAG, PCG) moves 6 A away from
   the complex centre. Rows without one are skipped.
 - ``substitute``: the row's samples are taken from ``--source-row`` of the
@@ -60,6 +65,16 @@ ZN_DONORS = {
     ("CYS", "SG"): ("CB",),
 }
 ZN_BOND = 2.1
+PARTIAL_COPIES = (1, 2, 3)
+
+
+def partial_copy(atoms, xyz: np.ndarray, size: float, rng) -> np.ndarray:
+    """``xyz`` with Gaussian noise on heavy atoms whose expected RMSD is
+    ``size`` (``size / sqrt(3)`` per coordinate)."""
+    out = xyz.copy()
+    heavy = atoms.element != "H"
+    out[heavy] += rng.normal(scale=size / np.sqrt(3), size=(int(heavy.sum()), 3))
+    return out
 
 
 def rotation(axis: np.ndarray, degrees: float) -> np.ndarray:
@@ -234,6 +249,7 @@ def main() -> int:
     parser.add_argument("--kind", required=True)
     parser.add_argument("--rows", required=True)
     parser.add_argument("--source-row")
+    parser.add_argument("--copy-rmsd")
     parser.add_argument(
         "--manifest",
         type=Path,
@@ -242,6 +258,12 @@ def main() -> int:
     args = parser.parse_args()
     rows = {r["id"]: r for r in json.loads(args.manifest.read_text())["rows"]}
     made, unchanged = {}, {}
+    copy_rmsd = None
+    if args.copy_rmsd is not None:
+        try:
+            copy_rmsd = float(args.copy_rmsd)
+        except ValueError:
+            copy_rmsd = json.loads(Path(args.copy_rmsd).read_text())
     for row_id in args.rows.split(","):
         row = rows[row_id]
         jobs = json.loads(Path(row["input"]).read_text())
@@ -282,6 +304,29 @@ def main() -> int:
                 cifs = sorted(src_pred.glob(f"{job['name']}_sample_*.cif"))
                 for cif in cifs:
                     k = int(cif.stem.rsplit("_", 1)[1])
+                    if args.kind == "partial_collapse" and k in PARTIAL_COPIES:
+                        size = (
+                            copy_rmsd
+                            if isinstance(copy_rmsd, float)
+                            else copy_rmsd[f"{row_id}/{job['name']}"]
+                        )
+                        seed = int(seed_dir.name.split("_")[1])
+                        rng = np.random.default_rng(seed * 100 + k)
+                        source_cif = src_pred / f"{job['name']}_sample_0.cif"
+                        _write(
+                            source_cif,
+                            dst_pred / cif.name,
+                            partial_copy(atoms, _coords(source_cif), size, rng),
+                        )
+                        _copy_json(src_pred, dst_pred, job["name"], job["name"], 0, k)
+                        count += 1
+                        continue
+                    if args.kind == "partial_collapse":
+                        dst_pred.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(cif, dst_pred / cif.name)
+                        _copy_json(src_pred, dst_pred, job["name"], job["name"], k, k)
+                        count += 1
+                        continue
                     if args.kind == "collapsed":
                         dst_pred.mkdir(parents=True, exist_ok=True)
                         source_cif = src_pred / f"{job['name']}_sample_0.cif"

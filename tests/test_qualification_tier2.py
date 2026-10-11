@@ -82,6 +82,8 @@ def _entry(row_id, job, facts, limits, seeds=(101, 102), per_seed=5):
         "spread_same_seed_cand": 3.0,
         "min_pair_off": 1.3,
         "min_pair_cand": 1.3,
+        "same_seed_pairs_off": [1.3 + 0.1 * i for i in range(10 * len(seeds))],
+        "same_seed_pairs_cand": [1.3 + 0.1 * i for i in range(10 * len(seeds))],
         "plddt_median_off": 92.8,
         "plddt_median_cand": 92.8,
     }
@@ -310,3 +312,20 @@ def test_unmeasured_job_fails(limits):
     assert by_job["1a14_unconstrained"]["failed"] == ["measured"]
     results = t2.evaluate(data, limits, MANIFEST, rows=["D13", "D2"])
     assert not [r for r in results if r["id"] == "D2"][0]["pass"]
+
+
+def test_partial_collapse_fails_near_duplicate_gate(limits):
+    facts = _facts("D3")
+    entry = _entry("D3", "1a14_unconstrained", facts, limits)
+    # three near-copies of sample 0 in each seed: six close pairs per seed
+    entry["same_seed_pairs_cand"] = [0.1] * 12 + [3.0] * 8
+    entry["min_pair_cand"] = 0.1
+    gates = t2.evaluate_entry(entry, limits, facts)
+    assert gates["ensemble_near_duplicates"]["status"] == "fail"
+    assert gates["ensemble_near_duplicates"]["value"]["pairs_below"] == 12
+    entry["same_seed_pairs_cand"] = [0.1] + [3.0] * 19
+    gates = t2.evaluate_entry(entry, limits, facts)
+    assert gates["ensemble_near_duplicates"]["status"] == "pass"
+    entry.pop("same_seed_pairs_off")
+    gates = t2.evaluate_entry(entry, limits, facts)
+    assert gates["ensemble_near_duplicates"]["status"] == "fail"

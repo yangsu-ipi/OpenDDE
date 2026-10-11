@@ -20,10 +20,10 @@ rows) ``OPENDDE_QUAL_DATA`` set. Per row and job, ``measure`` records:
   and per polymer type, Fnat, fnonnat and the lowest per-chain-pair Fnat)
   where a deposited structure exists, each sample's mean pLDDT,
   within-ensemble spread (median pairwise anchor RMSD, over all samples and
-  within each seed), the closest pair of samples from one seed, and the
-  normalized L1 distance between the two runs' interchain contact-frequency
-  maps, keyed by entity and residue so that equivalent copies are
-  interchangeable;
+  within each seed), every same-seed pair distance, the closest pair of
+  samples from one seed, and the normalized L1 distance between the two
+  runs' interchain contact-frequency maps, keyed by entity and residue so
+  that equivalent copies are interchangeable;
 - for inputs with Zn, the paired Zn same-site count from ``zn_sites.py``.
 
 ``evaluate`` fails closed. The gates a job needs follow from its input and
@@ -131,7 +131,7 @@ def _spread(ref, samples) -> dict[str, float | None]:
     """Median pairwise anchor RMSD over all samples and over same-seed pairs,
     and the smallest same-seed pairwise anchor RMSD."""
     if len(samples) < 2:
-        return {"all": None, "same_seed": None, "min_same_seed": None}
+        return {"all": None, "same_seed": None, "min_same_seed": None, "pairs": []}
     d, same_seed = [], []
     for i in range(len(samples)):
         for j in range(i + 1, len(samples)):
@@ -143,6 +143,7 @@ def _spread(ref, samples) -> dict[str, float | None]:
         "all": float(np.median(d)),
         "same_seed": float(np.median(same_seed)) if same_seed else None,
         "min_same_seed": float(min(same_seed)) if same_seed else None,
+        "pairs": sorted(float(x) for x in same_seed),
     }
 
 
@@ -212,6 +213,7 @@ def measure_row(row, off_run: Path, cand_run: Path, seed_pairs) -> list[dict[str
             entry[f"spread_{tag}"] = spread["all"]
             entry[f"spread_same_seed_{tag}"] = spread["same_seed"]
             entry[f"min_pair_{tag}"] = spread["min_same_seed"]
+            entry[f"same_seed_pairs_{tag}"] = spread["pairs"]
             plddt = [c.get("plddt") for *_, c in data]
             entry[f"plddt_median_{tag}"] = (
                 float(np.median(plddt))
@@ -573,6 +575,7 @@ def _ensemble_gates(g: Gates, need, entry, facts) -> None:
             g.fail("no_duplicate_samples", "closest same-seed pair absent")
         else:
             g.check("no_duplicate_samples", v, dup_min, v >= dup_min)
+    _near_duplicate_gate(g, need, entry)
     if facts["multichain"]:
         l1_max = need("ensemble_contact_frequency", "contact_freq_l1_max")
         v = entry.get("contact_freq_l1")
@@ -593,6 +596,31 @@ def _ensemble_gates(g: Gates, need, entry, facts) -> None:
         v = entry.get(f"spread_same_seed_{tag}")
         if _finite(v):
             g.report(f"spread_same_seed_{tag}", v)
+
+
+def _near_duplicate_gate(g: Gates, need, entry) -> None:
+    """Count the candidate's same-seed pairs closer than a fraction of
+    ``off``'s closest same-seed pair in the same comparison."""
+    fraction = need("ensemble_near_duplicates", "near_duplicate_fraction")
+    allowed = need("ensemble_near_duplicates", "near_duplicate_max_pairs")
+    if fraction is None or allowed is None:
+        return
+    off = entry.get("same_seed_pairs_off")
+    cand = entry.get("same_seed_pairs_cand")
+    if not off or not cand or not all(_finite(x) for x in off + cand):
+        g.fail("ensemble_near_duplicates", "same-seed pair distances absent")
+        return
+    if min(off) <= 0:
+        g.fail("ensemble_near_duplicates", "off has identical same-seed samples")
+        return
+    threshold = fraction * min(off)
+    count = sum(1 for x in cand if x < threshold)
+    g.check(
+        "ensemble_near_duplicates",
+        {"pairs_below": count, "threshold": threshold},
+        allowed,
+        count <= allowed,
+    )
 
 
 def _row_order(row_id: str):
