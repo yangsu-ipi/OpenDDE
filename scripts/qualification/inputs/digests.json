@@ -39,10 +39,22 @@
  "examples/tfg/9xqn/msa/B/non_pairing.a3m": "2de2565117ffef6bd650ea1bc025c6573607e7d8afa6e88e927bea272838bb16",
  "examples/tfg/9xqn/msa/C/non_pairing.a3m": "00df1e38e01d1226f49ed7a0a3326a957dd8c6b5faabd065e0b8ac95e94a7fc5",
  "scripts/qualification/inputs/d13_7r6r_1a14.json": "579bde9b7fcc7eb31f11d7a8a43ed7cc02537505ad4d79aad36cf470d02948cd",
+ "scripts/qualification/inputs/d14_6e4y.json": "e235341f73ab8264a916ba1cc1aafcdd770dc93aca570a58962039ecc458ea81",
+ "scripts/qualification/inputs/d15_9muy.json": "d12ec7d9502fa0defb8583287027e84d037d5c502e4734e6dc279b473b4fff9e",
  "scripts/qualification/inputs/d2_7r6r.json": "fc9232f7b35cc51197912bab0d4c1e031ab19d34a559cbe8eadc81eb90e21066",
  "scripts/qualification/inputs/d4_7wux.json": "7032894eeb041219b4a25ad11f71cd6d9ace7e1f65ab8a7f4fa140098df49596",
  "scripts/qualification/inputs/d7_dna_duplex.json": "79238219de0d5ddaf15d5c197d909fe7ff1f75fa3a829bbd1082a8bc0f15779c",
  "scripts/qualification/inputs/h2_7pzb.json": "0f3a719a77fefea4d5463860df128fb76db82d5d8f5394690ec00441e0d4f52c",
  "scripts/qualification/inputs/h8_dna_duplex.json": "8a70dd22163e568de7cb8dcbd83a8407d6a5ae1ee0c6dc2dc7d01ebc5decc1f3",
- "scripts/qualification/inputs/h9_rna_hairpin.json": "4308e0ce787eee61ba80b956447fc91589f53b6d1ccaacc7c4457a0a1dd97621"
+ "scripts/qualification/inputs/h9_rna_hairpin.json": "4308e0ce787eee61ba80b956447fc91589f53b6d1ccaacc7c4457a0a1dd97621",
+ "scripts/qualification/inputs/msa/d14_6e4y/H/non_pairing.a3m": "b925d7cc6025c5f7cd32d2dc33777b8fd3f76cf7ca59952273449cc431a57e84",
+ "scripts/qualification/inputs/msa/d14_6e4y/H/pairing.a3m": "6dddf144598135cab34b915d873546301683847095b0cf4cb480d4d3c40a3399",
+ "scripts/qualification/inputs/msa/d14_6e4y/L/non_pairing.a3m": "10c9347c401eab279dd04dec56e9803d802f90d089c5d1726475840721aa3a5d",
+ "scripts/qualification/inputs/msa/d14_6e4y/L/pairing.a3m": "6427a8d28e1f51168fa0b2cdfe036ccee3e770a7cb80e166c7911a9cba2ea291",
+ "scripts/qualification/inputs/msa/d14_6e4y/P/non_pairing.a3m": "ebc326feef46d88065e7f6652837f8b8146e674d237c08883e891a3e566f4119",
+ "scripts/qualification/inputs/msa/d14_6e4y/P/pairing.a3m": "6ed20c14693369d1332e9f0a00b6c650f28d6e4493ece4ab8cc140d61bf9cb09",
+ "scripts/qualification/inputs/msa/d15_9muy/H/non_pairing.a3m": "e9ba58c1471daefedf292908d2fef4b3ca0b4a50084545f6824c9b9a71105f84",
+ "scripts/qualification/inputs/msa/d15_9muy/H/pairing.a3m": "ad7ae8f9cf3fee564c9eb9d17629a7ac9e58ee589a862ed38163b3810aad8b0b",
+ "scripts/qualification/inputs/msa/d15_9muy/L/non_pairing.a3m": "07da952c17c5977cf5af126736bf8ce7aae76e6e5e19d08489afc428115f82c1",
+ "scripts/qualification/inputs/msa/d15_9muy/L/pairing.a3m": "487408cdd2b23e853c8219558f3833e4d3a3c8570f0a8391e9b9b09bd795739d"
 }

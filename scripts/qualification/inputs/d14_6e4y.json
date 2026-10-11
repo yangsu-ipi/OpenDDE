@@ -1,0 +1,46 @@
+[
+  {
+    "name": "6e4y",
+    "sequences": [
+      {
+        "proteinChain": {
+          "sequence": "EVKLEESGGGLVQPGGSMKLSCVASRFTLSKYWMNWVRQSPEKGLEWVAQIRLKSDNYATHYAESVKGRFTISRDDSKSSVYLQMNNLRAEDTGIYYCTGEIFVNWGQGTLVTVSAASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKKVEPKSCDKTHT",
+          "count": 1,
+          "id": [
+            "H"
+          ],
+          "pairedMsaPath": "scripts/qualification/inputs/msa/d14_6e4y/H/pairing.a3m",
+          "unpairedMsaPath": "scripts/qualification/inputs/msa/d14_6e4y/H/non_pairing.a3m"
+        }
+      },
+      {
+        "proteinChain": {
+          "sequence": "DIVMTQAAPSVPVTPGESVSISCRSSKSLLHSNGNTYLYWFLQRPGQSPQLLIYRMSNLASGVPDRFSGSGSGTAFTLRISRVEAEDVGVYYCMQHLEYPFTFGAGTKLELKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+          "count": 1,
+          "id": [
+            "L"
+          ],
+          "pairedMsaPath": "scripts/qualification/inputs/msa/d14_6e4y/L/pairing.a3m",
+          "unpairedMsaPath": "scripts/qualification/inputs/msa/d14_6e4y/L/non_pairing.a3m"
+        }
+      },
+      {
+        "proteinChain": {
+          "sequence": "EDEDGDYEELVLALRSEEDGLA",
+          "count": 1,
+          "id": [
+            "P"
+          ],
+          "pairedMsaPath": "scripts/qualification/inputs/msa/d14_6e4y/P/pairing.a3m",
+          "unpairedMsaPath": "scripts/qualification/inputs/msa/d14_6e4y/P/non_pairing.a3m"
+        }
+      },
+      {
+        "ligand": {
+          "ligand": "CCD_ZN",
+          "count": 4
+        }
+      }
+    ]
+  }
+]

@@ -264,6 +264,36 @@
    ]
   },
   {
+   "id": "D14",
+   "role": "development",
+   "input": "scripts/qualification/inputs/d14_6e4y.json",
+   "job": "6e4y",
+   "covers": "Zn calibration: Fab with antigen peptide, four Zn including the Fab constant-domain His/Asn/Asn site, MSA",
+   "flags": [
+    "--use_msa",
+    "true"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/6e4y.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/6e4y.cif"
+   ]
+  },
+  {
+   "id": "D15",
+   "role": "development",
+   "input": "scripts/qualification/inputs/d15_9muy.json",
+   "job": "9muy",
+   "covers": "Zn calibration: Fab released after 9sat, two Zn, MSA",
+   "flags": [
+    "--use_msa",
+    "true"
+   ],
+   "reference": "${OPENDDE_QUAL_DATA}/references/9muy.cif",
+   "external_data": [
+    "${OPENDDE_QUAL_DATA}/references/9muy.cif"
+   ]
+  },
+  {
    "id": "H1",
    "role": "held-out",
    "input": "examples/cofold/input.json",

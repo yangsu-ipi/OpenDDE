@@ -1,0 +1,35 @@
+[
+  {
+    "name": "9muy",
+    "sequences": [
+      {
+        "proteinChain": {
+          "sequence": "WVQLVESGGGLVQPGRSMKLSCAASGFIFSDWGMAWVREAPKKGLEWVAYINYDGDTTYYRDSVKGRFTISRDNAKSTLYLQIDSLRSEDTATYYCTTGYYYDGSYYYDRFVYWGQGTLVTVSSASTKGPSVFPLAPSSKSTSGGTAALGCLVKDYFPEPVTVSWNSGALTSGVHTFPAVLQSSGLYSLSSVVTVPSSSLGTQTYICNVNHKPSNTKVDKKVEPKSCD",
+          "count": 1,
+          "id": [
+            "H"
+          ],
+          "pairedMsaPath": "scripts/qualification/inputs/msa/d15_9muy/H/pairing.a3m",
+          "unpairedMsaPath": "scripts/qualification/inputs/msa/d15_9muy/H/non_pairing.a3m"
+        }
+      },
+      {
+        "proteinChain": {
+          "sequence": "DIQMTQSPSFLSASEGERVTLNCRASQNINKYLDWYQQKLGEAPKLLIYNTHNLHTGIPSRFSGSGSGTDYTITISSLQPEDVATYFCLQRNSWYTFGAGTKLELKRTVAAPSVFIFPPSDEQLKSGTASVVCLLNNFYPREAKVQWKVDNALQSGNSQESVTEQDSKDSTYSLSSTLTLSKADYEKHKVYACEVTHQGLSSPVTKSFNRGEC",
+          "count": 1,
+          "id": [
+            "L"
+          ],
+          "pairedMsaPath": "scripts/qualification/inputs/msa/d15_9muy/L/pairing.a3m",
+          "unpairedMsaPath": "scripts/qualification/inputs/msa/d15_9muy/L/non_pairing.a3m"
+        }
+      },
+      {
+        "ligand": {
+          "ligand": "CCD_ZN",
+          "count": 2
+        }
+      }
+    ]
+  }
+]
