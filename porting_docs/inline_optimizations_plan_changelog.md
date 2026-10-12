@@ -2,6 +2,17 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 34 (2026-10-11)
+
+Status update; no requirement changes.
+
+- Record that the acceptance command's evidence bindings are implemented and tested (commit `667a03f`): run records, rebuilt command lines with the candidate's declared difference required, an external rollout and artifact expectation, committed step 0 baseline digests, bound tier 1 captures, and draws bound to a code commit with an append-only log history. List what is exercised only at the first acceptance run.
+  - *Reason:* revision 33's repairs are done; the status line described them as outstanding.
+- Record the user's decision to run acceptance from a dedicated clone, `~/opendde-accept`.
+  - *Reason:* the decision was open in revision 33.
+- State that what remains before the sm_120 freeze is the user's approval of the full tier 2 contract, then recording the limit hashes.
+  - *Reason:* the bindings were the condition revision 32 set for asking.
+
 ## Revision 33 (2026-10-11)
 
 Documentation only. The full sm_120 tier 2 contract remains unapproved; no limit, acceptance code, GPU run or held-out output changed. Revision 32's findings were checked against `accept.py`, `run_opendde.py`, `trace_tools.py` and `compare_outputs.py` and hold; this revision adds what they missed and simplifies two repairs.
