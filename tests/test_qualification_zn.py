@@ -78,13 +78,39 @@ def test_coordination_fraction_is_unpaired():
     cand[9] += [0.0, 0.0, 10.0]
     paired = zn.pair_ions(atoms, xyz, cand, ions, donors, donors)
     assert paired["donors_off"] == [4, 4] and paired["donors_cand"] == [4, 0]
-    sample = {"status": "ok", "anchor_rmsd": 5.0, "paired": paired}
+    sample = {"seeds": [101, 101], "status": "ok", "anchor_rmsd": 5.0}
+    sample["paired"] = paired
     entry = {"id": "D0", "job": "toy", "samples": [sample, sample]}
     summary = zn.summarize(entry)
     assert summary["coordinated_off"] == 4 and summary["ions_off"] == 4
     assert summary["coordinated_fraction_cand"] == pytest.approx(0.5)
     assert summary["coordinated_drop"] == pytest.approx(0.5)
     assert summary["same_site_of"] == 0
+
+
+def test_summary_counts_eligible_ions_per_seed_pair():
+    atoms, xyz, donors, ions = _toy()
+    cand = xyz.copy()
+    cand[9] += [0.0, 0.0, 4.0]
+    paired = zn.pair_ions(atoms, xyz, cand, ions, donors, donors)
+    samples = [
+        {"seeds": [101, 101], "status": "ok", "anchor_rmsd": 0.5, "paired": paired},
+        {"seeds": [101, 101], "status": "ok", "anchor_rmsd": 9.0, "paired": paired},
+        {"seeds": [201, 201], "status": "ok", "anchor_rmsd": 0.5, "paired": paired},
+        {"seeds": [202, 202], "status": "sample sets differ"},
+    ]
+    summary = zn.summarize({"id": "D0", "job": "toy", "samples": samples})
+    assert summary["same_site_of"] == 4 and summary["same_site"] == 2
+    assert summary["by_seed"] == [
+        {"seeds": [101, 101], "status": "ok", "same_site": 1, "same_site_of": 2},
+        {"seeds": [201, 201], "status": "ok", "same_site": 1, "same_site_of": 2},
+        {
+            "seeds": [202, 202],
+            "status": "sample sets differ",
+            "same_site": 0,
+            "same_site_of": 0,
+        },
+    ]
 
 
 def test_pocket_superpose_needs_three_atoms():

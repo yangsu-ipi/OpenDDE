@@ -93,8 +93,21 @@ def _entry(row_id, job, facts, limits, seeds=(101, 102), per_seed=5):
         entry["ref_off"] = [copy.deepcopy(ref) for _ in range(n)]
         entry["ref_cand"] = [copy.deepcopy(ref) for _ in range(n)]
     if facts["zn"]:
-        entry["zn"] = {"same_site": 30, "same_site_of": 30}
+        entry["zn"] = _zn(*[(s, 15, 15) for s in seeds])
     return entry
+
+
+def _zn(*per_seed):
+    """A Zn summary from (seed, eligible ions, same-site ions) per seed pair."""
+    by_seed = [
+        {"seeds": [s, s], "status": "ok", "same_site_of": n, "same_site": k}
+        for s, n, k in per_seed
+    ]
+    return {
+        "same_site_of": sum(b["same_site_of"] for b in by_seed),
+        "same_site": sum(b["same_site"] for b in by_seed),
+        "by_seed": by_seed,
+    }
 
 
 def _failed(gates):
@@ -122,6 +135,7 @@ def test_held_out_facts_drive_required_gates(limits):
         _entry("H3", "9sat_unconstrained", _facts("H3"), limits), limits, _facts("H3")
     )
     assert h3["zn_same_site"]["status"] == "pass"
+    assert h3["zn_claim"]["value"] == "qualified"
     h8 = t2.evaluate_entry(
         _entry("H8", "h8_dna_duplex", _facts("H8"), limits), limits, _facts("H8")
     )
@@ -255,10 +269,101 @@ def test_zn_gate(limits):
     entry = _entry("D14", "6e4y", facts, limits)
     entry["zn"] = {"same_site": 5, "same_site_of": 8}
     gates = t2.evaluate_entry(entry, limits, facts)
-    assert gates["zn_same_site"]["status"] == "n/a"
+    assert gates["zn_same_site"]["status"] == "fail"
+    assert gates["zn_claim"]["value"] == "fail"
     entry["zn"] = {"same_site": 29, "same_site_of": 39}
     gates = t2.evaluate_entry(entry, limits, facts)
     assert gates["zn_same_site"]["status"] == "fail"
+    entry["zn"] = _zn((101, 20, 19), (102, 19, 19), (201, 5, 5))
+    gates = t2.evaluate_entry(entry, limits, facts)
+    assert "extra Zn seeds" in gates["zn_same_site"]["reason"]
+
+
+def test_zn_row_without_rule_fails(limits):
+    facts = _facts("D14")
+    extra = copy.deepcopy(limits)
+    del extra["rows"]["D14"]["zn_rule"]
+    gates = t2.evaluate_entry(_entry("D14", "6e4y", facts, limits), extra, facts)
+    assert gates["zn_same_site"]["status"] == "fail"
+
+
+def _h3(limits, zn):
+    facts = _facts("H3")
+    entry = _entry("H3", "9sat_unconstrained", facts, limits)
+    entry["zn"] = zn
+    return t2.evaluate_entry(entry, limits, facts)
+
+
+def test_h3_floor_without_extra_seeds_is_incomplete(limits):
+    """Two same-outcome pairs with three Zn give at most six eligible ions."""
+    gates = _h3(limits, _zn((101, 6, 6), (102, 0, 0)))
+    assert gates["zn_same_site"]["status"] == "fail"
+    assert "run the next extra seed" in gates["zn_same_site"]["reason"]
+    assert gates["zn_claim"]["value"] == "unresolved"
+
+
+def test_h3_extra_seeds_reach_the_minimum(limits):
+    gates = _h3(limits, _zn((101, 6, 6), (102, 0, 0), (201, 3, 3), (202, 3, 3)))
+    assert gates["zn_same_site"]["status"] == "pass"
+    assert gates["zn_claim"]["value"] == "qualified"
+    gates = _h3(limits, _zn((101, 6, 6), (102, 0, 0), (201, 6, 3)))
+    assert gates["zn_same_site"]["status"] == "fail"
+    assert gates["zn_claim"]["value"] == "fail"
+
+
+def test_h3_unresolved_at_the_cap_does_not_qualify_zn(limits):
+    zn = _zn((101, 3, 3), (102, 0, 0), *[(201 + i, 1, 1) for i in range(4)])
+    gates = _h3(limits, zn)
+    assert gates["zn_same_site"]["status"] == "n/a"
+    assert gates["zn_claim"]["value"] == "unresolved"
+    assert not _failed(gates)
+    result = t2._result("H3", "9sat_unconstrained", gates)
+    assert result["pass"] and t2.zn_claim([result]) == "unresolved"
+
+
+@pytest.mark.parametrize(
+    "zn, reason",
+    [
+        (_zn((101, 6, 6), (102, 6, 6), (201, 3, 3)), "run after 12"),
+        (
+            _zn((101, 3, 3), (102, 0, 0), *[(201 + i, 1, 1) for i in range(5)]),
+            "more than 4",
+        ),
+        (_zn((101, 6, 6), (102, 0, 0), (101, 6, 6)), "new same-seed"),
+    ],
+)
+def test_h3_extra_seed_rule_violations_fail(limits, zn, reason):
+    gates = _h3(limits, zn)
+    assert reason in gates["zn_same_site"]["reason"]
+    assert gates["zn_claim"]["value"] == "fail"
+
+
+def test_h5_zn_is_report_only(limits):
+    facts = _facts("H5")
+    entry = _entry("H5", "9sat_pocket", facts, limits)
+    for p in entry["pairs"]:
+        p["anchor_rmsd"] = 12.0
+    entry["zn"] = _zn((101, 0, 0), (102, 0, 0))
+    gates = t2.evaluate_entry(entry, limits, facts)
+    assert gates["zn_same_site"]["status"] == "report"
+    assert gates["zn_claim"]["value"] == "report-only"
+    assert not _failed(gates)
+    result = t2._result("H5", "9sat_pocket", gates)
+    assert t2.zn_claim([result]) == "none"
+
+
+def test_zn_claim_aggregate():
+    def r(claim, failed=()):
+        return {
+            "failed": list(failed),
+            "gates": {"zn_claim": {"status": "report", "value": claim}},
+        }
+
+    assert t2.zn_claim([r("qualified"), r("report-only")]) == "qualified"
+    assert t2.zn_claim([r("qualified"), r("unresolved")]) == "unresolved"
+    assert t2.zn_claim([r("unresolved"), r("fail")]) == "fail"
+    assert t2.zn_claim([r("qualified", ["ensemble_near_duplicates"])]) == "fail"
+    assert t2.zn_claim([r("unresolved", ["zn_same_site"])]) == "unresolved"
 
 
 def test_no_same_outcome_pairs_is_declared_not_applicable(limits):

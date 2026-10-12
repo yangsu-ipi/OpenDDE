@@ -30,8 +30,10 @@ rows) ``OPENDDE_QUAL_DATA`` set. Per row and job, ``measure`` records:
 manifest row (``job_facts``): polymer types, chain count, gated ligands, Zn,
 guidance and reference. Every needed gate reports ``pass``, ``fail`` or
 ``n/a``; ``n/a`` is used only where a declared rule allows it (no
-same-outcome pairs, too few matched Zn ions, a reference without
-interchain contacts). An absent value, an undeclared limit, a missing class
+same-outcome pairs, a Zn row whose declared extra seeds still leave too few
+eligible ions, a reference without interchain contacts). Each Zn row also
+reports a ``zn_claim`` under its declared ``zn_rule``, and ``evaluate`` prints
+the aggregate Zn claim. An absent value, an undeclared limit, a missing class
 assignment, a missing job or a sample count other than the one declared is a
 failure. Quality gates are one-sided: a candidate may be better than
 ``off``. ipTM differences are reported, not gated.
@@ -173,12 +175,17 @@ def _zn_summary(row, off_run: Path, cand_run: Path, seed_pairs, job_name: str):
                 "same_site_fraction",
                 "bound_off",
                 "bound_cand",
+                "by_seed",
             )
             return {k: s[k] for k in keys}
     return None
 
 
-def measure_row(row, off_run: Path, cand_run: Path, seed_pairs) -> list[dict[str, Any]]:
+def measure_row(
+    row, off_run: Path, cand_run: Path, seed_pairs, zn_extra_seeds=()
+) -> list[dict[str, Any]]:
+    """Measure one manifest row. ``zn_extra_seeds`` adds same-seed pairs to the
+    Zn measurement only (protocol C5); every other quantity uses ``seed_pairs``."""
     paired = compare_row(row, off_run, cand_run, seed_pairs)
     window = (row.get("comparison") or {}).get("exclude_constraint_window")
     seeds_a = sorted({a for a, _ in seed_pairs})
@@ -228,7 +235,8 @@ def measure_row(row, off_run: Path, cand_run: Path, seed_pairs) -> list[dict[str
             for tag, data in (("off", a_set), ("cand", b_set)):
                 entry[f"ref_{tag}"] = _reference_scores(rmap, data)
         if (atoms.res_name == "ZN").any():
-            entry["zn"] = _zn_summary(row, off_run, cand_run, seed_pairs, job["name"])
+            zn_pairs = list(seed_pairs) + [(s, s) for s in zn_extra_seeds]
+            entry["zn"] = _zn_summary(row, off_run, cand_run, zn_pairs, job["name"])
         out.append(entry)
     return out
 
@@ -336,7 +344,7 @@ def evaluate_entry(
     elif rule is not None:
         g.fail("guidance", "guidance rule declared for an unguided row")
     if facts["zn"]:
-        _zn_gate(g, need, entry.get("zn"))
+        _zn_gate(g, need, entry.get("zn"), lim("zn_rule"), n_seeds)
     if facts["reference"]:
         _reference_gates(g, entry, need, facts, n_seeds * per_seed)
     _ensemble_gates(g, need, entry, facts)
@@ -476,26 +484,119 @@ def _guidance_gate(g: Gates, rule: dict[str, Any], guidance) -> None:
         g.fail("guidance", f"unknown guidance rule {kind!r}")
 
 
-def _zn_gate(g: Gates, need, zn) -> None:
-    z_min = need("zn_same_site", "zn_same_site_min")
-    z_matched = need("zn_same_site", "zn_min_matched")
-    if z_min is None or z_matched is None:
-        return
+def _zn_gate(g: Gates, need, zn, rule, n_seeds: int) -> None:
+    """Paired Zn same-site check under the row's declared ``zn_rule`` (C5).
+
+    ``"required"`` (D14, D15): at least ``zn_min_matched`` eligible ions (``off``
+    ions with a coordinating atom, in same-outcome pairs) or the row fails.
+    ``{"extra_seeds_max": m}`` (H3): below the minimum, same-seed pairs are
+    added one at a time, for the Zn check only, until it is reached or ``m``
+    extra seeds have run; at the cap the gate is not applicable and the Zn
+    claim unresolved. ``"report"`` (H5): reported, never gated.
+    ``zn_claim`` records qualified, fail, unresolved or report-only.
+    """
+
+    def claim(value):
+        g.report("zn_claim", value)
+
+    if rule is None:
+        g.fail("zn_same_site", "Zn row without a declared zn_rule")
+        return claim("fail")
     if (
         not zn
         or not _finite(zn.get("same_site_of"))
         or not _finite(zn.get("same_site"))
     ):
         g.fail("zn_same_site", "Zn measurement absent")
-    elif zn["same_site_of"] < z_matched:
-        g.not_applicable(
-            "zn_same_site",
-            f"{zn['same_site_of']} matched Zn ions in same-outcome pairs, fewer "
-            f"than {z_matched}: Zn placement not claimed",
-        )
+        return claim("fail")
+    counts = {"same_site": zn["same_site"], "same_site_of": zn["same_site_of"]}
+    if rule == "report":
+        g.report("zn_same_site", counts)
+        return claim("report-only")
+    z_min = need("zn_same_site", "zn_same_site_min")
+    z_matched = need("zn_same_site", "zn_min_matched")
+    if z_min is None or z_matched is None:
+        return claim("fail")
+    by_seed = zn.get("by_seed")
+    if by_seed is not None and any(b.get("status") != "ok" for b in by_seed):
+        g.fail("zn_same_site", "a Zn seed pair has no paired samples")
+        return claim("fail")
+    extras = [] if by_seed is None else by_seed[n_seeds:]
+    if rule == "required":
+        if extras:
+            g.fail("zn_same_site", "extra Zn seeds are not declared for this row")
+            return claim("fail")
+        if zn["same_site_of"] < z_matched:
+            g.fail(
+                "zn_same_site",
+                f"{zn['same_site_of']} eligible Zn ions, fewer than {z_matched}; "
+                "this row must be conclusive",
+                value=counts,
+            )
+            return claim("fail")
+    elif isinstance(rule, dict) and "extra_seeds_max" in rule:
+        cap = rule["extra_seeds_max"]
+        if by_seed is None:
+            g.fail("zn_same_site", "per-seed Zn counts absent")
+            return claim("fail")
+        primary = {b["seeds"][0] for b in by_seed[:n_seeds]}
+        if len(extras) > cap:
+            g.fail("zn_same_site", f"{len(extras)} extra Zn seeds, more than {cap}")
+            return claim("fail")
+        if any(
+            b["seeds"][0] != b["seeds"][1] or b["seeds"][0] in primary for b in extras
+        ):
+            g.fail("zn_same_site", "extra Zn seeds must be new same-seed pairs")
+            return claim("fail")
+        total = sum(b["same_site_of"] for b in by_seed[:n_seeds])
+        for b in extras:
+            if total >= z_matched:
+                g.fail(
+                    "zn_same_site",
+                    f"extra Zn seed {b['seeds'][0]} run after {total} eligible ions",
+                )
+                return claim("fail")
+            total += b["same_site_of"]
+        if zn["same_site_of"] < z_matched:
+            if len(extras) < cap:
+                g.fail(
+                    "zn_same_site",
+                    f"{zn['same_site_of']} eligible Zn ions after {len(extras)} of "
+                    f"{cap} extra seeds; run the next extra seed",
+                    value=counts,
+                )
+                return claim("unresolved")
+            g.not_applicable(
+                "zn_same_site",
+                f"{zn['same_site_of']} eligible Zn ions after all {cap} extra "
+                "seeds: Zn placement not claimed for this row",
+            )
+            return claim("unresolved")
     else:
-        v = zn["same_site"] / zn["same_site_of"]
-        g.check("zn_same_site", v, z_min, v >= z_min)
+        g.fail("zn_same_site", f"unknown zn_rule {rule!r}")
+        return claim("fail")
+    v = zn["same_site"] / zn["same_site_of"]
+    g.check("zn_same_site", v, z_min, v >= z_min)
+    return claim("qualified" if v >= z_min else "fail")
+
+
+def zn_claim(results) -> str:
+    """Aggregate Zn claim: qualified only if every gated Zn row is qualified
+    and passes its other tier 2 gates; a Zn row failing another gate fails."""
+    gated = []
+    for r in results:
+        claim = r["gates"].get("zn_claim", {}).get("value")
+        if claim is None or claim == "report-only":
+            continue
+        other = [f for f in r.get("failed", []) if f != "zn_same_site"]
+        gated.append("fail" if other else claim)
+    if not gated:
+        return "none"
+    if "fail" in gated:
+        return "fail"
+    if "unresolved" in gated:
+        return "unresolved"
+    return "qualified"
 
 
 def _drop(g, name, off_values, cand_values, limit, fn) -> None:
@@ -669,6 +770,13 @@ def main() -> int:
     m.add_argument("cand_run", type=Path)
     m.add_argument("--rows", required=True)
     m.add_argument("--seed-pairs", default="101:101,102:102")
+    m.add_argument(
+        "--zn-extra-seeds",
+        action="append",
+        default=[],
+        metavar="ROW=SEED,...",
+        help="extra same-seed pairs for one row's Zn check only (protocol C5)",
+    )
     e = sub.add_parser("evaluate")
     e.add_argument("measure", type=Path)
     e.add_argument("--limits", type=Path, required=True)
@@ -687,10 +795,20 @@ def main() -> int:
         seed_pairs = [
             tuple(int(x) for x in p.split(":")) for p in args.seed_pairs.split(",")
         ]
+        extra = {}
+        for item in args.zn_extra_seeds:
+            row_id, seeds = item.split("=")
+            extra[row_id] = [int(x) for x in seeds.split(",")]
         entries = []
         for row_id in args.rows.split(","):
             entries.extend(
-                measure_row(rows[row_id], args.off_run, args.cand_run, seed_pairs)
+                measure_row(
+                    rows[row_id],
+                    args.off_run,
+                    args.cand_run,
+                    seed_pairs,
+                    extra.get(row_id, ()),
+                )
             )
             print(f"measured {row_id}", flush=True)
         for entry in entries:
@@ -717,11 +835,18 @@ def main() -> int:
     results = evaluate(data, limits, manifest, rows)
     for r in results:
         status = "PASS" if r["pass"] else "FAIL " + ",".join(r["failed"])
-        print(f"{r['id']:4s} {r['job'][:20]:20s} {status}")
+        claim = r["gates"].get("zn_claim", {}).get("value")
+        suffix = f" (Zn {claim})" if claim else ""
+        print(f"{r['id']:4s} {r['job'][:20]:20s} {status}{suffix}")
+    print(f"Zn claim over evaluated rows: {zn_claim(results)}")
     if args.out:
         args.out.write_text(
             json.dumps(
-                {"measure": str(args.measure), "results": results},
+                {
+                    "measure": str(args.measure),
+                    "zn_claim": zn_claim(results),
+                    "results": results,
+                },
                 indent=1,
                 default=float,
             )

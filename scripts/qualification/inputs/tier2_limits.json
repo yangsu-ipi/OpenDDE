@@ -174,11 +174,13 @@
    "class": "flexible"
   },
   "D14": {
-   "class": "stable"
+   "class": "stable",
+   "zn_rule": "required"
   },
   "D15": {
    "class": "stable",
-   "lddt_min": 0.9
+   "lddt_min": 0.9,
+   "zn_rule": "required"
   },
   "H1": {
    "class": "flexible",
@@ -193,7 +195,10 @@
   "H3": {
    "class": "flexible",
    "lddt_min": 0.85,
-   "pair_fnat_min": 0.55
+   "pair_fnat_min": 0.55,
+   "zn_rule": {
+    "extra_seeds_max": 4
+   }
   },
   "H4": {
    "class": "flexible",
@@ -203,7 +208,8 @@
   "H5": {
    "class": "epitope",
    "lddt_min": 0.85,
-   "pair_fnat_min": 0.55
+   "pair_fnat_min": 0.55,
+   "zn_rule": "report"
   },
   "H6": {
    "class": "stable",

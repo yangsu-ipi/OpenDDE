@@ -24,7 +24,9 @@ atoms within ``COORD`` of a Zn ion. For each row and job it records:
   the ``off`` ion superposed onto ``off``'s). Per matched ion: that distance and
   the Jaccard overlap of the two ions' coordinating residues. The summary
   counts, in same-outcome pairs (anchor RMSD at most ``SAME_OUTCOME``), the
-  matched ions within ``SAME_SITE`` of each other: the proposed Zn gate.
+  matched ions within ``SAME_SITE`` of each other: the proposed Zn gate,
+  overall and per seed pair in run order (``by_seed``), so that an extra-seed
+  stopping rule can be checked.
 - **Coordination** (unpaired): every ion's coordinating-atom count in every
   sample of both runs. The summary gives, per run, the fraction of ions over
   all samples with at least ``MIN_DONORS`` coordinating atoms, whatever the
@@ -302,6 +304,26 @@ def summarize(entry: dict[str, Any]) -> dict[str, Any]:
     summary["same_site"] = within
     summary["same_site_of"] = len(same)
     summary["same_site_fraction"] = within / len(same) if same else None
+    by_seed: dict[tuple, dict[str, Any]] = {}
+    for s in entry["samples"]:
+        rec = by_seed.setdefault(
+            tuple(s["seeds"]),
+            {
+                "seeds": list(s["seeds"]),
+                "status": "ok",
+                "same_site": 0,
+                "same_site_of": 0,
+            },
+        )
+        if s["status"] != "ok":
+            rec["status"] = s["status"]
+            continue
+        if s["anchor_rmsd"] <= SAME_OUTCOME:
+            for i in s["paired"]["ions"]:
+                rec["same_site_of"] += 1
+                d = i["pocket_distance"]
+                rec["same_site"] += int(d is not None and d <= SAME_SITE)
+    summary["by_seed"] = list(by_seed.values())
     for tag in ("off", "cand"):
         counts = [n for s in ok for n in s["paired"][f"donors_{tag}"]]
         summary[f"coordinated_{tag}"] = sum(1 for n in counts if n >= MIN_DONORS)
