@@ -38,7 +38,7 @@ INPUTS = ROOT / "scripts" / "qualification" / "inputs"
 VERSIONS = {"torch": "2.7.1+cu128"}
 HOST_ENV = {"OPENDDE_QUAL_DATA": "/qual", "OPENDDE_QUAL_KALIGN": "/bin/kalign"}
 CAND_ARGS = ["--optimization_mode", "fast"]
-CONTRACT_TAG = "qual-sm120-contract-test"
+CONTRACT_TAG = "qual-test-contract-1"
 H3_JOB = "9sat_unconstrained"
 N_SAMPLE = 5
 DEV = [f"D{i}" for i in range(1, 16)]
@@ -160,10 +160,15 @@ class World:
         frozen=False,
         cand_args=CAND_ARGS,
         candidate_change=None,
+        receipt="before",
+        receipt_changes=None,
     ):
         """The checkout has a contract commit (tagged ``CONTRACT_TAG`` when
         ``frozen``), then the candidate's code commit, which changes model code
-        outside the qualification directory and applies ``candidate_change``."""
+        outside the qualification directory and applies ``candidate_change``.
+        The development set is run at the code commit; its rehearsal receipt is
+        committed ``before`` the draw, ``with`` it, ``after`` it or not at all
+        (None)."""
         self.tmp = tmp
         self.repo = tmp / "repo"
         self.qual = self.repo / "scripts" / "qualification"
@@ -185,7 +190,7 @@ class World:
             "rows": {row: _digests(self.jobs(row), self.seeds[row]) for row in DEV}
         }
         (self.inputs / "baseline_off.json").write_text(json.dumps(baseline))
-        self.log = {"description": "test", "draws": []}
+        self.log = {"description": "test", "receipts": [], "draws": []}
         self.write_log()
         acceptance["gpus"]["sm_120"]["frozen"] = (
             {
@@ -206,27 +211,48 @@ class World:
             candidate_change(self)
         self.code = self.commit("candidate code")
         self.cand_args = list(cand_args)
+        self.head = self.code
+        dev = self._build_set("development", DEV, self.code, h3_zn)
+        self.receipt = {
+            "id": "rehearsal-1",
+            "gpu": "sm_120",
+            "candidate": "fast-test",
+            "route": "dev-rehearsal",
+            "code_commit": self.code,
+            "candidate_args": list(cand_args),
+            "evidence_sha256": accept.evidence_digest([dev]),
+            "verdict_sha256": _sha("verdict"),
+            "status": accept.REHEARSAL_STATUS,
+            "exit_code": accept.REHEARSAL,
+            **(receipt_changes or {}),
+        }
+        if receipt == "before":
+            self.log["receipts"].append(self.receipt)
+            self.receipt_commit = self.commit_log("receipt")
         self.draw = {
             "id": "sm_120-1",
             "gpu": "sm_120",
             "candidate": "fast-test",
             "code_commit": self.code,
             "candidate_args": list(cand_args),
+            "receipt": "rehearsal-1",
             "seeds": {r: self.seeds[r] for r in HELD},
             "zn_extra": {},
         }
         self.log["draws"].append(self.draw)
+        if receipt == "with":
+            self.log["receipts"].append(self.receipt)
         self.draw_commit = self.commit_log()
+        if receipt == "after":
+            self.log["receipts"].append(self.receipt)
+            self.commit_log("late receipt")
         self.h3_extra = list(h3_extra)
         self.extra_commits = {}
         for s in self.h3_extra:
             self.draw["zn_extra"].setdefault("H3", []).append(s)
             self.extra_commits[s] = self.commit_log()
         self.head = _git(self.repo, "rev-parse", "HEAD")
-        self.sets = [
-            self._build_set("development", DEV, self.code, h3_zn),
-            self._build_set("held-out", HELD, self.draw_commit, h3_zn),
-        ]
+        self.sets = [dev, self._build_set("held-out", HELD, self.draw_commit, h3_zn)]
         for s in self.h3_extra:
             self._build_zn_set(s)
 
@@ -498,9 +524,19 @@ def test_complete_pass_is_provisional_until_frozen_then_full(tmp_path):
     contract = [c["check"] for c in verdict["checks"] if "contract tag" in c["check"]]
     assert contract == [
         "contract tag present",
+        "contract tag is the newest",
         "code commit descends from the contract tag",
         "qualification files unchanged since the contract tag",
     ]
+    names = {c["check"] for c in verdict["checks"]}
+    assert {
+        "draw names a logged rehearsal receipt",
+        "rehearsal receipt passed",
+        "rehearsal receipt matches the draw",
+        "development evidence matches the rehearsal receipt",
+        "rehearsal receipt committed before the draw",
+        "each candidate drawn at most once",
+    } <= names
 
 
 def _bump_constant(world):
@@ -1287,7 +1323,10 @@ def test_tier1_entry_for_an_unexpected_seed_fails(world):
 
     _edit_json(path, add)
     verdict = _fails(world, "development tier 1 entries expected")
-    assert verdict["failed"] == ["development tier 1 entries expected"]
+    assert verdict["failed"] == [
+        "development tier 1 entries expected",
+        "development evidence matches the rehearsal receipt",
+    ]
 
 
 def test_measure_refuses_a_row_given_twice(tmp_path, monkeypatch):
@@ -1404,3 +1443,148 @@ def test_rehearsal_requires_declared_candidate_arguments(tmp_path):
     name = "rehearsal declares the code commit and candidate arguments"
     _fails(world, name, _rehearsal(world, candidate_args=[]))
     _fails(world, name, _rehearsal(world, code_commit=world.code[:12]))
+
+
+# Rehearsal receipt and the held-out draw
+
+
+def test_draw_without_a_receipt_fails(tmp_path):
+    world = World(tmp_path, receipt=None)
+    verdict = _fails(world, "draw names a logged rehearsal receipt")
+    assert verdict["failed"] == ["draw names a logged rehearsal receipt"]
+
+
+@pytest.mark.parametrize("when", ["with", "after"])
+def test_receipt_not_committed_before_the_draw_fails(tmp_path, when):
+    world = World(tmp_path, receipt=when)
+    verdict = _fails(world, "rehearsal receipt committed before the draw")
+    assert verdict["failed"] == ["rehearsal receipt committed before the draw"]
+
+
+@pytest.mark.parametrize(
+    "changes, fragment",
+    [
+        ({"status": "fail", "exit_code": 1}, "rehearsal receipt passed"),
+        ({"code_commit": "f" * 40}, "rehearsal receipt matches the draw"),
+        ({"candidate_args": ["--optimization_mode", "big"]}, "matches the draw"),
+        ({"candidate_args": ["fast", "--optimization_mode"]}, "matches the draw"),
+        ({"evidence_sha256": _sha("other")}, "development evidence matches"),
+    ],
+)
+def test_mismatched_receipt_fails(tmp_path, changes, fragment):
+    world = World(tmp_path, receipt_changes=changes)
+    verdict = _fails(world, fragment)
+    assert len(verdict["failed"]) == 1, verdict["failed"]
+
+
+def _edit_cand_record(world):
+    world.edit_record("D3", "cand", lambda r: r.update(note="rewritten"))
+
+
+def _edit_trace(world):
+    path = world.run_dir("D3", "off") / "D3.trace.jsonl"
+    path.write_text(path.read_text() + "\n")
+
+
+def _reformat_measurement(world):
+    path = Path(world.sets[0]["tier2"])
+    path.write_text(json.dumps(json.loads(path.read_text()), indent=2))
+
+
+def _edit_repeat_record(world):
+    world.edit_record("D3", "repeat", lambda r: r.update(note="rerun"))
+
+
+@pytest.mark.parametrize(
+    "change",
+    [_edit_cand_record, _edit_trace, _reformat_measurement, _edit_repeat_record],
+)
+def test_changed_development_evidence_fails(world, change):
+    change(world)
+    _fails(world, "development evidence matches the rehearsal receipt")
+
+
+def test_changed_repeat_artifact_fails(world):
+    run = world.run_dir("D3", "repeat") / "D3"
+    path = sorted(run.rglob("*.cif"))[0]
+    path.write_text(path.read_text() + "x")
+    _fails(world, "D3 repeat artifacts match its run record")
+
+
+def test_edited_or_removed_receipt_fails(world):
+    world.log["receipts"][0]["verdict_sha256"] = _sha("edited")
+    world.commit_log("edit the receipt")
+    _fails(world, "held-out log history only appends")
+    world.log["receipts"] = []
+    world.commit_log("remove the receipt")
+    verdict = _fails(world, "held-out log history only appends")
+    assert _failed(verdict, "draw names a logged rehearsal receipt")
+
+
+def _second_draw(world, receipt_id, code):
+    draw = {
+        "id": "sm_120-2",
+        "gpu": "sm_120",
+        "candidate": "fast-test",
+        "code_commit": code,
+        "candidate_args": list(world.cand_args),
+        "receipt": receipt_id,
+        "seeds": {"H1": [280, 281]},
+        "zn_extra": {},
+    }
+    world.log["draws"].append(draw)
+    world.commit_log("second draw")
+
+
+def test_second_draw_naming_a_used_receipt_fails(world):
+    _second_draw(world, "rehearsal-1", "e" * 40)
+    verdict = _fails(world, "each rehearsal receipt named by at most one draw")
+    assert not _failed(verdict, "each candidate drawn at most once")
+
+
+def test_same_candidate_drawn_again_fails(world):
+    world.log["receipts"].append({**world.receipt, "id": "rehearsal-2"})
+    world.commit_log("second receipt")
+    _second_draw(world, "rehearsal-2", world.code)
+    verdict = _fails(world, "each candidate drawn at most once")
+    assert not _failed(verdict, "named by at most one draw")
+
+
+def test_superseded_contract_tag_fails(tmp_path):
+    world = World(tmp_path, frozen=True)
+    newer = CONTRACT_TAG.replace("-1", "-2")
+    _git(world.repo, "tag", "-a", newer, "-m", "amended", world.code)
+    verdict = _fails(world, "contract tag is the newest")
+    assert verdict["failed"] == ["contract tag is the newest"]
+
+
+def test_rehearsal_digest_and_receipt_match_the_log_entry(tmp_path):
+    """The receipt a passing rehearsal writes is the one acceptance checks."""
+    world = World(tmp_path, frozen=True)
+    verdict = world.run(_rehearsal(world))
+    assert verdict["exit_code"] == accept.REHEARSAL
+    assert verdict["evidence_sha256"] == world.receipt["evidence_sha256"]
+    receipt = accept.make_receipt(verdict, "rehearsal-1", "verdict text")
+    assert receipt["verdict_sha256"] == _sha("verdict text")
+    keep = {k: v for k, v in world.receipt.items() if k != "verdict_sha256"}
+    assert {k: v for k, v in receipt.items() if k != "verdict_sha256"} == keep
+
+
+def test_receipt_written_only_for_a_passing_rehearsal(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPENDDE_QUAL_DATA", str(tmp_path))
+    (tmp_path / "e.json").write_text("{}")
+    for code in (accept.REHEARSAL, accept.FAIL):
+        verdict = {"status": "s", "exit_code": code, "failed": [], "zn_claim": "x"}
+        monkeypatch.setattr(accept, "accept", lambda e, v=verdict: dict(v))
+        out, receipt = tmp_path / f"v{code}.json", tmp_path / f"r{code}.json"
+        argv = ["accept.py", str(tmp_path / "e.json"), "--out", str(out)]
+        monkeypatch.setattr(sys, "argv", argv + ["--receipt", "r", str(receipt)])
+        assert accept.main() == code
+        if code == accept.REHEARSAL:
+            written = json.loads(receipt.read_text())
+            assert (
+                written["verdict_sha256"]
+                == hashlib.sha256(out.read_bytes()).hexdigest()
+            )
+        else:
+            assert not receipt.exists()

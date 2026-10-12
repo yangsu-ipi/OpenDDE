@@ -3,6 +3,7 @@
 
 Usage:
     python scripts/qualification/accept.py EVIDENCE.json [--out VERDICT.json]
+        [--receipt ID RECEIPT.json]
 
 Run from the root of the acceptance checkout on the GPU host, with
 ``OPENDDE_QUAL_DATA`` set. This command, not ``tier2_gates.py evaluate`` or
@@ -25,7 +26,13 @@ on the development rows before any held-out draw. Its evidence names
 ``code_commit`` and ``candidate_args`` instead of ``held_out_draw``, which it
 must not name. Only the checks that need a draw are skipped (the current
 log's draw entry, seeds logged at each run's commit, H3's extra seeds); every
-other check below runs unchanged, and a declared freeze is required.
+other check below runs unchanged, and a declared freeze is required. With
+``--receipt ID PATH`` a passing rehearsal writes its held-out log receipt
+(candidate, code commit, ordered arguments, the evidence digest and the
+verdict's sha256, status and exit code), to be appended to ``receipts`` in
+``held_out_log.json`` and committed before the draw that names it. The
+development sets of the later acceptance must be declared exactly as in the
+rehearsal, since their digest is compared with the receipt's.
 
 Checks:
 - every required row appears in exactly one full set, and no other row does;
@@ -33,9 +40,16 @@ Checks:
 - the held-out log is well formed: seeds from 201-299, each used once in the
   whole log, two per held-out row, extra Zn seeds only where ``zn_rule``
   allows them; the draw records the candidate's code commit and its declared
-  arguments;
+  arguments; receipt ids are unique, a receipt is named by at most one draw,
+  and a candidate (code commit and ordered arguments) is drawn at most once;
+- the draw names a passing rehearsal receipt of the same GPU, candidate, code
+  commit and ordered arguments, present in the log before the commit that
+  first adds the draw, whose evidence digest equals that of the development
+  sets being accepted (``evidence_digest``: set declarations, every run
+  record and trace, both measurement files);
 - Git: the checkout is clean and differs from the draw's code commit only in
-  the held-out log, and the log's history only ever appends;
+  the held-out log, and the log's history only ever appends (receipts and
+  draws);
 - per run, from its run record: exit status 0 and no exception; output and
   capture directories that did not exist before the run; a commit that differs from the
   code commit only in the held-out log, is an ancestor of the checkout and,
@@ -67,7 +81,8 @@ Checks:
   measured from them in log order, and the aggregate Zn claim is
   ``qualified``;
 - once ``acceptance.json`` declares a freeze: the limits files match its
-  hashes, and its ``contract_tag`` exists, is an ancestor of the draw's code
+  hashes, and its ``contract_tag`` exists, is the newest tag of its numbered
+  family in the checkout, is an ancestor of the draw's code
   commit, and the qualification directory (code, constants, inputs, limits,
   recipe, baseline, wrapper) is unchanged from the tag apart from the
   held-out log. This runs at the candidate's commit, so it catches accidental
@@ -84,6 +99,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 from collections import Counter
 from pathlib import Path
@@ -101,6 +117,8 @@ HELD_OUT_RANGE = (201, 299)
 HELD_OUT_SEEDS_PER_ROW = 2
 FULL, FAIL, PARTIAL, PROVISIONAL, REHEARSAL = 0, 1, 2, 3, 4
 CANDIDATE_KINDS = ("cand", "repeat", "tier1 cand")
+REHEARSAL_STATUS = "rehearsal passed (not an acceptance)"
+EVIDENCE_RUNS = ("off", "cand", "cand_repeat", "tier1_off", "tier1_cand")
 HEX = set("0123456789abcdef")
 
 
@@ -196,6 +214,7 @@ class Git:
 
     def __init__(self, repo: Repo, code: str, head: str, log_path: str):
         self.repo, self.code, self.head, self.log_path = repo, code, head, log_path
+        self.versions: list[tuple[str, Any]] = []
         self._runs: dict[str, tuple[bool, Any]] = {}
         self._logs: dict[str, Any] = {}
 
@@ -296,6 +315,7 @@ def check_log(checks: Checks, log, draw_id, gpu, candidate, held_out_rows, limit
     lo, hi = HELD_OUT_RANGE
     out_of_range = sorted(s for s in seen if not lo <= s <= hi)
     checks.add("held-out seeds in 201-299", not out_of_range, out_of_range)
+    check_log_receipts(checks, log)
     draws = [d for d in log.get("draws", []) if d.get("id") == draw_id]
     if not checks.add("held-out draw logged", len(draws) == 1, draw_id):
         return {}
@@ -329,13 +349,136 @@ def check_log(checks: Checks, log, draw_id, gpu, candidate, held_out_rows, limit
     return draw
 
 
+def _repeated(values) -> list:
+    counts = Counter(values)
+    return sorted((v for v, n in counts.items() if n > 1), key=str)
+
+
+def check_log_receipts(checks: Checks, log) -> None:
+    """Receipt ids are unique, a receipt is named by at most one draw, and a
+    candidate (code commit and ordered arguments) is drawn at most once."""
+    receipts = [r.get("id") for r in log.get("receipts", [])]
+    checks.add(
+        "rehearsal receipt ids unique", not _repeated(receipts), _repeated(receipts)
+    )
+    draws = log.get("draws", [])
+    named = [d["receipt"] for d in draws if d.get("receipt") is not None]
+    checks.add(
+        "each rehearsal receipt named by at most one draw",
+        not _repeated(named),
+        _repeated(named),
+    )
+    candidates = [
+        json.dumps([d["code_commit"], d.get("candidate_args")])
+        for d in draws
+        if d.get("code_commit") is not None
+    ]
+    checks.add(
+        "each candidate drawn at most once",
+        not _repeated(candidates),
+        _repeated(candidates),
+    )
+
+
+def evidence_digest(sets) -> str:
+    """Canonical sha256 of development evidence: each set's declaration, the
+    run record and trace of every run role and row, and both measurement
+    files, as sorted ``[role, row, file, sha256]`` entries (``None`` for a
+    missing file). Run records list their artifact digests, so this binds
+    every output."""
+
+    def digest(path):
+        return provenance.sha256_file(path) if path and path.is_file() else None
+
+    entries = []
+    for s in sets:
+        name = s.get("name")
+        text = json.dumps(s, sort_keys=True).encode()
+        entries.append(["set", name, "declaration", hashlib.sha256(text).hexdigest()])
+        for role in EVIDENCE_RUNS:
+            run = Path(s[role]) if s.get(role) else None
+            for row in s.get("rows", []):
+                for file in (f"{row}.run.json", f"{row}.trace.jsonl"):
+                    entries.append([role, row, file, digest(run and run / file)])
+        for role in ("tier1", "tier2"):
+            path = Path(s[role]) if s.get(role) else None
+            entries.append([role, name, "measurement", digest(path)])
+    canonical = json.dumps(sorted(entries, key=json.dumps)).encode()
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def check_receipt(checks: Checks, log, draw, git, digest) -> None:
+    """The draw names a passing rehearsal receipt of the same candidate,
+    committed before the draw, whose evidence is the development evidence
+    being accepted."""
+    rid = draw.get("receipt")
+    found = [r for r in log.get("receipts", []) if r.get("id") == rid]
+    if not checks.add(
+        "draw names a logged rehearsal receipt",
+        rid is not None and len(found) == 1,
+        rid,
+    ):
+        return
+    receipt = found[0]
+    checks.add(
+        "rehearsal receipt passed",
+        receipt.get("status") == REHEARSAL_STATUS
+        and receipt.get("exit_code") == REHEARSAL,
+        {"status": receipt.get("status"), "exit_code": receipt.get("exit_code")},
+    )
+    keys = ("gpu", "candidate", "code_commit", "candidate_args")
+    differing = {
+        k: [receipt.get(k), draw.get(k)] for k in keys if receipt.get(k) != draw.get(k)
+    }
+    checks.add("rehearsal receipt matches the draw", not differing, differing)
+    checks.add(
+        "development evidence matches the rehearsal receipt",
+        receipt.get("evidence_sha256") == digest,
+        {"receipt": receipt.get("evidence_sha256"), "evidence": digest},
+    )
+    versions = git.versions if git else []
+    first = next(
+        (
+            i
+            for i, (_, v) in enumerate(versions)
+            if any(d.get("id") == draw.get("id") for d in (v or {}).get("draws", []))
+        ),
+        None,
+    )
+    before = versions[first - 1][1] if first else None
+    checks.add(
+        "rehearsal receipt committed before the draw",
+        any(r.get("id") == rid for r in (before or {}).get("receipts", [])),
+        None if first is None else versions[first][0][:12],
+    )
+
+
+def make_receipt(verdict, receipt_id, verdict_text: str) -> dict[str, Any]:
+    """The held-out log entry for a passing rehearsal (``--receipt``)."""
+    return {
+        "id": receipt_id,
+        "gpu": verdict.get("gpu"),
+        "candidate": verdict.get("candidate"),
+        "route": verdict.get("route"),
+        "code_commit": verdict.get("code_commit"),
+        "candidate_args": verdict.get("candidate_args"),
+        "evidence_sha256": verdict.get("evidence_sha256"),
+        "verdict_sha256": hashlib.sha256(verdict_text.encode()).hexdigest(),
+        "status": verdict.get("status"),
+        "exit_code": verdict.get("exit_code"),
+    }
+
+
 def _without_zn_extra(draw):
     return {k: v for k, v in draw.items() if k != "zn_extra"}
 
 
 def _extends(old, new) -> bool:
-    """``new`` keeps every draw of ``old`` unchanged, except that extra Zn
-    seeds may be appended, and may add draws after them."""
+    """``new`` keeps every receipt and draw of ``old`` unchanged, except that
+    extra Zn seeds may be appended, and may add receipts and draws after them."""
+    ra, rb = old.get("receipts", []), new.get("receipts", [])
+    if rb[: len(ra)] != ra:
+        return False
     a, b = old.get("draws", []), new.get("draws", [])
     if len(b) < len(a):
         return False
@@ -356,6 +499,20 @@ def check_contract(checks: Checks, git: Git | None, root: Path, tag) -> None:
     tagged = repo.commit(f"refs/tags/{tag}") if repo and isinstance(tag, str) else None
     if not checks.add("contract tag present", tagged is not None, tag):
         return
+    match = re.fullmatch(r"(.+-)(\d+)", tag)
+    family = []
+    if match:
+        listed = (repo.git("tag", "-l", f"{match[1]}*") or "").split()
+        family = [
+            int(m[1])
+            for name in listed
+            if (m := re.fullmatch(re.escape(match[1]) + r"(\d+)", name))
+        ]
+    checks.add(
+        "contract tag is the newest",
+        bool(family) and int(match[2]) == max(family),
+        {"tag": tag, "numbers": sorted(family)},
+    )
     checks.add(
         "code commit descends from the contract tag",
         repo.is_ancestor(tagged, git.code),
@@ -425,7 +582,9 @@ def check_git(checks: Checks, root: Path, draw) -> Git | None:
         not reused,
         sorted(reused),
     )
-    return Git(repo, code, head, log_path)
+    git = Git(repo, code, head, log_path)
+    git.versions = versions
+    return git
 
 
 def _record(run_dir: Path, row: str):
@@ -1102,6 +1261,14 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
         sorted(ctx.versions),
     )
     zn = tier2_gates.zn_claim(results)
+    development = [
+        s
+        for s in full_sets
+        if all(table.get(r, {}).get("role") == "development" for r in s.get("rows", []))
+    ]
+    digest = evidence_digest(development)
+    if not rehearsal:
+        check_receipt(checks, log, draw, git, digest)
     frozen = gpu.get("frozen", {})
     hashes = {"tier1": sha256(t1_path), "tier2": sha256(t2_path)}
     fields = [f"{k}_limits_sha256" for k in hashes] + ["contract_tag"]
@@ -1116,9 +1283,12 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
     if rehearsal:
         checks.add("rehearsal under a declared freeze", is_frozen)
         checks.add("rehearsal Zn claim qualified", zn == "qualified", zn)
-    return _verdict(
+    verdict = _verdict(
         checks, evidence, is_frozen, zn, hashes, draw.get("code_commit"), rehearsal
     )
+    verdict["candidate_args"] = draw.get("candidate_args")
+    verdict["evidence_sha256"] = digest
+    return verdict
 
 
 def _verdict(
@@ -1138,7 +1308,7 @@ def _verdict(
     if failed:
         status, code = "fail", FAIL
     elif rehearsal:
-        status, code = "rehearsal passed (not an acceptance)", REHEARSAL
+        status, code = REHEARSAL_STATUS, REHEARSAL
     elif zn != "qualified":
         status, code = "partial without Zn (not an acceptance)", PARTIAL
     elif not frozen:
@@ -1165,13 +1335,26 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("evidence", type=Path)
     parser.add_argument("--out", type=Path)
+    parser.add_argument(
+        "--receipt",
+        nargs=2,
+        metavar=("ID", "PATH"),
+        help="after a passing rehearsal, write its held-out log receipt to PATH",
+    )
     args = parser.parse_args()
     if "OPENDDE_QUAL_DATA" not in os.environ:
         print("error: OPENDDE_QUAL_DATA is not set")
         return FAIL
     verdict = accept(json.loads(args.evidence.read_text()))
+    text = json.dumps(verdict, indent=1, default=str) + "\n"
     if args.out:
-        args.out.write_text(json.dumps(verdict, indent=1, default=str) + "\n")
+        args.out.write_text(text)
+    if args.receipt:
+        if verdict["exit_code"] != REHEARSAL:
+            print("error: --receipt needs a passing rehearsal; no receipt written")
+        else:
+            receipt = make_receipt(verdict, args.receipt[0], text)
+            Path(args.receipt[1]).write_text(json.dumps(receipt, indent=1) + "\n")
     print(f"{verdict['status']} (Zn claim: {verdict['zn_claim']})")
     for name in verdict["failed"]:
         print(f"  failed: {name}")
