@@ -225,6 +225,9 @@ class World:
             "verdict_sha256": _sha("verdict"),
             "status": accept.REHEARSAL_STATUS,
             "exit_code": accept.REHEARSAL,
+            "gate_sha256": _sha("gate"),
+            "gate_commit": self.contract if frozen else None,
+            "gate_approved_tag": CONTRACT_TAG if frozen else None,
             **(receipt_changes or {}),
         }
         if receipt == "before":
@@ -539,6 +542,7 @@ def test_complete_pass_is_provisional_until_frozen_then_full(tmp_path):
         "rehearsal receipt passed",
         "rehearsal receipt matches the draw",
         "rehearsal receipt names the contract tag",
+        "rehearsal receipt records a gate at the contract tag",
         "development evidence matches the rehearsal receipt",
         "rehearsal receipt committed before the draw",
         "each candidate drawn at most once",
@@ -574,7 +578,10 @@ def test_code_commit_not_descending_from_the_tag_fails(tmp_path):
     orphan = _git(world.repo, "commit-tree", tree, "-m", "elsewhere")
     _git(world.repo, "tag", "-f", "-a", CONTRACT_TAG, "-m", "moved", orphan)
     verdict = _fails(world, "code commit descends from the contract tag")
-    assert verdict["failed"] == ["code commit descends from the contract tag"]
+    assert verdict["failed"] == [
+        "rehearsal receipt records a gate at the contract tag",
+        "code commit descends from the contract tag",
+    ]
 
 
 def test_missing_contract_tag_fails(tmp_path):
@@ -1476,6 +1483,9 @@ def test_receipt_not_committed_before_the_draw_fails(tmp_path, when):
         ({"candidate_args": ["fast", "--optimization_mode"]}, "matches the draw"),
         ({"evidence_sha256": _sha("other")}, "development evidence matches"),
         ({"contract_tag": "qual-test-contract-9"}, "names the contract tag"),
+        ({"gate_commit": "f" * 40}, "records a gate at the contract tag"),
+        ({"gate_approved_tag": "qual-test-contract-9"}, "records a gate"),
+        ({"gate_sha256": None}, "records a gate at the contract tag"),
     ],
 )
 def test_mismatched_receipt_fails(tmp_path, changes, fragment):
@@ -1571,27 +1581,44 @@ def test_rehearsal_digest_and_receipt_match_the_log_entry(tmp_path):
     verdict = world.run(_rehearsal(world))
     assert verdict["exit_code"] == accept.REHEARSAL
     assert verdict["evidence_sha256"] == world.receipt["evidence_sha256"]
-    receipt = accept.make_receipt(verdict, "rehearsal-1", "verdict text")
+    gate = {"ok": True, "gate_commit": world.contract, "approved_tag": CONTRACT_TAG}
+    gate_text = json.dumps(gate)
+    receipt = accept.make_receipt(verdict, "rehearsal-1", "verdict text", gate_text)
     assert receipt["verdict_sha256"] == _sha("verdict text")
-    keep = {k: v for k, v in world.receipt.items() if k != "verdict_sha256"}
-    assert {k: v for k, v in receipt.items() if k != "verdict_sha256"} == keep
+    assert receipt["gate_sha256"] == _sha(gate_text)
+    hashes = ("verdict_sha256", "gate_sha256")
+    keep = {k: v for k, v in world.receipt.items() if k not in hashes}
+    assert {k: v for k, v in receipt.items() if k not in hashes} == keep
 
 
 def test_receipt_written_only_for_a_passing_rehearsal(tmp_path, monkeypatch):
     monkeypatch.setenv("OPENDDE_QUAL_DATA", str(tmp_path))
     (tmp_path / "e.json").write_text("{}")
-    for code in (accept.REHEARSAL, accept.FAIL):
+    passing, failing = tmp_path / "gate-ok.json", tmp_path / "gate-fail.json"
+    passing.write_text(
+        json.dumps({"ok": True, "gate_commit": "c", "approved_tag": "t"})
+    )
+    failing.write_text(json.dumps({"ok": False}))
+    cases = [
+        (accept.REHEARSAL, passing, True),
+        (accept.REHEARSAL, failing, False),
+        (accept.REHEARSAL, None, False),
+        (accept.FAIL, passing, False),
+    ]
+    for n, (code, gate, written) in enumerate(cases):
         verdict = {"status": "s", "exit_code": code, "failed": [], "zn_claim": "x"}
         monkeypatch.setattr(accept, "accept", lambda e, v=verdict: dict(v))
-        out, receipt = tmp_path / f"v{code}.json", tmp_path / f"r{code}.json"
+        out, receipt = tmp_path / f"v{n}.json", tmp_path / f"r{n}.json"
         argv = ["accept.py", str(tmp_path / "e.json"), "--out", str(out)]
-        monkeypatch.setattr(sys, "argv", argv + ["--receipt", "r", str(receipt)])
+        argv += ["--receipt", "r", str(receipt)]
+        argv += ["--gate-report", str(gate)] if gate else []
+        monkeypatch.setattr(sys, "argv", argv)
         assert accept.main() == code
-        if code == accept.REHEARSAL:
-            written = json.loads(receipt.read_text())
+        assert receipt.exists() == written
+        if written:
+            entry = json.loads(receipt.read_text())
             assert (
-                written["verdict_sha256"]
-                == hashlib.sha256(out.read_bytes()).hexdigest()
+                entry["verdict_sha256"] == hashlib.sha256(out.read_bytes()).hexdigest()
             )
-        else:
-            assert not receipt.exists()
+            assert entry["gate_sha256"] == hashlib.sha256(gate.read_bytes()).hexdigest()
+            assert (entry["gate_commit"], entry["gate_approved_tag"]) == ("c", "t")

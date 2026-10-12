@@ -18,6 +18,25 @@ import qual_gate  # noqa: E402
 
 FAMILY = "qual-test-contract-"
 QUAL = Path("scripts/qualification")
+# A stand-in verifier: writes a verdict with the evidence's exit status, a
+# receipt naming the gate report when asked, and dirties its checkout when the
+# evidence says "touch".
+STUB = """import json
+import sys
+from pathlib import Path
+
+VERSION = {n}
+args = sys.argv[1:]
+evidence = json.loads(Path(args[0]).read_text())
+Path(args[args.index("--out") + 1]).write_text(json.dumps({{"exit": evidence["exit"]}}))
+if "--receipt" in args:
+    i = args.index("--receipt")
+    gate = args[args.index("--gate-report") + 1]
+    Path(args[i + 2]).write_text(json.dumps({{"id": args[i + 1], "gate": gate}}))
+if evidence.get("touch"):
+    Path("stray.txt").write_text("x")
+sys.exit(evidence["exit"])
+"""
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -33,7 +52,7 @@ def _git(repo: Path, *args: str) -> str:
 def _write_contract(repo: Path, n: int, receipts=()) -> None:
     inputs = repo / QUAL / "inputs"
     inputs.mkdir(parents=True, exist_ok=True)
-    (repo / QUAL / "accept.py").write_text(f"VERSION = {n}\n")
+    (repo / QUAL / "accept.py").write_text(STUB.format(n=n))
     acceptance = {"gpus": {"sm_120": {"frozen": {"contract_tag": f"{FAMILY}{n}"}}}}
     (inputs / "acceptance.json").write_text(json.dumps(acceptance))
     log = {"receipts": list(receipts), "draws": []}
@@ -124,7 +143,7 @@ def test_candidate_from_an_older_contract_is_refused(remote):
 
 def test_changed_qualification_file_is_refused(remote):
     def edit(path):
-        (path / QUAL / "accept.py").write_text("VERSION = 2  # edited\n")
+        (path / QUAL / "accept.py").write_text(STUB.format(n=2) + "# edited\n")
 
     report = _run(remote, remote.candidate("cand", 2, edit))
     assert _failed(report) == ["candidate qualification files match the approved tag"]
@@ -211,3 +230,112 @@ def test_main_exit_status(remote, monkeypatch, capsys):
     assert json.loads(out.read_text())["ok"]
     monkeypatch.setattr(sys, "argv", ["qual_gate.py", str(remote.candidate("old", 1))])
     assert qual_gate.main() == 1
+
+
+# The approved tag comes from the gate checkout's remote
+
+
+def test_stale_candidate_remote_cannot_hide_a_newer_tag(remote):
+    """The candidate's origin lacks tag 3; the gate's remote has it."""
+    stale = remote.tmp / "stale.git"
+    _git(remote.tmp, "clone", "-q", "--bare", str(remote.bare), str(stale))
+    cand = remote.candidate("cand", 2)
+    _git(cand, "remote", "set-url", "origin", str(stale))
+    remote.tag(3)
+    report = _run(remote, cand, gate_tag=2)
+    assert report["approved_tag"] == f"{FAMILY}3"
+    assert report["remote"] == str(remote.bare)
+    assert {
+        "gate checkout clean and at the approved tag",
+        "candidate names the approved tag",
+    } <= set(_failed(report))
+
+
+def test_candidate_remotes_are_not_consulted(remote):
+    cand = remote.candidate("cand", 2)
+    _git(cand, "remote", "set-url", "origin", str(remote.tmp / "missing.git"))
+    report = _run(remote, cand)
+    assert report["ok"], _failed(report)
+
+
+# The entrypoint: gate, verifier, post-verdict check, combined record
+
+
+def _evidence(tmp, **fields):
+    path = tmp / f"evidence-{len(list(tmp.glob('evidence-*')))}.json"
+    path.write_text(json.dumps(fields))
+    return path
+
+
+def _entry(remote, cand, evidence, name, **kw):
+    gate_repo = remote.tmp / "gate-2"
+    if not gate_repo.exists():
+        remote.clone(gate_repo.name, f"{FAMILY}2")
+    record_dir = remote.tmp / name
+    code, record = qual_gate.run_entrypoint(
+        cand, evidence, record_dir, gate_repo, "sm_120", "origin", **kw
+    )
+    return code, record, record_dir
+
+
+def test_entrypoint_does_not_run_the_verifier_after_a_failed_gate(remote):
+    cand = remote.candidate("old", 1)
+    code, record, out = _entry(remote, cand, _evidence(remote.tmp, exit=0), "rec")
+    assert code == qual_gate.GATE_FAILED and not record["ok"]
+    assert record["verdict"] is None and not (out / "verdict.json").exists()
+    assert json.loads((out / "gate.json").read_text())["ok"] is False
+
+
+def test_entrypoint_full_pass_binds_gate_and_verdict(remote):
+    cand = remote.candidate("cand", 2)
+    code, record, out = _entry(remote, cand, _evidence(remote.tmp, exit=0), "rec")
+    assert code == 0 and record["ok"] and record["candidate_unchanged"]
+    gate_text = (out / "gate.json").read_text()
+    assert record["gate_sha256"] == qual_gate._sha256(gate_text)
+    verdict_text = (out / "verdict.json").read_text()
+    assert record["verdict"] == {
+        "exit_code": 0,
+        "sha256": qual_gate._sha256(verdict_text),
+    }
+    assert record["candidate_commit"] == _git(cand, "rev-parse", "HEAD")
+    assert json.loads((out / "record.json").read_text()) == record
+
+
+def test_entrypoint_rehearsal_writes_a_receipt_with_the_gate_report(remote):
+    cand = remote.candidate("cand", 2)
+    code, record, out = _entry(
+        remote,
+        cand,
+        _evidence(remote.tmp, exit=4),
+        "rec",
+        write_receipt="rehearsal-1",
+    )
+    assert code == 4 and not record["ok"]
+    receipt = json.loads((out / "receipt.json").read_text())
+    assert receipt == {"id": "rehearsal-1", "gate": str((out / "gate.json").resolve())}
+
+
+def test_entrypoint_refuses_a_candidate_changed_during_the_verdict(remote):
+    cand = remote.candidate("cand", 2)
+    evidence = _evidence(remote.tmp, exit=0, touch=True)
+    code, record, _ = _entry(remote, cand, evidence, "rec")
+    assert code == 1 and not record["ok"] and not record["candidate_unchanged"]
+    assert record["verdict"]["exit_code"] == 0
+
+
+def test_entrypoint_command_line(remote, monkeypatch):
+    cand = remote.candidate("cand", 2)
+    gate_repo = remote.clone("gate", f"{FAMILY}2")
+    monkeypatch.setattr(qual_gate, "GATE_REPO", gate_repo)
+    evidence = _evidence(remote.tmp, exit=0)
+    out = remote.tmp / "rec"
+    argv = ["qual_gate.py", str(cand), "--accept", str(evidence)]
+    monkeypatch.setattr(sys, "argv", argv + ["--record-dir", str(out)])
+    assert qual_gate.main() == 0 and (out / "record.json").exists()
+    with pytest.raises(SystemExit):
+        qual_gate.main()  # the record directory now exists
+    monkeypatch.setattr(
+        sys, "argv", ["qual_gate.py", str(cand), "--write-receipt", "r"]
+    )
+    with pytest.raises(SystemExit):
+        qual_gate.main()  # --write-receipt needs --accept

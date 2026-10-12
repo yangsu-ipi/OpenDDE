@@ -27,9 +27,10 @@ on the development rows before any held-out draw. Its evidence names
 must not name. Only the checks that need a draw are skipped (the current
 log's draw entry, seeds logged at each run's commit, H3's extra seeds); every
 other check below runs unchanged, and a declared freeze is required. With
-``--receipt ID PATH`` a passing rehearsal writes its held-out log receipt
-(candidate, contract tag, code commit, ordered arguments, the evidence
-digest and the verdict's sha256, status and exit code), to be appended to ``receipts`` in
+``--receipt ID PATH --gate-report GATE.json`` a passing rehearsal writes its
+held-out log receipt (candidate, contract tag, code commit, ordered
+arguments, the evidence digest, the verdict's sha256, status and exit code,
+and the passing gate report's sha256, commit and approved tag), to be appended to ``receipts`` in
 ``held_out_log.json`` and committed before the draw that names it. The
 development sets of the later acceptance must be declared exactly as in the
 rehearsal, since their digest is compared with the receipt's.
@@ -43,7 +44,8 @@ Checks:
   arguments; receipt ids are unique, a receipt is named by at most one draw,
   and a candidate (code commit and ordered arguments) is drawn at most once;
 - the draw names a passing rehearsal receipt of the same GPU, candidate, code
-  commit and ordered arguments, recording this contract tag, present in the log before the commit that
+  commit and ordered arguments, recording this contract tag and a passing
+  gate run at the tag's commit, present in the log before the commit that
   first adds the draw, whose evidence digest equals that of the development
   sets being accepted (``evidence_digest``: set declarations, every run
   record and trace, both measurement files);
@@ -88,9 +90,11 @@ Checks:
   held-out log. This runs at the candidate's commit, so it catches accidental
   change, not deliberate tampering.
 
-Run ``qual_gate.py`` from a checkout of the approved contract tag first: it
-checks that this checkout's qualification files are the approved tag's, which
-this command cannot establish about itself.
+Run this command through ``qual_gate.py --accept`` from a checkout of the
+approved contract tag: the gate checks that this checkout's qualification
+files are the approved tag's, which this command cannot establish about
+itself, and a full qualification claim is the gate's combined record, not
+this command's exit status alone.
 
 Exit status: 0 full acceptance; 1 failure; 2 every check passes except the
 Zn claim, which is reported as a partial result without Zn and is not an
@@ -440,6 +444,24 @@ def check_receipt(checks: Checks, log, draw, git, digest, contract_tag) -> None:
         receipt.get("contract_tag") == contract_tag,
         {"receipt": receipt.get("contract_tag"), "contract": contract_tag},
     )
+    tagged = (
+        git.repo.commit(f"refs/tags/{contract_tag}") if git and contract_tag else None
+    )
+    gate_sha = receipt.get("gate_sha256")
+    checks.add(
+        "rehearsal receipt records a gate at the contract tag",
+        isinstance(gate_sha, str)
+        and len(gate_sha) == 64
+        and set(gate_sha) <= HEX
+        and receipt.get("gate_approved_tag") == contract_tag
+        and receipt.get("gate_commit") == tagged,
+        {
+            "gate_sha256": gate_sha,
+            "gate_approved_tag": receipt.get("gate_approved_tag"),
+            "gate_commit": receipt.get("gate_commit"),
+            "tag_commit": tagged,
+        },
+    )
     checks.add(
         "development evidence matches the rehearsal receipt",
         receipt.get("evidence_sha256") == digest,
@@ -462,8 +484,12 @@ def check_receipt(checks: Checks, log, draw, git, digest, contract_tag) -> None:
     )
 
 
-def make_receipt(verdict, receipt_id, verdict_text: str) -> dict[str, Any]:
-    """The held-out log entry for a passing rehearsal (``--receipt``)."""
+def make_receipt(
+    verdict, receipt_id, verdict_text: str, gate_text: str
+) -> dict[str, Any]:
+    """The held-out log entry for a passing rehearsal (``--receipt``), with
+    the passing ``qual_gate.py`` report that preceded it."""
+    gate = json.loads(gate_text)
     return {
         "id": receipt_id,
         "gpu": verdict.get("gpu"),
@@ -476,6 +502,9 @@ def make_receipt(verdict, receipt_id, verdict_text: str) -> dict[str, Any]:
         "verdict_sha256": hashlib.sha256(verdict_text.encode()).hexdigest(),
         "status": verdict.get("status"),
         "exit_code": verdict.get("exit_code"),
+        "gate_sha256": hashlib.sha256(gate_text.encode()).hexdigest(),
+        "gate_commit": gate.get("gate_commit"),
+        "gate_approved_tag": gate.get("approved_tag"),
     }
 
 
@@ -1353,6 +1382,11 @@ def main() -> int:
         metavar=("ID", "PATH"),
         help="after a passing rehearsal, write its held-out log receipt to PATH",
     )
+    parser.add_argument(
+        "--gate-report",
+        type=Path,
+        help="the passing qual_gate.py report recorded in the receipt",
+    )
     args = parser.parse_args()
     if "OPENDDE_QUAL_DATA" not in os.environ:
         print("error: OPENDDE_QUAL_DATA is not set")
@@ -1362,10 +1396,14 @@ def main() -> int:
     if args.out:
         args.out.write_text(text)
     if args.receipt:
+        gate_text = args.gate_report.read_text() if args.gate_report else None
+        gate_ok = gate_text is not None and json.loads(gate_text).get("ok") is True
         if verdict["exit_code"] != REHEARSAL:
             print("error: --receipt needs a passing rehearsal; no receipt written")
+        elif not gate_ok:
+            print("error: --receipt needs a passing --gate-report; no receipt written")
         else:
-            receipt = make_receipt(verdict, args.receipt[0], text)
+            receipt = make_receipt(verdict, args.receipt[0], text, gate_text)
             Path(args.receipt[1]).write_text(json.dumps(receipt, indent=1) + "\n")
     print(f"{verdict['status']} (Zn claim: {verdict['zn_claim']})")
     for name in verdict["failed"]:
