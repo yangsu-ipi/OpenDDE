@@ -2,6 +2,13 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 60 (2026-10-12)
+
+Status update recording the contract-5 amendment (user go-ahead); no requirement changes.
+
+- Record `qual-sm120-contract-5` (commit `881cf69`, annotated tag pushed): it freezes the held-out readiness repair (the gate's own remote, the `qual_gate.py --accept` entrypoint, the receipt's gate record) and the stand-in rehearsal fixes (import paths required inside the acceptance checkout, unreadable measurements as failed checks, the memory note); the limit files and hashes are unchanged. Earlier tags are superseded and the port branches from `qual-sm120-contract-5`.
+- Record the D1 GPU smoke test at the tag with `PYTHONPATH` set (67 of 67 checks, including six import-path checks, and 206 qualification tests; job 49876) and the real-repository gate runs: the repository and a candidate commit on the tag pass; a candidate at `qual-sm120-contract-4` is refused.
+
 ## Revision 59 (2026-10-12)
 
 Status update; no requirement changes.
