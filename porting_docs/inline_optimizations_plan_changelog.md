@@ -2,6 +2,17 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 28 (2026-10-11)
+
+Status update; records user decisions taken since revision 27. No port work.
+
+- Record that the revision 27 pre-freeze work is done: limit provenance audit (`limit_audit.py`), third harmless contrast (`LAYERNORM_TYPE=fast_layernorm`, declared before the run), unpaired Zn fallback (declared, calibrated and rejected: both D14 Zn controls passed its slack and seed-to-seed variation matched the controls), and the Zn scope with `zn_rule` and `zn_claim` in the evaluator.
+  - *Reason:* the status line listed these as open.
+- Add the user's limit decisions (median reference lDDT drop 0.008; fnonnat 0.06 kept; flexible interface Fnat 0.55) and Zn scope decision (H3 up to four extra Zn-only seeds; H5 report-only) to the recorded decisions.
+  - *Reason:* they change the acceptance contract the freeze will approve.
+- State what remains before the sm_120 freeze: the user's held-out assignment review and approval of the full tier 2 contract.
+  - *Reason:* no other sm_120 stock work is planned before the freeze.
+
 ## Revision 27 (2026-10-11)
 
 Documentation only; no calibration run, limit change or port work.
