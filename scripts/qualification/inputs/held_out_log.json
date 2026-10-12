@@ -1,0 +1,4 @@
+{
+ "description": "Held-out log (qualification_protocol.md, reserved held-out pool). Record a draw's seeds here, and commit, before running off or the candidate on any held-out row; append H3's extra Zn seeds one at a time before running each. Seeds are drawn from 201-299 and are single-use across every draw.",
+ "draws": []
+}

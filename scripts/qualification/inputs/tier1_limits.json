@@ -1,0 +1,33 @@
+{
+ "status": "approved by the user on 2026-10-11 for sm_120 (qualification_protocol.md, B); single cycle, --cycle 1 --sample 1",
+ "gpu": "sm_120",
+ "max": {
+  "s_inputs.rel_fro": 0.005,
+  "s_trunk.rel_fro": 0.02,
+  "z_trunk.rel_fro": 0.1,
+  "z_trunk.tail_over_rms": 0.8,
+  "distogram.argmax_changed_margin_0.1": 0.001,
+  "head.plddt_max_abs_prob": 0.01,
+  "head.pae_max_abs_prob": 0.01,
+  "head.pde_max_abs_prob": 0.01,
+  "head.resolved_max_abs_prob": 0.01,
+  "head.ptm_max_abs": 0.005,
+  "head.iptm_max_abs": 0.005,
+  "head.ranking_core_max_abs": 0.005
+ },
+ "finite": [
+  "s_inputs.finite",
+  "s_trunk.finite",
+  "z_trunk.finite",
+  "distogram.finite",
+  "head.plddt_finite",
+  "head.pae_finite",
+  "head.pde_finite",
+  "head.resolved_finite"
+ ],
+ "head_source": "head_fixed",
+ "reported": [
+  "distogram.max_abs_prob",
+  "head.expected_plddt_max_abs"
+ ]
+}

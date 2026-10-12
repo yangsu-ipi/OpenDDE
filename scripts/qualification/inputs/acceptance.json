@@ -1,0 +1,92 @@
+{
+ "description": "Rows each GPU and route must cover for full candidate acceptance, and the frozen limit hashes (qualification_protocol.md, E5). accept.py reads only this file for the required rows; command-line flags cannot change them.",
+ "gpus": {
+  "sm_120": {
+   "capability": [
+    12,
+    0
+   ],
+   "routes": {
+    "port-chosen": {
+     "rows": [
+      "D1",
+      "D2",
+      "D3",
+      "D4",
+      "D5",
+      "D6",
+      "D7",
+      "D8",
+      "D9",
+      "D10",
+      "D11",
+      "D12",
+      "D13",
+      "D14",
+      "D15",
+      "H1",
+      "H2",
+      "H3",
+      "H4",
+      "H5",
+      "H6",
+      "H7",
+      "H8",
+      "H9",
+      "H10"
+     ],
+     "tier1_rows": [
+      "D1",
+      "D2",
+      "D3",
+      "D4",
+      "D5",
+      "D6",
+      "D7",
+      "D8",
+      "D9",
+      "D10",
+      "D11",
+      "D12",
+      "D13",
+      "D14",
+      "D15",
+      "H1",
+      "H2",
+      "H3",
+      "H4",
+      "H5",
+      "H6",
+      "H7",
+      "H8",
+      "H9",
+      "H10"
+     ],
+     "drift_rows": [
+      "D1",
+      "D2",
+      "D3",
+      "D4",
+      "D5",
+      "D6",
+      "D7",
+      "D8",
+      "D9",
+      "D10",
+      "D11",
+      "D12",
+      "D13",
+      "D14",
+      "D15"
+     ],
+     "note": "Every sm_120 dispatch row is port-chosen (protocol, when a held-out draw is required)."
+    }
+   },
+   "frozen": {
+    "tier1_limits_sha256": null,
+    "tier2_limits_sha256": null,
+    "note": "Set at the sm_120 freeze; until then accept.py can return at most a provisional result."
+   }
+  }
+ }
+}
