@@ -2,6 +2,13 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 48 (2026-10-12)
+
+Status update recording the contract amendment (user go-ahead); no requirement changes.
+
+- Record `qual-sm120-contract-2` (commit `0be6daa`, annotated tag pushed): `acceptance.json`'s `contract_tag` now names it; relative to `qual-sm120-contract-1`, only `accept.py` and `acceptance.json` changed (the rehearsal route); the limit files and hashes are unchanged. `qual-sm120-contract-1` is superseded, and the port branches from `qual-sm120-contract-2`.
+- Record the D1 GPU smoke test at the tag: 60 of 60 checks (job 49458), including `off` byte-identical to the step 0 baseline, both limit hashes and the three contract checks; the 156 qualification tests pass at the tag and the checkout stayed clean.
+
 ## Revision 47 (2026-10-12)
 
 Status update; no requirement changes.
