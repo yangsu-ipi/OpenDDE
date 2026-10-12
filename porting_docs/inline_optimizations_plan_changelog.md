@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 57 (2026-10-12)
+
+Documentation only. Contract-4, its numeric limits, held-out log and qualification code are unchanged; no porting or GPU run was started.
+
+- Hold held-out draws until the independent gate discovers the newest contract tag from the controlled acceptance checkout's authoritative remote, then compares the candidate's fetched tag to that commit. Add a differing-remotes test with a newer tag absent from the candidate's remote. Reason: contract-4 currently calls `git ls-remote` in the candidate checkout; its `origin` can be stale or different, so it can conceal a newer tag while the gate checkout remains at the older one.
+- Require a trusted entrypoint to run the gate before the candidate verifier, stop on failure, bind the gate's candidate commit to the checkout it verifies, and retain both reports. A gate preflight is also recorded before each held-out batch. Reason: `accept.py` does not consume a gate report and remains directly callable, so its exit 0 alone cannot establish that the independent gate ran. The plan now states this procedural gap instead of treating a standalone verdict as full qualification.
+- On approval, test those changes, freeze a narrow qualification-code amendment under a new pushed tag, and repeat D1 smoke before a draw; prefer doing so before porting begins to avoid rebasing candidates. Keep the numeric limits fixed. Reason: the repair changes frozen qualification code, and a tag created during an open draw would invalidate its contract binding.
+- Replace the protocol's stale instruction to implement the already-frozen receipt and recast its future-tense contract-4 specification as historical rationale. Reason: those lines contradicted the current status and could send an operator through the wrong amendment sequence.
+
 ## Revision 56 (2026-10-12)
 
 Status update recording the contract-4 amendment (user go-ahead); no requirement changes.
