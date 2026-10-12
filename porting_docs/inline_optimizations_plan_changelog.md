@@ -2,6 +2,17 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 37 (2026-10-12)
+
+Status update; no requirement changes.
+
+- Record that revision 36's repairs are implemented and tested (commit `3d26223`): derived per-row seed pairs, the run-to-measurement digest chain, and exception and pre-existing-directory reporting; 132 qualification tests pass.
+  - *Reason:* the status line described them as outstanding.
+- Record the passing D1 GPU smoke test (job 49415; protocol E5, commit `4d18355`), including `off` byte-identical to the step 0 baseline, and that candidate-side checks remain synthetic until a candidate exists.
+  - *Reason:* revision 35 made this run a condition for asking for approval.
+- State that only the user's approval of the full tier 2 contract, then recording the limit hashes, remains before the sm_120 freeze.
+  - *Reason:* every condition set in revisions 32-36 is met.
+
 ## Revision 36 (2026-10-11)
 
 Documentation only. Full sm_120 tier 2 approval remains withheld; no limit, acceptance code, GPU output or held-out result changed. Revision 35's three findings were checked against `tier2_gates.py`, `accept.py` and `run_opendde.py` and hold; this revision sharpens the repairs.
