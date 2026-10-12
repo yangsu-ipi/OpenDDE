@@ -2,6 +2,12 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 55 (2026-10-12)
+
+Status update; no requirement changes.
+
+- Record that `qual_gate.py` and the receipt's `contract_tag` (with `rehearsal receipt names the contract tag`) are implemented and tested (`ca5be9a`; 188 qualification tests pass on gnode2, job 49475). The branch's `scripts/qualification` now differs from `qual-sm120-contract-3`, so the next step is the amendment `qual-sm120-contract-4`, with the D1 smoke test and a real-repository gate run at that tag, before porting starts.
+
 ## Revision 54 (2026-10-12)
 
 Documentation only. The frozen contract, limits and held-out log are unchanged.
