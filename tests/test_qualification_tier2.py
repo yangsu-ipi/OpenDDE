@@ -434,3 +434,27 @@ def test_partial_collapse_fails_near_duplicate_gate(limits):
     entry.pop("same_seed_pairs_off")
     gates = t2.evaluate_entry(entry, limits, facts)
     assert gates["ensemble_near_duplicates"]["status"] == "fail"
+
+
+@pytest.mark.parametrize("failing_first", [True, False])
+def test_duplicate_measurement_fails_in_either_order(limits, failing_first):
+    facts = _facts("D4")
+    passing = _entry("D4", "7wux", facts, limits)
+    failing = copy.deepcopy(passing)
+    failing["min_pair_cand"] = 0.0
+    entries = [failing, passing] if failing_first else [passing, failing]
+    results = t2.evaluate({"entries": entries}, limits, MANIFEST, rows=["D4"])
+    assert [(r["job"], r["pass"], r["failed"]) for r in results] == [
+        ("7wux", False, ["unique"])
+    ]
+
+
+def test_job_not_in_the_row_input_fails(limits):
+    facts = _facts("D4")
+    extra = _entry("D4", "7wux", facts, limits)
+    extra["job"] = "not_in_input"
+    data = {"entries": [_entry("D4", "7wux", facts, limits), extra]}
+    results = t2.evaluate(data, limits, MANIFEST)
+    by_job = {r["job"]: r for r in results}
+    assert by_job["7wux"]["pass"]
+    assert by_job["not_in_input"]["failed"] == ["unique"]

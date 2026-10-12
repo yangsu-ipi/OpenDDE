@@ -1130,3 +1130,106 @@ def test_tier1_compare_records_capture_digests(tmp_path, monkeypatch):
     assert entry["ref_sha256"] == hashlib.sha256(b"a").hexdigest()
     assert entry["other_sha256"] == hashlib.sha256(b"b").hexdigest()
     assert set(data["source"]) == {"commit", "dirty_paths"}
+
+
+# Duplicate and unexpected measurement entries
+
+
+def _check(verdict, name):
+    return next(c for c in verdict["checks"] if c["check"] == name)
+
+
+@pytest.mark.parametrize("failing_first", [True, False])
+def test_duplicate_tier2_entry_fails_in_either_order(world, failing_first):
+    """A passing duplicate must not replace a failing measurement, nor the reverse."""
+
+    def add(d):
+        entry = _entry_of(d, "D4", "7wux")
+        failing = copy.deepcopy(entry)
+        failing["min_pair_cand"] = 0.0
+        d["entries"].remove(entry)
+        pair = [failing, entry] if failing_first else [entry, failing]
+        d["entries"] += pair
+
+    world.edit_tier2(0, add)
+    verdict = _fails(world, "development tier 2 entries unique")
+    gates = _check(verdict, "D4 7wux tier 2")
+    assert not gates["ok"] and gates["detail"] == ["unique"]
+
+
+@pytest.mark.parametrize("failing_first", [True, False])
+def test_duplicate_tier1_entry_fails_in_either_order(world, failing_first):
+    path = Path(world.sets[0]["tier1"])
+
+    def add(d):
+        entry = _entry_of(d, "D7")
+        failing = copy.deepcopy(entry)
+        failing["z_trunk"]["rel_fro"] = 0.2
+        d["entries"].remove(entry)
+        d["entries"] += [failing, entry] if failing_first else [entry, failing]
+
+    _edit_json(path, add)
+    _fails(world, "development tier 1 entries unique")
+
+
+def test_tier2_entry_outside_the_set_fails(world):
+    def add(d):
+        held = json.loads(Path(world.sets[1]["tier2"]).read_text())
+        d["entries"].append(_entry_of(held, "H1"))
+
+    world.edit_tier2(0, add)
+    verdict = _fails(world, "development tier 2 entries expected")
+    assert "H1" in str(_check(verdict, "development tier 2 entries expected"))
+
+
+def test_tier2_entry_for_a_job_the_row_lacks_fails(world):
+    def add(d):
+        entry = copy.deepcopy(_entry_of(d, "D4", "7wux"))
+        entry["job"] = "not_in_input"
+        d["entries"].append(entry)
+
+    world.edit_tier2(0, add)
+    verdict = _fails(world, "development tier 2 entries expected")
+    assert not _check(verdict, "D4 not_in_input tier 2")["ok"]
+    assert _failed(verdict, "D4 not_in_input tier 2 off inputs match its runs")
+
+
+def test_tier1_entry_for_an_unexpected_seed_fails(world):
+    path = Path(world.sets[0]["tier1"])
+
+    def add(d):
+        entry = copy.deepcopy(_entry_of(d, "D7"))
+        entry["seed"] = 103
+        d["entries"].append(entry)
+
+    _edit_json(path, add)
+    verdict = _fails(world, "development tier 1 entries expected")
+    assert verdict["failed"] == ["development tier 1 entries expected"]
+
+
+def test_measure_refuses_a_row_given_twice(tmp_path, monkeypatch):
+    monkeypatch.setattr(t2, "measure_row", lambda *a: pytest.fail("measured"))
+    argv = ["tier2_gates.py", "measure", str(tmp_path / "off"), str(tmp_path / "c")]
+    argv += ["--rows", "D1,D7,D1", "--out", str(tmp_path / "m.json")]
+    monkeypatch.setattr(sys, "argv", argv)
+    with pytest.raises(SystemExit) as exc:
+        t2.main()
+    assert exc.value.code == 2 and not (tmp_path / "m.json").exists()
+
+
+def test_tier1_compare_rows_excludes_other_rows(tmp_path, monkeypatch):
+    pytest.importorskip("torch")
+    import tier1_compare
+
+    monkeypatch.setattr(tier1_compare, "compare_capture", lambda a, b: {})
+    for root in ("ref", "other"):
+        for row in ("D1", "D7", "H1"):
+            path = tmp_path / root / row / "job" / "seed_101" / "tier1.pt"
+            path.parent.mkdir(parents=True)
+            path.write_bytes(row.encode())
+    out = tmp_path / "t1.json"
+    argv = ["tier1_compare.py", str(tmp_path / "ref"), str(tmp_path / "other")]
+    monkeypatch.setattr(sys, "argv", argv + ["--out", str(out), "--rows", "D1,D7"])
+    assert tier1_compare.main() == 0
+    rows = [e["id"] for e in json.loads(out.read_text())["entries"]]
+    assert rows == ["D1", "D7"]

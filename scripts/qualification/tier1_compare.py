@@ -3,12 +3,15 @@
 
 Usage:
     python scripts/qualification/tier1_compare.py REF_DIR OTHER_DIR --out OUT.json
+        [--rows D1,...]
 
 Both directories come from ``run_rows.py --tier1-capture`` (``<row>/<job>/
 seed_<s>/tier1.pt``). REF_DIR is the stock ``off`` capture. OTHER_DIR is a
 capture of another configuration made with ``--tier1-replay REF_DIR``, so its
 ``head_fixed`` record is the confidence head run on the reference's recorded
 inputs; REF_DIR itself may be passed as OTHER_DIR to check self-consistency.
+With ``--rows`` only those rows' captures are compared, so a capture root that
+also holds other rows gives entries for exactly the rows of one evidence set.
 
 Per row, job and seed it reports:
 - input embedding, single and pair representations: relative Frobenius error,
@@ -120,11 +123,17 @@ def main() -> int:
     parser.add_argument("ref", type=Path)
     parser.add_argument("other", type=Path)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--rows", help="compare only these comma-separated rows")
     args = parser.parse_args()
+    rows = args.rows.split(",") if args.rows else None
+    if rows is not None and len(set(rows)) != len(rows):
+        parser.error("--rows names a row more than once")
     entries = []
     for ref_path in sorted(args.ref.glob("*/*/seed_*/tier1.pt")):
         rel = ref_path.relative_to(args.ref)
         row, job, seed = rel.parts[0], rel.parts[1], rel.parts[2]
+        if rows is not None and row not in rows:
+            continue
         other_path = args.other / rel
         entry = {"id": row, "job": job, "seed": int(seed.split("_")[1])}
         entry["ref_sha256"] = provenance.sha256_file(ref_path)

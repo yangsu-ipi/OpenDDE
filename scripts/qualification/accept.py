@@ -50,7 +50,9 @@ Checks:
   job and seed), the candidate capture replayed the declared ``off`` capture,
   and every job and seed passes the approved tier 1 limits;
 - measurements: each tier 1 and tier 2 measurement was made at a commit that
-  passes the run-commit rule, with no uncommitted changes;
+  passes the run-commit rule, with no uncommitted changes; each set's tier 2
+  file has exactly one entry per row and job, and its tier 1 file exactly one
+  per tier 1 row, job and seed, with no other entries;
 - tier 2: every entry measured exactly the same-seed pairs of the row's
   logged seeds and its logged extra Zn seeds, and the artifact digests it
   read equal those its runs recorded; every job of every required row passes
@@ -870,6 +872,35 @@ def _check_zn_extra(checks, row, seeds, extra, t2, extra_runs):
             checks.add(f"{row} {e['job']} extra seed {s} measured from its runs", same)
 
 
+def check_entry_keys(ctx: Context, s, route, t1, t2) -> None:
+    """Each expected measurement once and nothing else: tier 2 per row and
+    job, tier 1 per tier 1 row, job and seed. Evaluators index entries by
+    these keys, so a duplicate could otherwise replace a failed measurement."""
+    rows = [r for r in s.get("rows", []) if r in ctx.table]
+    tier1_rows = [r for r in rows if r in route.get("tier1_rows", [])]
+    expected = {
+        "tier 1": {
+            (r, job, seed)
+            for r in tier1_rows
+            for job in ctx.jobs(r)
+            for seed in ctx.seeds(r)
+        },
+        "tier 2": {(r, job) for r in rows for job in ctx.jobs(r)},
+    }
+    for tag, data in (("tier 1", t1), ("tier 2", t2)):
+        if data is None:
+            continue
+        fields = ("id", "job", "seed") if tag == "tier 1" else ("id", "job")
+        found = Counter(
+            tuple(e.get(f) for f in fields) for e in data.get("entries", [])
+        )
+        twice = sorted((k for k, n in found.items() if n > 1), key=str)
+        unexpected = sorted(set(found) - expected[tag], key=str)
+        name = f"{s.get('name')} {tag}"
+        ctx.checks.add(f"{name} entries unique", not twice, twice[:5])
+        ctx.checks.add(f"{name} entries expected", not unexpected, unexpected[:5])
+
+
 def check_row(ctx: Context, s, row, route, baseline, t1, t1_limits):
     """Every check on one row of a full set except tier 2."""
     off, cand = Path(s["off"]), Path(s["cand"])
@@ -952,6 +983,7 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
         for tag, data in (("tier 1", t1), ("tier 2", t2)):
             if data is not None:
                 check_measurement_source(ctx, f"{s.get('name')} {tag}", data)
+        check_entry_keys(ctx, s, route, t1, t2)
         for row in s.get("rows", []):
             if row not in table:
                 checks.add(f"{row} in manifest", False)

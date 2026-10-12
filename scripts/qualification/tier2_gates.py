@@ -43,13 +43,16 @@ eligible ions, a reference without interchain contacts). Each Zn row also
 reports a ``zn_claim`` under its declared ``zn_rule``, and ``evaluate`` prints
 the aggregate Zn claim. An absent value, an undeclared limit, a missing class
 assignment, a missing job or a sample count other than the one declared is a
-failure. Quality gates are one-sided: a candidate may be better than
+failure, and so is a row and job measured twice or a job not in the row's
+input (a failing ``unique`` gate), so a duplicate never replaces a failed
+measurement. ``measure`` refuses a row given twice. Quality gates are one-sided: a candidate may be better than
 ``off``. ipTM differences are reported, not gated.
 """
 
 import argparse
 import json
 import math
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -788,6 +791,7 @@ def evaluate(data, limits, manifest, rows=None) -> list[dict[str, Any]]:
     """Evaluate every job of every requested row; a row or job without a
     measurement fails."""
     table = {r["id"]: r for r in manifest["rows"]}
+    counts = Counter((e["id"], e["job"]) for e in data["entries"])
     by_key = {(e["id"], e["job"]): e for e in data["entries"]}
     wanted = rows or sorted({e["id"] for e in data["entries"]}, key=_row_order)
     results = []
@@ -797,13 +801,22 @@ def evaluate(data, limits, manifest, rows=None) -> list[dict[str, Any]]:
             results.append(_result(row_id, "-", {"row": missing}))
             continue
         row = table[row_id]
-        for job in json.loads(Path(row["input"]).read_text()):
-            entry = by_key.get((row_id, job["name"]))
+        jobs = json.loads(Path(row["input"]).read_text())
+        for job in jobs:
+            key = (row_id, job["name"])
+            entry = by_key.get(key)
             if entry is None:
                 gates = {"measured": {"status": "fail", "reason": "job not measured"}}
+            elif counts[key] > 1:
+                reason = f"measured {counts[key]} times"
+                gates = {"unique": {"status": "fail", "reason": reason}}
             else:
                 gates = evaluate_entry(entry, limits, job_facts(row, job))
             results.append(_result(row_id, job["name"], gates))
+        names = {job["name"] for job in jobs}
+        for name in sorted({j for r, j in counts if r == row_id} - names):
+            unexpected = {"status": "fail", "reason": "job not in the row's input"}
+            results.append(_result(row_id, name, {"unique": unexpected}))
     return results
 
 
@@ -848,6 +861,8 @@ def main() -> int:
     if args.command == "measure":
         rows = {r["id"]: r for r in manifest["rows"]}
         row_ids = args.rows.split(",")
+        if len(set(row_ids)) != len(row_ids):
+            parser.error("--rows names a row more than once")
         seed_pairs = [
             tuple(int(x) for x in p.split(":")) for p in args.seed_pairs.split(",")
         ]
