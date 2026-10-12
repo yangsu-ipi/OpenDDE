@@ -2,6 +2,24 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 50 (2026-10-12)
+
+Documentation only. `qual-sm120-contract-2` remains the current frozen tag; no qualification code, limits or held-out data changed.
+
+- Amend the contract with the rehearsal binding as `qual-sm120-contract-3` before porting starts, not only before the first draw, and branch the port from it.
+  - *Reason:* `accept.py` runs from the candidate's own `code_commit` and checks the tag named there, so a port branched from contract-2 would carry contract-2's `accept.py`, without the receipt check, and could pass full acceptance without a rehearsal. This is the problem revision 46 fixed for contract-2.
+- Require the tag named in `acceptance.json` to be the newest `qual-sm120-contract-N` tag in the acceptance clone.
+  - *Reason:* amendments may recur; a candidate built on a superseded contract should fail rather than rely on someone merging the amendment.
+- Allow at most one draw per receipt and per `(code_commit, candidate_args)` pair across the log history.
+  - *Reason:* `check_log` checks only seeds, so a failed candidate could draw fresh seeds unchanged and retry; the plan's "retry after changes" was not enforced.
+- Define the evidence digest: every development run record, trace and measurement file plus the set declarations, as a canonical sha256 over sorted `(role, row, file, sha256)` entries; the receipt stores only the verdict's sha256, status and exit code.
+  - *Reason:* measurement files alone miss the run records, the traces and the repeat run, which no measurement reads.
+- Define "earlier": the receipt is in the log at the parent of the draw's first commit. Receipts are append-only with unique ids under the existing history checks.
+  - *Reason:* only a receipt holding digests, committed before the draw, shows the evidence existed then; the runs' own commit (`code_commit`) can be checked out after the draw.
+- Make the rehearsal outputs read-only once the receipt is committed.
+  - *Reason:* the digest check would catch a change only after the held-out runs.
+- Add tests for the new rules: edited or removed receipts, reused receipts, a repeated commit and arguments, each kind of changed evidence and a stale contract tag.
+
 ## Revision 49 (2026-10-12)
 
 Documentation only. `qual-sm120-contract-2` remains the current frozen tag; no qualification code, limits or held-out data changed.
