@@ -2,6 +2,20 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 54 (2026-10-12)
+
+Documentation only. The frozen contract, limits and held-out log are unchanged.
+
+- Make the contract-version gate compare files instead of running a second verifier against the candidate: `qual_gate.py`, run from a checkout of the approved tag, takes the newest `qual-sm120-contract-N` on `origin` as approved, requires the candidate's `acceptance.json` to name it, `scripts/qualification` to match it apart from the held-out log, and the tag to be an ancestor.
+  - *Reason:* if the files match, the candidate's `accept.py` is the approved verifier; running a verifier from another checkout would mean refactoring `accept.py`'s single-checkout assumptions in frozen code. A contract-2 candidate fails the gate without any old verifier being run.
+- Record the contract tag in each receipt and compare the final gate against it; create no contract tag while a draw is open; run the gate at rehearsal, before each batch of held-out runs and at final acceptance.
+  - *Reason:* a tag pushed between a receipt and its final verdict would make the final gate, and contract-3's newest-tag check, fail after the held-out set was spent.
+- Implement the gate and the receipt field, amend the contract as `qual-sm120-contract-4` and rerun the D1 smoke test before porting starts; then make no further amendment before a first candidate exists.
+  - *Reason:* both change `scripts/qualification`; amending first means the port never needs a merge, and the contract should settle before anything depends on it.
+- Test the gate's refusal on a synthetic repository with two tags instead of running an actual older `accept.py`.
+  - *Reason:* the refusal is what matters; running old code adds only a dependency on it.
+- Acknowledge that revisions 50 and 52 overstated contract-3's newest-tag check, which protects only runs of contract-3 code.
+
 ## Revision 53 (2026-10-12)
 
 Documentation only. The frozen contract, limits and held-out log are unchanged; no porting or GPU run was started.
