@@ -2,6 +2,21 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 32 (2026-10-11)
+
+Documentation only. The full sm_120 tier 2 contract remains unapproved; no limit, acceptance code, GPU run or held-out output changed.
+
+- Require the acceptance command to compare a new `off` with frozen step 0 artifact digests and to identify the candidate repeat as a separate run with its own provenance. Add self-alias and wrong-baseline tests.
+  - *Reason:* the current evidence file supplies both comparison paths, so `off_baseline=off` or `cand_repeat=cand` can pass a byte comparison without testing drift or determinism.
+- Require the expected random-draw manifest on both sides, including H3 extra-seed runs, before accepting a raw-hash match.
+  - *Reason:* `accept.py` currently checks that recorded draws match, but identical omissions remain invisible unless each trace is checked for completeness.
+- Bind tier 1 results to declared capture roots and the separate single-cycle run recipe, with their own provenance and fixed-input replay source. Correct E5's suggestion that tier 1 captures should come from the full-cycle traced runs.
+  - *Reason:* tier 1 is intentionally run with `--cycle 1 --sample 1`; a passing JSON for the right row, job and seed can otherwise be substituted from another capture pair.
+- Check the frozen input and effective recipe for each run, and verify that each held-out seed existed in that run's source commit. Permit ordered H3 log-only commits while holding executable code, inputs and limits fixed. Add wrong-input, undeclared-override, missing-at-commit, valid log-only sequence and mid-draw code-change tests.
+  - *Reason:* checking the current input digests, current log and a few trace-header flags does not bind measured outputs to the declared input, configuration or precommitted held-out seeds. The current single-commit rule also conflicts with H3's instruction to commit each extra seed just before its run.
+- Keep the numeric limits and disclosed reduced-assurance items unchanged. Ask for full-contract approval only after these evidence-binding repairs and tests pass; then record the limit hashes.
+  - *Reason:* the review found acceptance-path defects, not new stock-calibration evidence. No new predictions are needed for the repairs, although existing step 0 artifacts must be read to freeze their digests.
+
 ## Revision 31 (2026-10-11)
 
 Status update only; no requirement changes.
