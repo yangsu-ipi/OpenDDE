@@ -163,8 +163,8 @@
    "frozen": {
     "tier1_limits_sha256": "b4b8fdd3bbc05be696e55eb82c7aa954a49e668232ebf3b6f7c7b88bcca50fa0",
     "tier2_limits_sha256": "d0294133b8cf8f7569bb70320a94faadc24654dcd365c566aefd0d2d9f17a920",
-    "contract_tag": "qual-sm120-contract-1",
-    "note": "Frozen on 2026-10-12 by user approval. The commit setting these values is tagged contract_tag and the tag is pushed; accept.py requires both hashes to match and the draw's code commit to descend from the tag with scripts/qualification unchanged apart from the held-out log. Changing anything under scripts/qualification needs a contract amendment and a new tag."
+    "contract_tag": "qual-sm120-contract-2",
+    "note": "Frozen on 2026-10-12 by user approval as qual-sm120-contract-1, amended the same day as qual-sm120-contract-2 (adds the dev-rehearsal route; limit files and hashes unchanged; contract-1 superseded). The commit setting these values is tagged contract_tag and the tag is pushed; accept.py requires both hashes to match and the draw's code commit to descend from the tag with scripts/qualification unchanged apart from the held-out log. Changing anything under scripts/qualification needs a contract amendment and a new tag."
    }
   }
  }
