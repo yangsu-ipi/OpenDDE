@@ -28,8 +28,8 @@ must not name. Only the checks that need a draw are skipped (the current
 log's draw entry, seeds logged at each run's commit, H3's extra seeds); every
 other check below runs unchanged, and a declared freeze is required. With
 ``--receipt ID PATH`` a passing rehearsal writes its held-out log receipt
-(candidate, code commit, ordered arguments, the evidence digest and the
-verdict's sha256, status and exit code), to be appended to ``receipts`` in
+(candidate, contract tag, code commit, ordered arguments, the evidence
+digest and the verdict's sha256, status and exit code), to be appended to ``receipts`` in
 ``held_out_log.json`` and committed before the draw that names it. The
 development sets of the later acceptance must be declared exactly as in the
 rehearsal, since their digest is compared with the receipt's.
@@ -43,7 +43,7 @@ Checks:
   arguments; receipt ids are unique, a receipt is named by at most one draw,
   and a candidate (code commit and ordered arguments) is drawn at most once;
 - the draw names a passing rehearsal receipt of the same GPU, candidate, code
-  commit and ordered arguments, present in the log before the commit that
+  commit and ordered arguments, recording this contract tag, present in the log before the commit that
   first adds the draw, whose evidence digest equals that of the development
   sets being accepted (``evidence_digest``: set declarations, every run
   record and trace, both measurement files);
@@ -87,6 +87,10 @@ Checks:
   recipe, baseline, wrapper) is unchanged from the tag apart from the
   held-out log. This runs at the candidate's commit, so it catches accidental
   change, not deliberate tampering.
+
+Run ``qual_gate.py`` from a checkout of the approved contract tag first: it
+checks that this checkout's qualification files are the approved tag's, which
+this command cannot establish about itself.
 
 Exit status: 0 full acceptance; 1 failure; 2 every check passes except the
 Zn claim, which is reported as a partial result without Zn and is not an
@@ -407,10 +411,10 @@ def evidence_digest(sets) -> str:
     return hashlib.sha256(canonical).hexdigest()
 
 
-def check_receipt(checks: Checks, log, draw, git, digest) -> None:
-    """The draw names a passing rehearsal receipt of the same candidate,
-    committed before the draw, whose evidence is the development evidence
-    being accepted."""
+def check_receipt(checks: Checks, log, draw, git, digest, contract_tag) -> None:
+    """The draw names a passing rehearsal receipt of the same candidate and
+    contract tag, committed before the draw, whose evidence is the
+    development evidence being accepted."""
     rid = draw.get("receipt")
     found = [r for r in log.get("receipts", []) if r.get("id") == rid]
     if not checks.add(
@@ -431,6 +435,11 @@ def check_receipt(checks: Checks, log, draw, git, digest) -> None:
         k: [receipt.get(k), draw.get(k)] for k in keys if receipt.get(k) != draw.get(k)
     }
     checks.add("rehearsal receipt matches the draw", not differing, differing)
+    checks.add(
+        "rehearsal receipt names the contract tag",
+        receipt.get("contract_tag") == contract_tag,
+        {"receipt": receipt.get("contract_tag"), "contract": contract_tag},
+    )
     checks.add(
         "development evidence matches the rehearsal receipt",
         receipt.get("evidence_sha256") == digest,
@@ -460,6 +469,7 @@ def make_receipt(verdict, receipt_id, verdict_text: str) -> dict[str, Any]:
         "gpu": verdict.get("gpu"),
         "candidate": verdict.get("candidate"),
         "route": verdict.get("route"),
+        "contract_tag": verdict.get("contract_tag"),
         "code_commit": verdict.get("code_commit"),
         "candidate_args": verdict.get("candidate_args"),
         "evidence_sha256": verdict.get("evidence_sha256"),
@@ -1268,7 +1278,8 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
     ]
     digest = evidence_digest(development)
     if not rehearsal:
-        check_receipt(checks, log, draw, git, digest)
+        tag = gpu.get("frozen", {}).get("contract_tag")
+        check_receipt(checks, log, draw, git, digest, tag)
     frozen = gpu.get("frozen", {})
     hashes = {"tier1": sha256(t1_path), "tier2": sha256(t2_path)}
     fields = [f"{k}_limits_sha256" for k in hashes] + ["contract_tag"]
@@ -1288,6 +1299,7 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
     )
     verdict["candidate_args"] = draw.get("candidate_args")
     verdict["evidence_sha256"] = digest
+    verdict["contract_tag"] = frozen.get("contract_tag")
     return verdict
 
 

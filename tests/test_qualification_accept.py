@@ -218,6 +218,7 @@ class World:
             "gpu": "sm_120",
             "candidate": "fast-test",
             "route": "dev-rehearsal",
+            "contract_tag": CONTRACT_TAG if frozen else None,
             "code_commit": self.code,
             "candidate_args": list(cand_args),
             "evidence_sha256": accept.evidence_digest([dev]),
@@ -521,7 +522,11 @@ def test_complete_pass_is_provisional_until_frozen_then_full(tmp_path):
     world = World(tmp_path / "b", frozen=True)
     verdict = world.run()
     assert verdict["exit_code"] == accept.FULL and verdict["zn_claim"] == "qualified"
-    contract = [c["check"] for c in verdict["checks"] if "contract tag" in c["check"]]
+    contract = [
+        c["check"]
+        for c in verdict["checks"]
+        if "contract tag" in c["check"] and not c["check"].startswith("rehearsal")
+    ]
     assert contract == [
         "contract tag present",
         "contract tag is the newest",
@@ -533,6 +538,7 @@ def test_complete_pass_is_provisional_until_frozen_then_full(tmp_path):
         "draw names a logged rehearsal receipt",
         "rehearsal receipt passed",
         "rehearsal receipt matches the draw",
+        "rehearsal receipt names the contract tag",
         "development evidence matches the rehearsal receipt",
         "rehearsal receipt committed before the draw",
         "each candidate drawn at most once",
@@ -1469,6 +1475,7 @@ def test_receipt_not_committed_before_the_draw_fails(tmp_path, when):
         ({"candidate_args": ["--optimization_mode", "big"]}, "matches the draw"),
         ({"candidate_args": ["fast", "--optimization_mode"]}, "matches the draw"),
         ({"evidence_sha256": _sha("other")}, "development evidence matches"),
+        ({"contract_tag": "qual-test-contract-9"}, "names the contract tag"),
     ],
 )
 def test_mismatched_receipt_fails(tmp_path, changes, fragment):
