@@ -2,6 +2,12 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 58 (2026-10-12)
+
+Status update; no requirement changes.
+
+- Record that the held-out readiness repair is implemented and tested (`cac9131`; 198 qualification tests pass on gnode2, job 49502): `qual_gate.py` lists and fetches the approved tag through the gate checkout's own remote; `qual_gate.py --accept` runs the gate, then the candidate's `accept.py` only on a pass, then checks that the candidate is unchanged, writing a combined record (exit 5 on a gate failure, 1 on a changed candidate); rehearsal receipts record the passing gate report, and full acceptance checks that it ran at the contract tag. The branch's `scripts/qualification` now differs from `qual-sm120-contract-4`; the amendment under a new tag, with D1 smoke, remains. A stand-in end-to-end rehearsal through the entrypoint before that freeze was recommended and awaits a decision.
+
 ## Revision 57 (2026-10-12)
 
 Documentation only. Contract-4, its numeric limits, held-out log and qualification code are unchanged; no porting or GPU run was started.
