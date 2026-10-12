@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 49 (2026-10-12)
+
+Documentation only. `qual-sm120-contract-2` remains the current frozen tag; no qualification code, limits or held-out data changed.
+
+- Require a passing development rehearsal to be recorded in an append-only Git commit before the held-out draw. Full acceptance must reject a missing, late or nonpassing receipt and must match the receipt's development evidence, code commit and ordered candidate arguments to the draw. Reason: the current full-acceptance path can exit 0 without a rehearsal, so a written pre-draw rule alone can be skipped.
+- Require an exact argument match as well as a commit match. Reason: the same code commit can run `fast` in rehearsal and `big` in qualification; the first run would not test the second mode.
+- Plan a new contract tag, a D1 stock-side GPU smoke test and tag availability in the acceptance clone before the first draw. The tier 2 numeric limits stay fixed. Reason: the receipt and history checks will change frozen qualification code, while the existing tag-2 smoke test says nothing about that change.
+- Correct the missing conjunction in the plan's acceptance-command summary and distinguish the implemented rehearsal route from the unimplemented rehearsal-to-draw binding.
+
 ## Revision 48 (2026-10-12)
 
 Status update recording the contract amendment (user go-ahead); no requirement changes.
