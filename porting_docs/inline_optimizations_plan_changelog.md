@@ -2,6 +2,19 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 35 (2026-10-11)
+
+Documentation only. Full sm_120 tier 2 approval remains withheld. No numeric limit, acceptance code, GPU output or held-out result changed.
+
+- Require `accept.py` to check the exact same-seed mapping in each tier 2 measurement and to retain the per-job pairing IDs. Add a swapped-pair failure test.
+  - *Reason:* checking only the `off` and candidate seed sets does not detect `101:102,102:101`, although those cross-seed comparisons redefine the same-outcome pairs.
+- Bind tier 1 and tier 2 measurement results to the bytes of their expected capture and prediction inputs, and to the measurement code revision. Add missing-capture and stale-result tests.
+  - *Reason:* the current acceptance check validates result paths and pass/fail fields but can pass without `tier1.pt` files, or with results computed before artifacts at the same paths changed.
+- Make run records report uncaught exceptions as failures, and prevent per-row output directories from being reused. Add exception and stale-output tests.
+  - *Reason:* `run_opendde.py` currently writes a default zero exit code in `finally` if an exception escapes; old artifacts in a reused directory could complete an otherwise failed run.
+- Require one development-only GPU smoke test of the new run-record path, then request the user's full-contract approval before recording sm_120 limit hashes.
+  - *Reason:* the 115 passing qualification tests and real step 0 read-only checks have not exercised a run-record write on a GPU. The smoke test and repairs do not require new stock calibration or held-out predictions.
+
 ## Revision 34 (2026-10-11)
 
 Status update; no requirement changes.
