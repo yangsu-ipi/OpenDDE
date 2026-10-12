@@ -2,6 +2,21 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 29 (2026-10-11)
+
+Documentation only. The held-out classes are accepted as predeclared sm_120 tests, but the full tier 2 contract remains unapproved. No held-out prediction, GPU run, limit file or evaluator was changed.
+
+- Keep H1-H10's encoded assignments. Mark H1, H8 and H9 as extrapolations without matched stock dispersion data; H6's stable class is a deliberate stringent test; H10 tests new seeds on D4; and H2's PCG pose gate applies only in same-outcome pairs, possibly two of ten. Do not reclassify a row or change its limit after its output is seen.
+  - *Reason:* the held-out set measures generalization under fixed rules. A result on an unfamiliar input is evidence about the candidate, not calibration data for that input. The PCG rule cannot support an all-sample ligand-pose claim.
+- Require a complete, predeclared development and held-out row/job set in the full-acceptance path, with a test that removes one held-out row entirely.
+  - *Reason:* `tier2_gates.py evaluate` defaults to the rows found in the measurement. Its existing missing-job check cannot catch a row absent from that set.
+- Require a `qualified` aggregate Zn claim for full sm_120 acceptance, including conclusive D14, D15 and H3 results. An H3 result unresolved after four extra Zn-only seeds may be reported as partial without Zn, but it cannot pass the full gate; test that outcome and a conclusive pass.
+  - *Reason:* the current H3 row can show `PASS` and the evaluator can exit zero at the extra-seed cap while its Zn claim is `unresolved`. The per-row gate and final acceptance claim must not disagree.
+- Record flexible interface Fnat 0.55 as a limit chosen after the third harmless contrast failed 0.70. An independent harmless check remains optional, but without one the freeze must state the reduced assurance rather than call the third contrast independent validation of that gate.
+  - *Reason:* the third contrast validated the 0.06 reference fnonnat limit, but it also influenced the final Fnat value.
+- Reconcile protocol wording for the completed Zn fallback, held-out review and remaining freeze steps.
+  - *Reason:* historical premeasurement instructions read as open tasks in revision 28.
+
 ## Revision 28 (2026-10-11)
 
 Status update; records user decisions taken since revision 27. No port work.
