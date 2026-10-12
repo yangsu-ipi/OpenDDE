@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 38 (2026-10-12)
+
+Documentation only. The tier 2 numbers, held-out assignments, qualification code and GPU results are unchanged. Full sm_120 contract approval remains withheld.
+
+- Add a pre-freeze requirement to reject duplicate and unexpected tier 1 and tier 2 measurement entries in each acceptance evidence set; standalone tier 2 evaluation must also reject duplicates. Test a failing entry on either side of a passing duplicate, and an unexpected entry.
+  - *Reason:* `accept.py` and `tier2_gates.evaluate` index entries with dictionary comprehensions. The last entry for a row/job (or row/job/seed in tier 1) silently replaces the first, so a passing duplicate can mask a failed measurement even when both entries have valid input digests. The D1 smoke test and 132 existing qualification tests do not cover malformed measurement files.
+- Move the approval request after this small evidence-validation repair and its tests; no new calibration or held-out prediction is required.
+  - *Reason:* the numeric limits and measured stock behavior do not change, but the acceptance command must reject ambiguous evidence before its full-contract verdict is trusted.
+
 ## Revision 37 (2026-10-12)
 
 Status update; no requirement changes.
