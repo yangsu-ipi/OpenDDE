@@ -2,6 +2,13 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 52 (2026-10-12)
+
+Status update recording the contract-3 amendment (user go-ahead); no requirement changes.
+
+- Record `qual-sm120-contract-3` (commit `e9d18f6`, annotated tag pushed): `contract_tag` now names it; relative to `qual-sm120-contract-2`, only `accept.py`, `acceptance.json` and the held-out log's description and empty `receipts` changed; the limit files and hashes are unchanged. `qual-sm120-contract-1` and `qual-sm120-contract-2` are superseded, and the port branches from `qual-sm120-contract-3`.
+- Record the D1 GPU smoke test at the tag: 61 of 61 checks (job 49468), including `contract tag is the newest` and `off` byte-identical to the step 0 baseline. Its own test run hit gnode2's shared `/tmp` inode limit (about a million inodes from retained pytest directories of earlier qualification test runs, since removed); all 175 tests then passed at the tag with pytest's temporary directory on `/data` (job 49470).
+
 ## Revision 51 (2026-10-12)
 
 Status update; no requirement changes.
