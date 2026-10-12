@@ -725,6 +725,7 @@ def check_run(ctx: Context, label, run_dir: Path, row, seeds, kind, zn=False):
         },
     )
     ctx.versions.add(json.dumps(fp.get("versions"), sort_keys=True))
+    check_imports(ctx, name, fp.get("imports"))
     if ctx.table[row]["role"] == "held-out":
         draw = (
             ctx.git.draw_at(fp.get("commit"), ctx.draw.get("id")) if ctx.git else None
@@ -1065,6 +1066,26 @@ def check_measurement_source(ctx: Context, name, data) -> None:
         ok and source.get("dirty_paths") == [],
         {**detail, "dirty_paths": source.get("dirty_paths")},
     )
+    check_imports(ctx, f"{name} measurement", source.get("imports"))
+
+
+def check_imports(ctx: Context, name, imports) -> None:
+    """``opendde`` and ``runner`` were loaded from the acceptance checkout,
+    not from another checkout through an editable install."""
+    root = ctx.git.repo.path.resolve() if ctx.git else None
+    imports = imports if isinstance(imports, dict) else {}
+    outside = {
+        pkg: imports.get(pkg)
+        for pkg in provenance.PACKAGES
+        if root is None
+        or not isinstance(imports.get(pkg), str)
+        or not Path(imports[pkg]).resolve().is_relative_to(root)
+    }
+    ctx.checks.add(
+        f"{name} imports from the checkout",
+        not outside,
+        {"outside": outside, "checkout": str(root)},
+    )
 
 
 def _seed_outputs(rec, job, seed) -> dict[str, str]:
@@ -1159,6 +1180,24 @@ def check_entry_keys(ctx: Context, s, route, t1, t2) -> None:
         ctx.checks.add(f"{name} entries expected", not unexpected, unexpected[:5])
 
 
+def _load_measurement(checks: Checks, s, key, tag):
+    """A declared measurement file, or None with a failed check if it cannot
+    be read (missing or not JSON); the verdict then fails instead of the
+    command raising."""
+    path = s.get(key)
+    if not path:
+        return None
+    try:
+        return json.loads(Path(path).read_text())
+    except (OSError, json.JSONDecodeError) as error:
+        checks.add(
+            f"{s.get('name')} {tag} measurement readable",
+            False,
+            f"{type(error).__name__}: {error}",
+        )
+        return None
+
+
 def check_row(ctx: Context, s, row, route, baseline, t1, t1_limits):
     """Every check on one row of a full set except tier 2."""
     off, cand = Path(s["off"]), Path(s["cand"])
@@ -1240,8 +1279,8 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
     entries = []
     results = []
     for s in full_sets:
-        t1 = json.loads(Path(s["tier1"]).read_text()) if s.get("tier1") else None
-        t2 = json.loads(Path(s["tier2"]).read_text()) if s.get("tier2") else None
+        t1 = _load_measurement(checks, s, "tier1", "tier 1")
+        t2 = _load_measurement(checks, s, "tier2", "tier 2")
         for tag, data in (("tier 1", t1), ("tier 2", t2)):
             if data is not None:
                 check_measurement_source(ctx, f"{s.get('name')} {tag}", data)

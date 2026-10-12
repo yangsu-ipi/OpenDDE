@@ -12,6 +12,9 @@ capture of another configuration made with ``--tier1-replay REF_DIR``, so its
 inputs; REF_DIR itself may be passed as OTHER_DIR to check self-consistency.
 With ``--rows`` only those rows' captures are compared, so a capture root that
 also holds other rows gives entries for exactly the rows of one evidence set.
+Comparing all fifteen development rows needs about 30 GB of host memory (on
+gnode2, a CPU-only job with 16 CPUs and no ``--mem``); 8 CPUs ran out of
+memory in the stand-in rehearsal.
 
 Per row, job and seed it reports:
 - input embedding, single and pair representations: relative Frobenius error,

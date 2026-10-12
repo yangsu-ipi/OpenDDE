@@ -260,6 +260,10 @@ class World:
         for s in self.h3_extra:
             self._build_zn_set(s)
 
+    def imports(self):
+        """Model packages loaded from this checkout."""
+        return {pkg: str(self.repo / pkg) for pkg in ("opendde", "runner")}
+
     # Git and log
 
     def commit(self, message="x") -> str:
@@ -341,6 +345,7 @@ class World:
                 "utc": "2026-10-12T00:00:00Z",
                 "gpu": {"capability": [12, 0]},
                 "versions": VERSIONS,
+                "imports": self.imports(),
             },
         }
         run.mkdir(parents=True, exist_ok=True)
@@ -380,7 +385,7 @@ class World:
                 inputs = _digests([job["name"]], list(seeds) + list(extra))
                 e["inputs"] = {"off": inputs, "cand": dict(inputs)}
                 entries.append(e)
-        source = {"commit": self.head, "dirty_paths": []}
+        source = {"commit": self.head, "dirty_paths": [], "imports": self.imports()}
         t1 = {
             "ref": str(caps["off"]),
             "other": str(caps["cand"]),
@@ -1170,7 +1175,11 @@ def test_measure_with_a_draw_records_pairs_inputs_and_source(tmp_path, monkeypat
         ("H8", [(215, 215), (216, 216)], []),
     ]
     data = json.loads(out.read_text())
-    assert data["draw"] == "d" and set(data["source"]) == {"commit", "dirty_paths"}
+    assert data["draw"] == "d" and set(data["source"]) == {
+        "commit",
+        "dirty_paths",
+        "imports",
+    }
     h8 = _entry_of(data, "H8")
     assert h8["seed_pairs"] == [[215, 215], [216, 216]]
     assert h8["inputs"]["off"] == _digests(["h8_dna_duplex"], [215, 216])
@@ -1261,7 +1270,7 @@ def test_tier1_compare_records_capture_digests(tmp_path, monkeypatch):
     entry = data["entries"][0]
     assert entry["ref_sha256"] == hashlib.sha256(b"a").hexdigest()
     assert entry["other_sha256"] == hashlib.sha256(b"b").hexdigest()
-    assert set(data["source"]) == {"commit", "dirty_paths"}
+    assert set(data["source"]) == {"commit", "dirty_paths", "imports"}
 
 
 # Duplicate and unexpected measurement entries
@@ -1622,3 +1631,65 @@ def test_receipt_written_only_for_a_passing_rehearsal(tmp_path, monkeypatch):
             )
             assert entry["gate_sha256"] == hashlib.sha256(gate.read_bytes()).hexdigest()
             assert (entry["gate_commit"], entry["gate_approved_tag"]) == ("c", "t")
+
+
+# Model packages loaded from the checkout, and unreadable measurements
+
+
+def test_run_loading_another_checkouts_code_fails(world):
+    """An editable install resolving opendde to another clone."""
+    other = {"opendde": "/home/u/OpenDDE/opendde", "runner": "/home/u/OpenDDE/runner"}
+    world.edit_record("D2", "cand", lambda r: r["fingerprint"].update(imports=other))
+    verdict = _fails(world, "D2 cand imports from the checkout")
+    assert not _failed(verdict, "D2 cand provenance")
+
+
+def test_run_without_import_paths_fails(world):
+    world.edit_record("D4", "off", lambda r: r["fingerprint"].pop("imports"))
+    _fails(world, "D4 off imports from the checkout")
+
+
+def test_measurement_loading_another_checkouts_code_fails(world):
+    world.edit_tier2(
+        0, lambda d: d["source"]["imports"].update(opendde="/elsewhere/opendde")
+    )
+    verdict = _fails(world, "development tier 2 measurement imports from the checkout")
+    assert not _failed(verdict, "development tier 2 measurement provenance")
+
+
+def test_import_paths_follow_sys_path_before_an_installed_package(
+    tmp_path, monkeypatch
+):
+    """PYTHONPATH (here, sys.path) wins over an editable-install finder."""
+    import provenance
+
+    for pkg in provenance.PACKAGES:
+        (tmp_path / pkg).mkdir()
+        (tmp_path / pkg / "__init__.py").write_text("")
+        monkeypatch.delitem(sys.modules, pkg, raising=False)
+    monkeypatch.syspath_prepend(str(tmp_path))
+    assert provenance.import_paths() == {
+        pkg: str((tmp_path / pkg).resolve()) for pkg in provenance.PACKAGES
+    }
+    assert provenance.git_state()["imports"] == provenance.import_paths()
+
+
+def test_run_fingerprint_records_import_paths(monkeypatch):
+    pytest.importorskip("torch")
+    import provenance
+    import run_opendde
+
+    assert run_opendde.fingerprint()["imports"] == provenance.import_paths()
+
+
+@pytest.mark.parametrize("tier", ["tier1", "tier2"])
+def test_missing_measurement_file_fails_without_raising(world, tier):
+    evidence = world.evidence()
+    evidence["sets"][0][tier] = str(world.tmp / "absent.json")
+    tag = "tier 1" if tier == "tier1" else "tier 2"
+    _fails(world, f"development {tag} measurement readable", evidence)
+
+
+def test_unreadable_measurement_file_fails_without_raising(world):
+    Path(world.sets[1]["tier2"]).write_text("{not json")
+    _fails(world, "held-out tier 2 measurement readable")

@@ -3,10 +3,14 @@
 A producing run records the digests of what it wrote and a measurement
 records the digests of what it read, both keyed by the path relative to the
 row directory (``<job>/seed_<s>/predictions/<file>`` or
-``<job>/seed_<s>/tier1.pt``), so ``accept.py`` can compare the two.
+``<job>/seed_<s>/tier1.pt``), so ``accept.py`` can compare the two. Both
+also record where the ``opendde`` and ``runner`` packages resolve, since an
+editable install can load another checkout's code than the one whose commit
+is recorded.
 """
 
 import hashlib
+import importlib.util
 import subprocess
 from pathlib import Path
 
@@ -23,8 +27,27 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+PACKAGES = ("opendde", "runner")
+
+
+def import_paths() -> dict[str, str | None]:
+    """The directory each of ``PACKAGES`` resolves to in this interpreter
+    (``sys.path`` first, then any editable-install finder); ``None`` if not
+    found. Set ``PYTHONPATH`` to the checkout to load its own code."""
+    out: dict[str, str | None] = {}
+    for name in PACKAGES:
+        try:
+            spec = importlib.util.find_spec(name)
+        except (ImportError, ValueError):
+            spec = None
+        origin = spec.origin if spec else None
+        out[name] = str(Path(origin).resolve().parent) if origin else None
+    return out
+
+
 def git_state() -> dict:
-    """Commit and uncommitted paths of the checkout these scripts run from."""
+    """Commit and uncommitted paths of the checkout these scripts run from,
+    and where the model packages resolve."""
 
     def _git(*args: str) -> str:
         try:
@@ -40,6 +63,7 @@ def git_state() -> dict:
     return {
         "commit": _git("rev-parse", "HEAD"),
         "dirty_paths": _git("status", "--porcelain").splitlines(),
+        "imports": import_paths(),
     }
 
 

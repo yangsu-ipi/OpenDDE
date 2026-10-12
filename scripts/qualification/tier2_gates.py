@@ -8,7 +8,9 @@ Usage:
         --limits LIMITS.json [--rows D1,...] [--out RESULT.json]
 
 Run from the repository root with ``OPENDDE_ROOT_DIR`` and (for reference
-rows) ``OPENDDE_QUAL_DATA`` set. Per row and job, ``measure`` records:
+rows) ``OPENDDE_QUAL_DATA`` set. Measuring all fifteen development rows needs
+about 30 GB of host memory (on gnode2, a CPU-only job with 16 CPUs and no
+``--mem``). Per row and job, ``measure`` records:
 
 - the original sample indices found for each seed in both runs;
 - paired samples (``compare_structures.compare_row``): outcome classification,

@@ -150,8 +150,16 @@ def fingerprint() -> dict[str, Any]:
         "cublas_workspace_config": os.environ.get("CUBLAS_WORKSPACE_CONFIG"),
         "gpu": gpu,
         "versions": _versions(),
+        "imports": _import_paths(),
         "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
+
+
+def _import_paths() -> dict[str, Any]:
+    """Where ``opendde`` and ``runner`` resolve (``provenance.import_paths``)."""
+    import provenance
+
+    return provenance.import_paths()
 
 
 class PhaseTimer:
