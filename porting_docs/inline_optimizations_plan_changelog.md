@@ -2,6 +2,17 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 41 (2026-10-12)
+
+Documentation only. The sm_120 tier 2 limits, held-out assignments, qualification code and GPU results are unchanged; no limit hash was frozen and no porting began.
+
+- Record approval of the full sm_120 tier 2 contract, including the reduced-assurance limits and the acceptance command's implementation choices and trust boundary.
+  - *Reason:* the duplicate and unexpected-entry repair closes the last identified fail-open evidence path. The completed stock-side D1 smoke test and 144 reported passing qualification tests support approving the decision rules, while the remaining limitations are explicit.
+- Separate contract approval from the hash freeze and from accepting a future candidate. `acceptance.json` still needs the approved sm_120 limit hashes before tuning; candidate-side end-to-end behavior must be exercised once a candidate exists. A100 requires its own stock checks and freeze.
+  - *Reason:* approval fixes the rules but does not pin their files, validate a candidate run or transfer sm_120 tolerances to sm_80.
+- Update the protocol's current-status sections and remove stale claims that full-set completeness, aggregate Zn enforcement or duplicate-entry tests are still pending. Keep the historical calibration decisions and their reduced-assurance caveats.
+  - *Reason:* those requirements are implemented, and the old present-tense wording contradicted revision 40's status. The trust boundary remains deliberate: acceptance binds the measurement inputs and source revision but does not detect a hand-edited measurement value.
+
 ## Revision 40 (2026-10-12)
 
 Status update; no requirement changes.
