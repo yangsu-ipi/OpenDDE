@@ -2,6 +2,12 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 51 (2026-10-12)
+
+Status update; no requirement changes.
+
+- Record that the rehearsal-to-draw binding is implemented and tested (`742d5e8`): held-out log receipts, `accept.py --receipt`, the evidence digest, receipt and one-draw-per-candidate checks, append-only receipts and the newest-contract check; 175 qualification tests pass on gnode2 (job 49467). The branch's `scripts/qualification` now differs from `qual-sm120-contract-2`, so the next step is the amendment `qual-sm120-contract-3` with the D1 smoke test at it, before porting starts.
+
 ## Revision 50 (2026-10-12)
 
 Documentation only. `qual-sm120-contract-2` remains the current frozen tag; no qualification code, limits or held-out data changed.
