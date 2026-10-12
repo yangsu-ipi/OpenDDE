@@ -2,6 +2,19 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 42 (2026-10-12)
+
+Documentation only. The approved sm_120 contract, limits, held-out assignments, qualification code and GPU results are unchanged; nothing is frozen yet.
+
+- Freeze the contract as a pushed Git tag that `accept.py` checks the candidate's `code_commit` against (descends from the tag; no change under `scripts/qualification` except the held-out log), keeping the limit hashes in `acceptance.json` as a readable record. Add tests for a changed gate constant, limits and hashes changed together, and a `code_commit` not descending from the tag. Implement this before the freeze.
+  - *Reason:* approved values and rules live outside the limit files (`SAME_OUTCOME` in two modules, Zn and contact distances, gate selection, Zn claim rules, `accept.py`, `acceptance.json`, `baseline_off.json`, the run wrapper). `accept.py` runs from the candidate's own commit, and the hashes sit in a file the same commit can edit, so hashing the limit files alone would not catch accidental changes to the rest.
+- Correct the protocol's claim that the same-outcome cutoff is "pinned with the other limits": it is a code constant, pinned by the tag.
+- Plan for run-wrapper changes: keep the tier 1 hooked modules stable as a port design constraint, or amend the contract with a new tag and a rerun D1 smoke test before any held-out draw.
+  - *Reason:* the wrapper hooks into model modules the port may restructure, and the contract check would otherwise block acceptance.
+- Require a development-only rehearsal of the full candidate path through `accept.py` before any held-out draw is logged; a held-out run failing for harness reasons still uses up its set.
+  - *Reason:* candidate-side checks have only synthetic coverage; finding a harness bug during a held-out run would spend the held-out set.
+- Say that the 144 qualification tests pass (job 49426), not that they were "reported" passing.
+
 ## Revision 41 (2026-10-12)
 
 Documentation only. The sm_120 tier 2 limits, held-out assignments, qualification code and GPU results are unchanged; no limit hash was frozen and no porting began.
