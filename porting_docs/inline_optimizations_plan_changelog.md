@@ -2,6 +2,20 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 39 (2026-10-12)
+
+Documentation only. The tier 2 numbers, held-out assignments, qualification code and GPU results are unchanged. Full sm_120 contract approval remains withheld.
+
+- Make the measurement tools refuse what acceptance rejects: `tier2_gates.py measure` refuses duplicate `--rows`, and `tier1_compare.py` gains `--rows` and compares only those rows.
+  - *Reason:* `measure --rows D1,D1` writes duplicate entries, and `tier1_compare.py` compares every row under its capture root, so a root shared between sets would give a valid file with unexpected entries.
+- `evaluate` reports a duplicated row/job key, or a job not in the row's input, as a failing `unique` gate instead of raising; `accept.py` adds its own per-set uniqueness and expected-key checks before evaluation.
+  - *Reason:* a failing gate keeps the standalone report printable with a nonzero exit, as for an unmeasured job, and reaches `accept.py` through its normal results.
+- State the expected key sets: tier 2 is every row of the set times its input's jobs; tier 1 is the set's rows in the route's `tier1_rows`, times jobs and that row's seeds.
+  - *Reason:* "each expected row and job" could be read as requiring tier 1 entries for rows outside `tier1_rows`.
+- Add tests for a tier 2 entry with a job the row lacks, `measure` refusing duplicate rows and `tier1_compare.py --rows` excluding other rows.
+- Record the trust boundary among E5's implementation choices: the digest chain binds what a measurement read and the provenance check binds its code, but the measured values are trusted as written; a hand-edited result file is not detected, and recomputing measurements inside `accept.py` is not done for sm_120.
+  - *Reason:* the user approves E5's choices at the freeze and should see this scope stated.
+
 ## Revision 38 (2026-10-12)
 
 Documentation only. The tier 2 numbers, held-out assignments, qualification code and GPU results are unchanged. Full sm_120 contract approval remains withheld.
