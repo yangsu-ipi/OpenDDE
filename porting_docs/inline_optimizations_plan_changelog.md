@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 59 (2026-10-12)
+
+Status update; no requirement changes.
+
+- Record the stand-in end-to-end rehearsal (user request): on scratch repositories with a scratch contract tag, the torch triangle-kernel swap as candidate ran on D1-D15 (jobs 49509-49512) and passed through `qual_gate.py --accept` (job 49578): exit 4, 1016 checks, none failed, Zn qualified, `off` byte-identical to the step 0 baseline on all 15 rows; the receipt was written, committed to the scratch log, and the gate preflight with `--receipt` passed. The first post-processing attempt ran out of memory at 8 CPUs (job 49513).
+- Record the three findings as fixed and tested (206 qualification tests, job 49872), not yet frozen: import paths recorded and required inside the acceptance checkout (the editable install otherwise runs `~/OpenDDE`'s code; use `PYTHONPATH`), unreadable measurement files reported as failed checks, and about 30 GB (16 CPUs) for post-processing.
+- The next step is unchanged: freeze the branch's qualification changes under a new tag with D1 smoke, before porting if approved.
+
 ## Revision 58 (2026-10-12)
 
 Status update; no requirement changes.
