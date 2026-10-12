@@ -3,7 +3,7 @@
 
 Usage:
     python scripts/qualification/tier2_gates.py measure OFF_RUN CAND_RUN
-        --rows D1,... [--seed-pairs 101:101,102:102] --out MEASURE.json
+        --rows D1,... [--seed-pairs 101:101,102:102 | --draw ID] --out MEASURE.json
     python scripts/qualification/tier2_gates.py evaluate MEASURE.json
         --limits LIMITS.json [--rows D1,...] [--out RESULT.json]
 
@@ -26,6 +26,14 @@ rows) ``OPENDDE_QUAL_DATA`` set. Per row and job, ``measure`` records:
   that equivalent copies are interchangeable;
 - for inputs with Zn, the paired Zn same-site count from ``zn_sites.py``.
 
+With ``--draw ID`` the same-seed pairs and H3's extra Zn seeds come per row
+from that held-out log draw (development rows use the development seeds),
+which is how acceptance measurements are made; ``--seed-pairs`` is for
+diagnostic contrasts. Every entry records the pairs it measured, its extra Zn
+seeds and the SHA-256 of every prediction artifact of those seeds in both
+runs (``inputs``), and the output records the checkout's commit and
+uncommitted paths (``source``), so ``accept.py`` can match them with the runs.
+
 ``evaluate`` fails closed. The gates a job needs follow from its input and
 manifest row (``job_facts``): polymer types, chain count, gated ligands, Zn,
 guidance and reference. Every needed gate reports ``pass``, ``fail`` or
@@ -46,6 +54,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import provenance
 from compare_structures import _confidence, _samples, compare_row, load_coords
 from qual_structures import anchor_distance, build_reference, interchain_contacts
 from reference_metrics import reference_map, row_reference, score_sample
@@ -239,6 +248,42 @@ def measure_row(
             entry["zn"] = _zn_summary(row, off_run, cand_run, zn_pairs, job["name"])
         out.append(entry)
     return out
+
+
+def pairs_from_draw(manifest, log, draw_id, row_ids):
+    """Same-seed pairs and extra Zn seeds per row: development rows use the
+    development seeds, held-out rows their seeds in the held-out log draw."""
+    draws = [d for d in log.get("draws", []) if d.get("id") == draw_id]
+    if len(draws) != 1:
+        raise SystemExit(f"error: held-out draw {draw_id!r} not logged once")
+    draw = draws[0]
+    roles = {r["id"]: r["role"] for r in manifest["rows"]}
+    pairs, extra = {}, {}
+    for row_id in row_ids:
+        if roles[row_id] == "development":
+            seeds = manifest["development_seeds"]
+        else:
+            seeds = draw.get("seeds", {}).get(row_id)
+            if not seeds:
+                raise SystemExit(f"error: {row_id} has no seeds in draw {draw_id}")
+        pairs[row_id] = [(s, s) for s in seeds]
+        if draw.get("zn_extra", {}).get(row_id):
+            extra[row_id] = list(draw["zn_extra"][row_id])
+    return pairs, extra
+
+
+def record_inputs(entry, off_run: Path, cand_run: Path, seed_pairs, zn_extra=()):
+    """Record the pairs measured and the digests of every prediction artifact
+    the measurement could read, for ``accept.py`` to match with the runs."""
+    entry["seed_pairs"] = [list(p) for p in seed_pairs]
+    entry["zn_extra_seeds"] = list(zn_extra)
+    row, job = entry["id"], entry["job"]
+    entry["inputs"] = {
+        tag: provenance.seed_prediction_digests(
+            run / row, job, [p[i] for p in seed_pairs] + list(zn_extra)
+        )
+        for i, (tag, run) in enumerate((("off", off_run), ("cand", cand_run)))
+    }
 
 
 def _class_of(limits: dict[str, Any], row_id: str, job: str) -> str | None:
@@ -771,6 +816,16 @@ def main() -> int:
     m.add_argument("--rows", required=True)
     m.add_argument("--seed-pairs", default="101:101,102:102")
     m.add_argument(
+        "--draw",
+        help="derive same-seed pairs and H3 extra Zn seeds per row from this "
+        "held-out log draw (development rows: the development seeds)",
+    )
+    m.add_argument(
+        "--log",
+        type=Path,
+        default=Path("scripts/qualification/inputs/held_out_log.json"),
+    )
+    m.add_argument(
         "--zn-extra-seeds",
         action="append",
         default=[],
@@ -792,24 +847,35 @@ def main() -> int:
     manifest = json.loads(args.manifest.read_text())
     if args.command == "measure":
         rows = {r["id"]: r for r in manifest["rows"]}
+        row_ids = args.rows.split(",")
         seed_pairs = [
             tuple(int(x) for x in p.split(":")) for p in args.seed_pairs.split(",")
         ]
-        extra = {}
-        for item in args.zn_extra_seeds:
-            row_id, seeds = item.split("=")
-            extra[row_id] = [int(x) for x in seeds.split(",")]
+        if args.draw:
+            if args.zn_extra_seeds:
+                parser.error("--draw derives the extra Zn seeds; omit --zn-extra-seeds")
+            log = json.loads(args.log.read_text())
+            pairs, extra = pairs_from_draw(manifest, log, args.draw, row_ids)
+        else:
+            pairs = {row_id: seed_pairs for row_id in row_ids}
+            extra = {}
+            for item in args.zn_extra_seeds:
+                row_id, seeds = item.split("=")
+                extra[row_id] = [int(x) for x in seeds.split(",")]
         entries = []
-        for row_id in args.rows.split(","):
-            entries.extend(
-                measure_row(
-                    rows[row_id],
-                    args.off_run,
-                    args.cand_run,
-                    seed_pairs,
-                    extra.get(row_id, ()),
+        for row_id in row_ids:
+            row_extra = list(extra.get(row_id, ()))
+            for entry in measure_row(
+                rows[row_id],
+                args.off_run,
+                args.cand_run,
+                pairs[row_id],
+                row_extra,
+            ):
+                record_inputs(
+                    entry, args.off_run, args.cand_run, pairs[row_id], row_extra
                 )
-            )
+                entries.append(entry)
             print(f"measured {row_id}", flush=True)
         for entry in entries:
             for pair in entry["pairs"]:
@@ -821,7 +887,9 @@ def main() -> int:
                 {
                     "off": str(args.off_run),
                     "cand": str(args.cand_run),
-                    "seed_pairs": seed_pairs,
+                    "draw": args.draw,
+                    "seed_pairs": None if args.draw else seed_pairs,
+                    "source": provenance.git_state(),
                     "entries": entries,
                 },
                 indent=1,

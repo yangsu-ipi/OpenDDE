@@ -21,6 +21,11 @@ Per row, job and seed it reports:
   difference for pLDDT, PAE, PDE and resolved, the largest difference in
   per-atom expected pLDDT, and the largest pTM, ipTM and
   ``0.8 ipTM + 0.2 pTM`` differences over samples.
+
+Each entry records the SHA-256 of the two captures it read (``ref_sha256``,
+``other_sha256``), and the output records the checkout's commit and
+uncommitted paths (``source``), so ``accept.py`` can match them with the
+capturing runs' records.
 """
 
 import argparse
@@ -29,6 +34,8 @@ from pathlib import Path
 from typing import Any
 
 import torch
+
+import provenance
 
 MARGINS = (0.01, 0.05, 0.1, 0.2)
 TAIL_QUANTILE = 0.999
@@ -120,9 +127,11 @@ def main() -> int:
         row, job, seed = rel.parts[0], rel.parts[1], rel.parts[2]
         other_path = args.other / rel
         entry = {"id": row, "job": job, "seed": int(seed.split("_")[1])}
+        entry["ref_sha256"] = provenance.sha256_file(ref_path)
         if not other_path.exists():
             entry["status"] = "fail: missing capture"
         else:
+            entry["other_sha256"] = provenance.sha256_file(other_path)
             entry.update(compare_capture(ref_path, other_path))
             entry["status"] = "ok"
         entries.append(entry)
@@ -133,7 +142,12 @@ def main() -> int:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(
         json.dumps(
-            {"ref": str(args.ref), "other": str(args.other), "entries": entries},
+            {
+                "ref": str(args.ref),
+                "other": str(args.other),
+                "source": provenance.git_state(),
+                "entries": entries,
+            },
             indent=1,
         )
     )

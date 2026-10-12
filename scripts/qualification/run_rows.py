@@ -23,6 +23,11 @@ stands for the row's output directory. An unset variable is an error.
 --tier1-capture``, and ``--tier1-replay DIR`` passes ``DIR/<row>`` as the
 recorded reference for the fixed-input confidence-head pass.
 
+A row whose output directory, run record or tier 1 capture directory already
+exists is refused and counted as a failure, so files from an earlier run can
+never complete a later one; the run record also states whether those paths
+existed, for ``accept.py``.
+
 ``build_command`` is the one construction of a row's command; the acceptance
 command (``accept.py``) rebuilds each recorded run's command with it.
 """
@@ -111,8 +116,22 @@ def main() -> int:
             wrapper += ["--tier1-capture", str(args.tier1_capture / row_id)]
         if args.tier1_replay:
             wrapper += ["--tier1-replay", str(args.tier1_replay / row_id)]
-        wrapper += ["--run-record", str(args.out / f"{row_id}.run.json")]
+        record = args.out / f"{row_id}.run.json"
+        wrapper += ["--run-record", str(record)]
         row_out = args.out / row_id
+        existing = [
+            str(path)
+            for path in (
+                row_out,
+                record,
+                args.tier1_capture / row_id if args.tier1_capture else None,
+            )
+            if path is not None and path.exists()
+        ]
+        if existing:
+            print(f"=== {row_id}: refused, already exists: {existing}", flush=True)
+            failures += 1
+            continue
         overrides, cli_args, row_env = build_command(
             row, manifest, row_out, seeds, extra
         )

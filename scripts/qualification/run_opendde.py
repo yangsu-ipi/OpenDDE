@@ -39,9 +39,12 @@ run writes out; Fold-CP runs are refused. Keep it off timing runs.
 
 ``--run-record`` writes the run's provenance on its own, for runs that are
 neither traced nor timed: the command line, config overrides, exit code,
-fingerprint, the wrapper options and the inference-relevant environment
-(``ENV_PREFIXES``, read before the run). The same fields head the trace and
-timing files.
+fingerprint, the wrapper options, the inference-relevant environment
+(``ENV_PREFIXES``, read before the run), whether the output and capture
+directories existed before the run, any exception that ended it, and the
+SHA-256 of every prediction artifact and tier 1 capture it left
+(``provenance.py``). Any exception other than a zero ``SystemExit`` is
+recorded as exit code 1. The same fields head the trace and timing files.
 """
 
 import argparse
@@ -505,6 +508,10 @@ def _host_peak_bytes() -> dict[str, Any]:
     return out
 
 
+def _cli_value(args: list[str], name: str) -> str | None:
+    return args[args.index(name) + 1] if name in args[:-1] else None
+
+
 def _parse_override(text: str) -> tuple[list[str], Any]:
     key, sep, raw = text.partition("=")
     if not sep or not key:
@@ -594,17 +601,48 @@ def main() -> int:
             k: v for k, v in sorted(os.environ.items()) if k.startswith(ENV_PREFIXES)
         },
     }
+    out_dir = _cli_value(cli_args, "-o")
+    meta["preexisting"] = {
+        "output": None if out_dir is None else Path(out_dir).exists(),
+        "tier1_capture": (
+            None if options.tier1_capture is None else options.tier1_capture.exists()
+        ),
+    }
+    meta["exception"] = None
     start = time.perf_counter()
-    exit_code = 0
+    exit_code = 1
     try:
-        opendde_cli.main(args=cli_args, prog_name="opendde", standalone_mode=False)
+        result = opendde_cli.main(
+            args=cli_args, prog_name="opendde", standalone_mode=False
+        )
+        exit_code = result if isinstance(result, int) else 0
     except SystemExit as exc:
-        exit_code = int(exc.code or 0)
+        exit_code = exc.code if isinstance(exc.code, int) else int(exc.code is not None)
+        if exit_code:
+            meta["exception"] = f"SystemExit: {exc.code}"
+    except BaseException as exc:
+        meta["exception"] = f"{type(exc).__name__}: {exc}"
+        raise
     finally:
         meta["total_seconds"] = time.perf_counter() - start
         meta["exit_code"] = exit_code
         meta["host_memory"] = _host_peak_bytes()
         meta["fingerprint"] = fingerprint()
+        if options.run_record is not None:
+            import provenance
+
+            meta["outputs"] = {
+                "prediction_sha256": (
+                    {}
+                    if out_dir is None
+                    else provenance.prediction_digests(Path(out_dir))
+                ),
+                "tier1_sha256": (
+                    {}
+                    if options.tier1_capture is None
+                    else provenance.capture_digests(options.tier1_capture)
+                ),
+            }
         if options.run_record is not None:
             options.run_record.parent.mkdir(parents=True, exist_ok=True)
             options.run_record.write_text(json.dumps(meta, indent=1) + "\n")

@@ -58,6 +58,26 @@ def _content(rel: str, salt: str = "") -> str:
     return rel + salt
 
 
+def _sha(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def _digests(jobs, seeds) -> dict[str, str]:
+    """Digests of the artifacts ``write_artifacts`` writes (content = path)."""
+    return {
+        rel: _sha(_content(rel))
+        for rel in accept.expected_artifacts(jobs, seeds, N_SAMPLE)
+    }
+
+
+def _captures(capture: str, jobs, seeds) -> dict[str, str]:
+    return {
+        f"{job}/seed_{s}/tier1.pt": _sha(f"{capture}/{job}/{s}")
+        for job in jobs
+        for s in seeds
+    }
+
+
 def _fake_manifest(meta, records):
     def key(r):
         return (r["sample_name"], r["seed"], r["rollout"])
@@ -148,15 +168,7 @@ class World:
         for n, row in enumerate(HELD):
             self.seeds[row] = [201 + 2 * n, 202 + 2 * n]
         baseline = {
-            "rows": {
-                row: {
-                    rel: hashlib.sha256(_content(rel).encode()).hexdigest()
-                    for rel in accept.expected_artifacts(
-                        self.jobs(row), self.seeds[row], N_SAMPLE
-                    )
-                }
-                for row in DEV
-            }
+            "rows": {row: _digests(self.jobs(row), self.seeds[row]) for row in DEV}
         }
         (self.inputs / "baseline_off.json").write_text(json.dumps(baseline))
         self.log = {"description": "test", "draws": []}
@@ -186,6 +198,7 @@ class World:
         for s in self.h3_extra:
             self.draw["zn_extra"].setdefault("H3", []).append(s)
             self.extra_commits[s] = self.commit_log()
+        self.head = _git(self.repo, "rev-parse", "HEAD")
         self.sets = [
             self._build_set("development", DEV, self.code, h3_zn),
             self._build_set("held-out", HELD, self.draw_commit, h3_zn),
@@ -248,6 +261,7 @@ class World:
         )
         self.jobs_run += 1
         traced = kind in ("off", "cand")
+        jobs = self.jobs(row)
         rec = {
             "cli_args": cli,
             "config_overrides": overrides,
@@ -258,6 +272,12 @@ class World:
                 "tier1_replay": replay,
             },
             "env": env,
+            "preexisting": {"output": False, "tier1_capture": False if tier1 else None},
+            "exception": None,
+            "outputs": {
+                "prediction_sha256": {} if tier1 else _digests(jobs, seeds),
+                "tier1_sha256": _captures(capture, jobs, seeds) if tier1 else {},
+            },
             "exit_code": 0,
             "fingerprint": {
                 "commit": commit,
@@ -290,18 +310,35 @@ class World:
             self.write_run(
                 runs["t1_cand"], row, seeds, commit, "tier1 cand", cap_cand, cap_off
             )
-            tier1 += _tier1(row, jobs, seeds)
+            for e in _tier1(row, jobs, seeds):
+                key = f"{e['job']}/seed_{e['seed']}/tier1.pt"
+                e["ref_sha256"] = _captures(cap_off, jobs, seeds)[key]
+                e["other_sha256"] = _captures(cap_cand, jobs, seeds)[key]
+                tier1.append(e)
+            extra = self.h3_extra if row == "H3" else []
             for job in json.loads((ROOT / self.table[row]["input"]).read_text()):
                 facts = t2.job_facts(self.table[row], job)
                 e = fx._entry(row, job["name"], facts, self.limits, seeds=tuple(seeds))
                 if row == "H3" and h3_zn is not None:
                     e["zn"] = h3_zn
+                e["seed_pairs"] = [[s, s] for s in seeds]
+                e["zn_extra_seeds"] = list(extra)
+                inputs = _digests([job["name"]], list(seeds) + list(extra))
+                e["inputs"] = {"off": inputs, "cand": dict(inputs)}
                 entries.append(e)
-        t1 = {"ref": str(caps["off"]), "other": str(caps["cand"]), "entries": tier1}
+        source = {"commit": self.head, "dirty_paths": []}
+        t1 = {
+            "ref": str(caps["off"]),
+            "other": str(caps["cand"]),
+            "source": source,
+            "entries": tier1,
+        }
         (base / "tier1.json").write_text(json.dumps(t1))
         measure = {
             "off": str(runs["off"]),
             "cand": str(runs["cand"]),
+            "draw": "sm_120-1",
+            "source": dict(source),
             "entries": entries,
         }
         (base / "tier2.json").write_text(json.dumps(measure))
@@ -830,3 +867,266 @@ def test_run_rows_runs_the_command_accept_rebuilds(tmp_path, monkeypatch):
         record = wrapper[wrapper.index("--run-record") + 1]
         assert record == str(out / f"{row}.run.json")
         assert all(env[k] == v for k, v in row_env.items())
+
+
+# Seed pairs and the run-to-measurement digest chain
+
+
+def _edit_json(path: Path, fn) -> None:
+    data = json.loads(path.read_text())
+    fn(data)
+    path.write_text(json.dumps(data))
+
+
+def _entry_of(data, row, job=None):
+    return next(
+        e
+        for e in data["entries"]
+        if e["id"] == row and (job is None or e["job"] == job)
+    )
+
+
+def test_swapped_seed_pairs_fail(world):
+    """Crossed pairs keep both seed sets and sample counts but change the pairs."""
+    seeds = world.seeds["H2"]
+    world.edit_tier2(
+        1,
+        lambda d: _entry_of(d, "H2").update(
+            seed_pairs=[[seeds[0], seeds[1]], [seeds[1], seeds[0]]]
+        ),
+    )
+    verdict = _fails(world, "H2 7pzb tier 2 seed pairs")
+    assert not _failed(verdict, "H2 7pzb tier 2 cand seeds")
+
+
+def test_missing_tier1_capture_fails(world):
+    key = "1a14_pocket/seed_102/tier1.pt"
+    path = Path(world.sets[0]["tier1_cand"]) / "D10.run.json"
+    _edit_json(path, lambda r: r["outputs"]["tier1_sha256"].pop(key))
+    verdict = _fails(world, "D10 tier 1 cand captures complete")
+    assert _failed(verdict, "D10 1a14_pocket seed 102 tier 1 inputs match its runs")
+
+
+def test_tier1_comparison_of_other_captures_fails(world):
+    path = Path(world.sets[1]["tier1"])
+    _edit_json(path, lambda d: _entry_of(d, "H7").update(other_sha256=_sha("other")))
+    _fails(world, "H7 9lh2_contact seed 213 tier 1 inputs match its runs")
+
+
+def test_artifact_changed_after_its_run_fails(world):
+    run = world.run_dir("D8", "cand")
+    write_artifacts(run, "D8", world.jobs("D8"), [101], "-edited")
+    write_artifacts(
+        world.run_dir("D8", "repeat"), "D8", world.jobs("D8"), [101], "-edited"
+    )
+    verdict = _fails(world, "D8 cand artifacts match its run record")
+    assert not _failed(verdict, "D8 candidate deterministic")
+
+
+def test_measurement_of_an_earlier_run_fails(world):
+    """A rerun at the same paths left a measurement of the earlier outputs."""
+    job = world.jobs("D12")[0]
+    rel = f"{job}/seed_101/predictions/{job}_sample_0.cif"
+    for kind in ("cand", "repeat"):
+        run = world.run_dir("D12", kind)
+        (run / "D12" / rel).write_text("rerun")
+        world.edit_record(
+            "D12",
+            kind,
+            lambda r: r["outputs"]["prediction_sha256"].update({rel: _sha("rerun")}),
+        )
+    verdict = _fails(world, f"D12 {job} tier 2 cand inputs match its runs")
+    assert not _failed(verdict, "D12 cand artifacts match its run record")
+
+
+def test_measurement_at_another_code_revision_fails(world):
+    path = world.inputs / "tier1_limits.json"
+    original = path.read_text()
+    path.write_text(original + "\n")
+    changed = world.commit("change tier 1 limits")
+    path.write_text(original)
+    world.commit("restore them")
+    world.edit_tier2(1, lambda d: d["source"].update(commit=changed))
+    _fails(world, "held-out tier 2 measurement provenance")
+
+
+def test_measurement_from_a_dirty_checkout_fails(world):
+    _edit_json(
+        Path(world.sets[0]["tier1"]),
+        lambda d: d["source"].update(dirty_paths=[" M scripts/qualification/x.py"]),
+    )
+    _fails(world, "development tier 1 measurement provenance")
+
+
+def test_run_record_with_an_exception_fails(world):
+    world.edit_record("D7", "off", lambda r: r.update(exception="RuntimeError: x"))
+    _fails(world, "D7 off run record")
+
+
+def test_run_into_an_existing_directory_fails(world):
+    world.edit_record("H4", "cand", lambda r: r["preexisting"].update(output=True))
+    _fails(world, "H4 cand fresh output")
+
+
+def test_tier1_capture_into_an_existing_directory_fails(world):
+    path = Path(world.sets[0]["tier1_off"]) / "D2.run.json"
+    _edit_json(path, lambda r: r["preexisting"].update(tier1_capture=True))
+    _fails(world, "D2 tier 1 off fresh output")
+
+
+def test_h3_extra_seed_inputs_must_match_their_runs(tmp_path):
+    zn = _h3_zn([(205, 6, 6), (206, 0, 0)], [(221, 3, 3), (222, 3, 3)])
+    world = World(tmp_path, h3_extra=[221, 222], h3_zn=zn)
+    path = Path(world.sets[-1]["cand"]) / "H3.run.json"
+    rel = f"{H3_JOB}/seed_222/predictions/{H3_JOB}_sample_3.cif"
+    _edit_json(
+        path, lambda r: r["outputs"]["prediction_sha256"].update({rel: "0" * 64})
+    )
+    verdict = _fails(world, f"H3 {H3_JOB} tier 2 cand inputs match its runs")
+    assert _failed(verdict, "H3 extra seeds 222 cand artifacts match its run record")
+
+
+# Measurement and run tools
+
+
+def test_draw_gives_each_row_its_own_seed_pairs():
+    manifest = json.loads((INPUTS / "manifest.json").read_text())
+    log = {
+        "draws": [
+            {
+                "id": "d",
+                "seeds": {"H1": [201, 202], "H3": [205, 206]},
+                "zn_extra": {"H3": [221]},
+            }
+        ]
+    }
+    pairs, extra = t2.pairs_from_draw(manifest, log, "d", ["D1", "H1", "H3"])
+    assert pairs == {
+        "D1": [(101, 101), (102, 102)],
+        "H1": [(201, 201), (202, 202)],
+        "H3": [(205, 205), (206, 206)],
+    }
+    assert extra == {"H3": [221]}
+    with pytest.raises(SystemExit):
+        t2.pairs_from_draw(manifest, log, "d", ["H2"])
+    with pytest.raises(SystemExit):
+        t2.pairs_from_draw(manifest, log, "missing", ["D1"])
+
+
+def test_measure_with_a_draw_records_pairs_inputs_and_source(tmp_path, monkeypatch):
+    log = {"draws": [{"id": "d", "seeds": {"H1": [201, 202], "H8": [215, 216]}}]}
+    (tmp_path / "log.json").write_text(json.dumps(log))
+    runs = {tag: tmp_path / tag for tag in ("off", "cand")}
+    jobs = {"H1": "7r6r", "H8": "h8_dna_duplex"}
+    for tag, run in runs.items():
+        for row, seeds in log["draws"][0]["seeds"].items():
+            write_artifacts(run, row, [jobs[row]], seeds)
+    calls = []
+
+    def measure_row(row, off, cand, pairs, extra):
+        calls.append((row["id"], pairs, extra))
+        return [{"id": row["id"], "job": jobs[row["id"]], "pairs": []}]
+
+    monkeypatch.setattr(t2, "measure_row", measure_row)
+    out = tmp_path / "measure.json"
+    argv = ["tier2_gates.py", "measure", str(runs["off"]), str(runs["cand"])]
+    argv += ["--rows", "H1,H8", "--draw", "d", "--log", str(tmp_path / "log.json")]
+    monkeypatch.setattr(sys, "argv", argv + ["--out", str(out)])
+    assert t2.main() == 0
+    assert calls == [
+        ("H1", [(201, 201), (202, 202)], []),
+        ("H8", [(215, 215), (216, 216)], []),
+    ]
+    data = json.loads(out.read_text())
+    assert data["draw"] == "d" and set(data["source"]) == {"commit", "dirty_paths"}
+    h8 = _entry_of(data, "H8")
+    assert h8["seed_pairs"] == [[215, 215], [216, 216]]
+    assert h8["inputs"]["off"] == _digests(["h8_dna_duplex"], [215, 216])
+
+
+def test_run_rows_refuses_existing_paths(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        run_rows.subprocess, "call", lambda cmd, **kw: calls.append(cmd) or 0
+    )
+    out = tmp_path / "runs"
+    (out / "D1").mkdir(parents=True)
+    (out / "D7.run.json").write_text("{}")
+    monkeypatch.setattr(
+        sys, "argv", ["run_rows.py", "--rows", "D1,D7,D8", "--out", str(out)]
+    )
+    assert run_rows.main() == 1
+    assert len(calls) == 1 and str(out / "D8") in calls[0]
+
+
+def _wrapper(monkeypatch):
+    pytest.importorskip("torch")
+    import run_opendde
+    from runner import cli
+
+    monkeypatch.setattr(run_opendde, "_install", lambda *a: None)
+    monkeypatch.setattr(run_opendde, "fingerprint", lambda: {"commit": "c"})
+    return run_opendde, cli.opendde_cli
+
+
+def test_run_record_reports_an_uncaught_exception(tmp_path, monkeypatch):
+    run_opendde, opendde_cli = _wrapper(monkeypatch)
+
+    def fail(**kw):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(opendde_cli, "main", fail)
+    record = tmp_path / "D1.run.json"
+    argv = ["run_opendde.py", "--run-record", str(record), "--"]
+    monkeypatch.setattr(sys, "argv", argv + ["pred", "-o", str(tmp_path / "D1")])
+    with pytest.raises(RuntimeError):
+        run_opendde.main()
+    rec = json.loads(record.read_text())
+    assert rec["exit_code"] == 1 and rec["exception"] == "RuntimeError: boom"
+    assert rec["preexisting"] == {"output": False, "tier1_capture": None}
+
+
+def test_run_record_lists_outputs_and_existing_directories(tmp_path, monkeypatch):
+    run_opendde, opendde_cli = _wrapper(monkeypatch)
+    out = tmp_path / "D1"
+    capture = tmp_path / "cap" / "D1"
+    capture.mkdir(parents=True)
+
+    def run(**kw):
+        write_artifacts(tmp_path, "D1", ["job"], [101])
+        (capture / "job" / "seed_101").mkdir(parents=True)
+        (capture / "job" / "seed_101" / "tier1.pt").write_bytes(b"t1")
+
+    monkeypatch.setattr(opendde_cli, "main", run)
+    record = tmp_path / "D1.run.json"
+    argv = ["run_opendde.py", "--run-record", str(record)]
+    argv += ["--tier1-capture", str(capture), "--", "pred", "-o", str(out)]
+    monkeypatch.setattr(sys, "argv", argv)
+    assert run_opendde.main() == 0
+    rec = json.loads(record.read_text())
+    assert rec["exit_code"] == 0 and rec["exception"] is None
+    assert rec["preexisting"] == {"output": False, "tier1_capture": True}
+    assert rec["outputs"]["prediction_sha256"] == _digests(["job"], [101])
+    assert rec["outputs"]["tier1_sha256"] == {
+        "job/seed_101/tier1.pt": hashlib.sha256(b"t1").hexdigest()
+    }
+
+
+def test_tier1_compare_records_capture_digests(tmp_path, monkeypatch):
+    pytest.importorskip("torch")
+    import tier1_compare
+
+    monkeypatch.setattr(tier1_compare, "compare_capture", lambda a, b: {})
+    for root, data in (("ref", b"a"), ("other", b"b")):
+        path = tmp_path / root / "D1" / "job" / "seed_101" / "tier1.pt"
+        path.parent.mkdir(parents=True)
+        path.write_bytes(data)
+    out = tmp_path / "t1.json"
+    argv = ["tier1_compare.py", str(tmp_path / "ref"), str(tmp_path / "other")]
+    monkeypatch.setattr(sys, "argv", argv + ["--out", str(out)])
+    assert tier1_compare.main() == 0
+    data = json.loads(out.read_text())
+    entry = data["entries"][0]
+    assert entry["ref_sha256"] == hashlib.sha256(b"a").hexdigest()
+    assert entry["other_sha256"] == hashlib.sha256(b"b").hexdigest()
+    assert set(data["source"]) == {"commit", "dirty_paths"}
