@@ -25,6 +25,11 @@ atoms within ``COORD`` of a Zn ion. For each row and job it records:
   the Jaccard overlap of the two ions' coordinating residues. The summary
   counts, in same-outcome pairs (anchor RMSD at most ``SAME_OUTCOME``), the
   matched ions within ``SAME_SITE`` of each other: the proposed Zn gate.
+- **Coordination** (unpaired): every ion's coordinating-atom count in every
+  sample of both runs. The summary gives, per run, the fraction of ions over
+  all samples with at least ``MIN_DONORS`` coordinating atoms, whatever the
+  pair's outcome: the proposed fallback for rows whose paired check is
+  inconclusive (protocol C5).
 
 Ions without any coordinating atom are counted but not matched. The script
 reports quantities only; limits belong in the qualification protocol.
@@ -48,6 +53,7 @@ SAME_SITE = 2.0
 SAME_OUTCOME = 2.0
 POCKET = 8.0
 DONORS = ("N", "O", "S")
+MIN_DONORS = 2
 
 
 def _guided(row) -> bool:
@@ -204,6 +210,8 @@ def pair_ions(atoms, xyz_a, xyz_b, ions, donors, polymer) -> dict[str, Any]:
     return {
         "bound_off": len(bound),
         "bound_cand": sum(1 for c in coord_b if len(c)),
+        "donors_off": [len(c) for c in coord_a],
+        "donors_cand": [len(c) for c in coord_b],
         "ions": out,
     }
 
@@ -294,6 +302,19 @@ def summarize(entry: dict[str, Any]) -> dict[str, Any]:
     summary["same_site"] = within
     summary["same_site_of"] = len(same)
     summary["same_site_fraction"] = within / len(same) if same else None
+    for tag in ("off", "cand"):
+        counts = [n for s in ok for n in s["paired"][f"donors_{tag}"]]
+        summary[f"coordinated_{tag}"] = sum(1 for n in counts if n >= MIN_DONORS)
+        summary[f"ions_{tag}"] = len(counts)
+        summary[f"coordinated_fraction_{tag}"] = (
+            summary[f"coordinated_{tag}"] / len(counts) if counts else None
+        )
+    if summary["ions_off"] and summary["ions_cand"]:
+        summary["coordinated_drop"] = (
+            summary["coordinated_fraction_off"] - summary["coordinated_fraction_cand"]
+        )
+    else:
+        summary["coordinated_drop"] = None
     sites = {}
     for s in ok:
         for tag in ("off", "cand"):

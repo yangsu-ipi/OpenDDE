@@ -72,6 +72,21 @@ def test_pocket_frame_ignores_rigid_motion_and_detects_a_moved_ion():
     assert moved["jaccard"] < 1.0
 
 
+def test_coordination_fraction_is_unpaired():
+    atoms, xyz, donors, ions = _toy()
+    cand = xyz.copy()
+    cand[9] += [0.0, 0.0, 10.0]
+    paired = zn.pair_ions(atoms, xyz, cand, ions, donors, donors)
+    assert paired["donors_off"] == [4, 4] and paired["donors_cand"] == [4, 0]
+    sample = {"status": "ok", "anchor_rmsd": 5.0, "paired": paired}
+    entry = {"id": "D0", "job": "toy", "samples": [sample, sample]}
+    summary = zn.summarize(entry)
+    assert summary["coordinated_off"] == 4 and summary["ions_off"] == 4
+    assert summary["coordinated_fraction_cand"] == pytest.approx(0.5)
+    assert summary["coordinated_drop"] == pytest.approx(0.5)
+    assert summary["same_site_of"] == 0
+
+
 def test_pocket_superpose_needs_three_atoms():
     _, xyz, _, _ = _toy()
     r, t, n = zn.pocket_superpose(xyz, xyz, xyz[8], np.array([0, 1]))

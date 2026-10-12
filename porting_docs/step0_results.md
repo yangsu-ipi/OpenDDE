@@ -279,6 +279,24 @@ Jobs 49181-49183 (stock `off` bf16, fp32 and `torch` triangle kernels, commit `0
 
   "Same site" means the paired candidate ion lies within 2.0 Å of the `off` ion in the `off` pocket frame, counted over same-outcome pairs. A limit of 0.85 passes both harmless contrasts on both rows and fails both controls on both rows. The margin to the moved-Zn control on D14 is small because only one of four ions moves per sample and two samples were unchanged; a fault that displaces Zn in only a few samples would pass.
 
+### Unpaired Zn coordination fallback
+
+Declared before measurement (protocol C5; gnode2 copy `znfb/declaration.md`, 00:18 UTC). Job 49353 (CPU) re-measured D14 and D15 with `zn_sites.py`, which now records every ion's coordinating-atom count in both runs; outputs in `/data/yang.su/opendde-step0/znfb/`. The statistic is the fraction of Zn ions, over all ten samples, with at least two polymer N, O or S atoms within 2.8 Å; the drop is `off`'s fraction minus the candidate's.
+
+| Contrast | D14: `off` / candidate coordinated | Drop | D15 | Drop | Role |
+|---|---|---|---|---|---|
+| bf16 vs fp32 | 26/40, 24/40 | 0.050 | 9/20, 10/20 | -0.050 | calibration |
+| Kernel swap | 26/40, 23/40 | 0.075 | 9/20, 10/20 | -0.050 | calibration |
+| Seed 101 vs 102 (`off`, 5 samples each) | 13/20, 13/20 | 0.000 | 3/10, 6/10 | -0.300 | calibration |
+| `fast_layernorm` | 26/40, 24/40 | 0.050 | 9/20, 10/20 | -0.050 | validation |
+| Moved Zn | 26/40, 21/40 | 0.125 | 9/20, 3/20 | 0.300 | validation |
+| Wrong site | 26/40, 20/40 | 0.150 | 9/20, 3/20 | 0.300 | validation |
+
+- **Declared slack 0.15** (twice the largest calibration drop, 0.075). `fast_layernorm` passes on both rows; both D15 controls fail; **both D14 controls pass** (0.125 and 0.15 at most 0.15). By the declaration the fallback cannot support a Zn-qualified claim.
+- **Detectable fault size:** the coordinated fraction must fall by more than 0.15 of all ions, about a quarter of D14's coordinated ions (0.65 of all) or a third of D15's (0.45). The D14 controls move one of four ions in each sample, and only coordinated ions count, so they fall short.
+- **Seed-to-seed variation is as large as the faults.** `off`'s seed 102 coordinates 6 of 10 D15 ions and seed 101 only 3 of 10. The declared direction gives a drop of -0.30; the reverse gives +0.30, the controls' effect. The fallback is meant for rows whose outcomes switch, where a harmless candidate's ensemble can differ from `off`'s as another seed's does, so even a slack covering both directions (0.6) would detect nothing.
+- **The paired check gains an independent harmless validation:** under `fast_layernorm` its same-site fraction is 38/39 (D14) and 19/20 (D15), against 0.85.
+
 ### Fail-closed tier 2 evaluation
 
 Measurement jobs 49232-49242 and evaluation job 49252 (CPU), from the revised `tier2_gates.py` (protocol C9). Run directories combine the earlier stock runs: item 7 bf16/fp32 and tier 1 `off`/`torch`-kernel runs for D1-D13, the Zn calibration runs for D14 and D15. Every reference score succeeded on every sample of every row.
