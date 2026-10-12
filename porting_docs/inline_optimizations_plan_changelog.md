@@ -2,6 +2,12 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 40 (2026-10-12)
+
+Status update; no requirement changes.
+
+- Record that the duplicate and unexpected measurement-entry rejection, standalone `evaluate`'s `unique` gate and the producer refusals (`measure` repeated rows, `tier1_compare.py --rows`) are implemented and tested (`fdcbb46`; 144 qualification tests pass on gnode2, job 49426). Only the user's approval of the full sm_120 contract remains before the freeze.
+
 ## Revision 39 (2026-10-12)
 
 Documentation only. The tier 2 numbers, held-out assignments, qualification code and GPU results are unchanged. Full sm_120 contract approval remains withheld.
