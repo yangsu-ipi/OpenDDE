@@ -20,6 +20,13 @@ run, traced or not), ``tier1_off`` and ``tier1_cand`` (tier 1 capture runs),
 ``"zn_only": true`` holds H3 extra Zn seeds: ``rows``, ``seeds``, ``off`` and
 ``cand``, traces only.
 
+A route with ``"rehearsal": true`` (``dev-rehearsal``) rehearses a candidate
+on the development rows before any held-out draw. Its evidence names
+``code_commit`` and ``candidate_args`` instead of ``held_out_draw``, which it
+must not name. Only the checks that need a draw are skipped (the current
+log's draw entry, seeds logged at each run's commit, H3's extra seeds); every
+other check below runs unchanged, and a declared freeze is required.
+
 Checks:
 - every required row appears in exactly one full set, and no other row does;
 - the frozen inputs match their digests, repository and external;
@@ -69,7 +76,8 @@ Checks:
 Exit status: 0 full acceptance; 1 failure; 2 every check passes except the
 Zn claim, which is reported as a partial result without Zn and is not an
 acceptance (an H3 unresolved at its seed cap is a held-out failure); 3 every
-check passes but no freeze is declared yet (provisional).
+check passes but no freeze is declared yet (provisional); 4 a rehearsal in
+which every check passes (not an acceptance). A rehearsal never exits 0.
 """
 
 import argparse
@@ -91,7 +99,7 @@ import trace_tools
 INPUTS = Path("scripts/qualification/inputs")
 HELD_OUT_RANGE = (201, 299)
 HELD_OUT_SEEDS_PER_ROW = 2
-FULL, FAIL, PARTIAL, PROVISIONAL = 0, 1, 2, 3
+FULL, FAIL, PARTIAL, PROVISIONAL, REHEARSAL = 0, 1, 2, 3, 4
 CANDIDATE_KINDS = ("cand", "repeat", "tier1 cand")
 HEX = set("0123456789abcdef")
 
@@ -247,6 +255,35 @@ def _seed_places(log):
                     yield s, f"{draw.get('id')}/{kind}/{row}"
 
 
+def _declared(code, args) -> bool:
+    """A full commit hash and a nonempty list of candidate arguments."""
+    return (
+        isinstance(code, str)
+        and len(code) == 40
+        and set(code) <= HEX
+        and isinstance(args, list)
+        and bool(args)
+        and all(isinstance(a, str) for a in args)
+    )
+
+
+def check_rehearsal(checks: Checks, evidence) -> dict[str, Any]:
+    """A rehearsal declares its code commit and candidate arguments and names
+    no held-out draw; return them as a draw without seeds."""
+    checks.add(
+        "rehearsal names no held-out draw",
+        evidence.get("held_out_draw") is None,
+        evidence.get("held_out_draw"),
+    )
+    code, args = evidence.get("code_commit"), evidence.get("candidate_args")
+    checks.add(
+        "rehearsal declares the code commit and candidate arguments",
+        _declared(code, args),
+        {"code_commit": code, "candidate_args": args},
+    )
+    return {"code_commit": code, "candidate_args": args, "seeds": {}, "zn_extra": {}}
+
+
 def check_log(checks: Checks, log, draw_id, gpu, candidate, held_out_rows, limits):
     """Return the evidence's draw from the current log ({} if it is missing)."""
     seen: dict[int, str] = {}
@@ -271,12 +308,7 @@ def check_log(checks: Checks, log, draw_id, gpu, candidate, held_out_rows, limit
     code, args = draw.get("code_commit"), draw.get("candidate_args")
     checks.add(
         "held-out draw records the code commit and candidate arguments",
-        isinstance(code, str)
-        and len(code) == 40
-        and set(code) <= HEX
-        and isinstance(args, list)
-        and bool(args)
-        and all(isinstance(a, str) for a in args),
+        _declared(code, args),
         {"code_commit": code, "candidate_args": args},
     )
     seeds = draw.get("seeds", {})
@@ -969,6 +1001,7 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
     if not checks.add("GPU and route declared", gpu is not None and route is not None):
         return _verdict(checks, evidence, frozen=False)
     required = list(route["rows"])
+    rehearsal = bool(route.get("rehearsal"))
 
     full_sets = [s for s in evidence.get("sets", []) if not s.get("zn_only")]
     zn_sets = [s for s in evidence.get("sets", []) if s.get("zn_only")]
@@ -981,17 +1014,20 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
     checks.add("each row in one set", not twice, twice)
 
     check_digests(checks, manifest_path)
-    held_out = [r for r in required if table.get(r, {}).get("role") == "held-out"]
-    log = json.loads((root / "held_out_log.json").read_text())
-    draw = check_log(
-        checks,
-        log,
-        evidence.get("held_out_draw"),
-        evidence.get("gpu"),
-        evidence.get("candidate"),
-        held_out,
-        t2_limits,
-    )
+    if rehearsal:
+        draw = check_rehearsal(checks, evidence)
+    else:
+        held_out = [r for r in required if table.get(r, {}).get("role") == "held-out"]
+        log = json.loads((root / "held_out_log.json").read_text())
+        draw = check_log(
+            checks,
+            log,
+            evidence.get("held_out_draw"),
+            evidence.get("gpu"),
+            evidence.get("candidate"),
+            held_out,
+            t2_limits,
+        )
     git = check_git(checks, root, draw)
     ctx = Context(
         checks, manifest, required_file["recipe"], draw, git, list(gpu["capability"])
@@ -1077,16 +1113,32 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
                 frozen.get(f"{k}_limits_sha256") == v,
             )
         check_contract(checks, git, root, frozen.get("contract_tag"))
-    return _verdict(checks, evidence, is_frozen, zn, hashes, draw.get("code_commit"))
+    if rehearsal:
+        checks.add("rehearsal under a declared freeze", is_frozen)
+        checks.add("rehearsal Zn claim qualified", zn == "qualified", zn)
+    return _verdict(
+        checks, evidence, is_frozen, zn, hashes, draw.get("code_commit"), rehearsal
+    )
 
 
-def _verdict(checks, evidence, frozen, zn="none", hashes=None, code_commit=None):
-    """Any failed check fails. With every check passing, a Zn claim other than
+def _verdict(
+    checks,
+    evidence,
+    frozen,
+    zn="none",
+    hashes=None,
+    code_commit=None,
+    rehearsal=False,
+):
+    """Any failed check fails. A rehearsal with every check passing exits 4,
+    never 0. Otherwise, with every check passing, a Zn claim other than
     ``qualified`` (H3 unresolved at its seed cap) is a partial result without
     Zn, which is not an acceptance; an undeclared freeze makes it provisional."""
     failed = checks.failed()
     if failed:
         status, code = "fail", FAIL
+    elif rehearsal:
+        status, code = "rehearsal passed (not an acceptance)", REHEARSAL
     elif zn != "qualified":
         status, code = "partial without Zn (not an acceptance)", PARTIAL
     elif not frozen:
@@ -1102,6 +1154,7 @@ def _verdict(checks, evidence, frozen, zn="none", hashes=None, code_commit=None)
         "candidate": evidence.get("candidate"),
         "code_commit": code_commit,
         "held_out_draw": evidence.get("held_out_draw"),
+        "rehearsal": rehearsal,
         "limits_sha256": hashes,
         "failed": [c["check"] for c in failed],
         "checks": checks.items,

@@ -2,6 +2,22 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 46 (2026-10-12)
+
+Documentation only. The approved sm_120 limits, held-out assignments and frozen tag are unchanged.
+
+- Specify the rehearsal as a `dev-rehearsal` route in `acceptance.json` (`rehearsal: true`, D1-D15), not a command-line mode, with its own exit code 4 ("rehearsal passed, not an acceptance").
+  - *Reason:* required rows must come from the file, not flags, and exit 3 already means "contract not frozen".
+- Say where a rehearsal gets `code_commit` and `candidate_args` (the evidence, since there is no draw) and which checks it skips (only those needing a draw); everything else runs unchanged, including the contract-tag check, and a rehearsal requires a declared freeze.
+  - *Reason:* `accept.py` takes both values from the held-out draw, so revision 45's rehearsal had no defined source for them.
+- Bind the rehearsal to the held-out run: the rehearsed development runs are the development set of the final acceptance, so the draw's `code_commit` must be the rehearsed commit; a fixed candidate is rehearsed again.
+  - *Reason:* without this, a candidate could pass rehearsal at one commit and be held-out tested at another, and the development GPU pass would be paid twice.
+- Run the rehearsal in the acceptance clone instead of a manual tag-availability check.
+  - *Reason:* the contract checks then fail if the tag or commit was not fetched there.
+- Amend the contract as `qual-sm120-contract-2` before porting starts, and branch the port from it; record `qual-sm120-contract-1` as superseded.
+  - *Reason:* `accept.py` checks the tag in the candidate's own `acceptance.json`, so a candidate branched from contract-1 would lack the rehearsal route and could still pass full acceptance under contract-1.
+- State the rehearsal's cost: the full development set per candidate, several GPU-hours.
+
 ## Revision 45 (2026-10-12)
 
 Documentation only. The approved sm_120 limits, qualification code, held-out assignments and frozen tag are unchanged; no porting or candidate run began.

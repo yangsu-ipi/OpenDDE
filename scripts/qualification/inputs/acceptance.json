@@ -1,5 +1,5 @@
 {
- "description": "Rows each GPU and route must cover for full candidate acceptance, and the frozen limit hashes and contract tag (qualification_protocol.md, E5). accept.py reads only this file for the required rows; command-line flags cannot change them.",
+ "description": "Rows each GPU and route must cover for full candidate acceptance or a development-only rehearsal, and the frozen limit hashes and contract tag (qualification_protocol.md, E5). accept.py reads only this file for the required rows; command-line flags cannot change them.",
  "recipe": {
   "note": "The acceptance recipe, the step 0 off recipe (qualification_protocol.md, E5). Every run is built by run_rows.build_command from its manifest row and the logged seeds, with `extra` (full runs: off, candidate, repeat, H3 extra seeds) or `tier1_extra` (tier 1 capture runs) appended; candidate runs then append the draw's candidate_args. `env` is the inference environment every run must have beyond its row's env (empty: LAYERNORM_TYPE and every OPENDDE_ variable unset); `host_env` names host-specific variables that are recorded but not compared. `diffusion_chunk_size` is the sampler chunk size every traced rollout must record.",
   "extra": [
@@ -103,6 +103,61 @@
       "D15"
      ],
      "note": "Every sm_120 dispatch row is port-chosen (protocol, when a held-out draw is required)."
+    },
+    "dev-rehearsal": {
+     "rehearsal": true,
+     "rows": [
+      "D1",
+      "D2",
+      "D3",
+      "D4",
+      "D5",
+      "D6",
+      "D7",
+      "D8",
+      "D9",
+      "D10",
+      "D11",
+      "D12",
+      "D13",
+      "D14",
+      "D15"
+     ],
+     "tier1_rows": [
+      "D1",
+      "D2",
+      "D3",
+      "D4",
+      "D5",
+      "D6",
+      "D7",
+      "D8",
+      "D9",
+      "D10",
+      "D11",
+      "D12",
+      "D13",
+      "D14",
+      "D15"
+     ],
+     "drift_rows": [
+      "D1",
+      "D2",
+      "D3",
+      "D4",
+      "D5",
+      "D6",
+      "D7",
+      "D8",
+      "D9",
+      "D10",
+      "D11",
+      "D12",
+      "D13",
+      "D14",
+      "D15"
+     ],
+     "note": "Development-only rehearsal of a candidate before any held-out draw (qualification_protocol.md, E5). The evidence names code_commit and candidate_args instead of a held-out draw; every check that does not need a draw runs, a declared freeze is required, and a pass exits 4, never 0. The rehearsed development runs become the development set of the final acceptance."
     }
    },
    "frozen": {

@@ -1316,3 +1316,91 @@ def test_tier1_compare_rows_excludes_other_rows(tmp_path, monkeypatch):
     assert tier1_compare.main() == 0
     rows = [e["id"] for e in json.loads(out.read_text())["entries"]]
     assert rows == ["D1", "D7"]
+
+
+# Development-only rehearsal
+
+
+def _rehearsal(world, **changes):
+    evidence = {
+        "gpu": "sm_120",
+        "route": "dev-rehearsal",
+        "candidate": "fast-test",
+        "code_commit": world.code,
+        "candidate_args": list(world.cand_args),
+        "sets": copy.deepcopy(world.sets[:1]),
+    }
+    evidence.update(changes)
+    return evidence
+
+
+def test_rehearsal_passes_with_exit_4_never_0(tmp_path):
+    world = World(tmp_path, frozen=True)
+    verdict = world.run(_rehearsal(world))
+    assert verdict["failed"] == []
+    assert verdict["exit_code"] == accept.REHEARSAL != accept.FULL
+    assert verdict["status"] == "rehearsal passed (not an acceptance)"
+    assert verdict["rehearsal"] and verdict["held_out_draw"] is None
+    assert verdict["code_commit"] == world.code and verdict["zn_claim"] == "qualified"
+    names = [c["check"] for c in verdict["checks"]]
+    for name in (
+        "contract tag present",
+        "qualification files unchanged since the contract tag",
+        "D2 cand command",
+        "D5 random inputs match off (raw)",
+        "D7 repeat is a separate run",
+        "D14 6e4y tier 2",
+    ):
+        assert name in names, name
+    assert not [n for n in names if n.startswith("H") or "seeds logged" in n]
+    assert "held-out draw logged" not in names
+
+
+def test_rehearsal_without_a_freeze_fails(world):
+    verdict = _fails(world, "rehearsal under a declared freeze", _rehearsal(world))
+    assert verdict["failed"] == ["rehearsal under a declared freeze"]
+
+
+def _drop_record(world):
+    (world.run_dir("D2", "cand") / "D2.run.json").unlink()
+
+
+def _off_command_for_cand(world):
+    world.write_run(world.run_dir("D2", "cand"), "D2", [101, 102], world.code, "off")
+
+
+def _other_random_inputs(world):
+    run = world.run_dir("D5", "cand")
+    rec = json.loads((run / "D5.run.json").read_text())
+    write_trace(run, "D5", rec, world.rollouts("D5", [101, 102]), salt="-x")
+
+
+@pytest.mark.parametrize(
+    "break_it, fragment",
+    [
+        (_drop_record, "D2 cand run record"),
+        (_off_command_for_cand, "D2 cand command"),
+        (_other_random_inputs, "D5 random inputs match off"),
+    ],
+)
+def test_rehearsal_failures(tmp_path, break_it, fragment):
+    world = World(tmp_path, frozen=True)
+    break_it(world)
+    _fails(world, fragment, _rehearsal(world))
+
+
+def test_rehearsal_rejects_held_out_evidence(tmp_path):
+    world = World(tmp_path, frozen=True)
+    _fails(
+        world,
+        "rehearsal names no held-out draw",
+        _rehearsal(world, held_out_draw="sm_120-1"),
+    )
+    _fails(world, "no undeclared rows", _rehearsal(world, sets=world.sets))
+
+
+def test_rehearsal_requires_declared_candidate_arguments(tmp_path):
+    world = World(tmp_path, frozen=True)
+    name = "rehearsal declares the code commit and candidate arguments"
+    _fails(world, name, _rehearsal(world, candidate_args=[]))
+    _fails(world, name, _rehearsal(world, code_commit=world.code[:12]))
