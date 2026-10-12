@@ -1,5 +1,5 @@
 {
- "status": "proposed 2026-10-11, not frozen (qualification_protocol.md, tier 2, C9 and D)",
+ "status": "approved by the user on 2026-10-12 for sm_120 and frozen by contract tag qual-sm120-contract-1 (qualification_protocol.md, tier 2, C9, D and E5)",
  "gpu": "sm_120",
  "seeds": 2,
  "samples_per_seed": 5,

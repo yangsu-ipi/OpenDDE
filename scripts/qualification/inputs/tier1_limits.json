@@ -1,5 +1,5 @@
 {
- "status": "approved by the user on 2026-10-11 for sm_120 (qualification_protocol.md, B); single cycle, --cycle 1 --sample 1",
+ "status": "approved by the user on 2026-10-11 for sm_120 and frozen by contract tag qual-sm120-contract-1 (qualification_protocol.md, B and E5); single cycle, --cycle 1 --sample 1",
  "gpu": "sm_120",
  "max": {
   "s_inputs.rel_fro": 0.005,

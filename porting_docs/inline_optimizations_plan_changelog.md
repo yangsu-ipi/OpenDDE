@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 44 (2026-10-12)
+
+Status update recording the sm_120 freeze (user go-ahead); no requirement changes.
+
+- Freeze the sm_120 contract: `acceptance.json` records `tier1_limits_sha256` `b4b8fdd3bbc0…`, `tier2_limits_sha256` `d0294133b8cf…` and `contract_tag` `qual-sm120-contract-1`; both limit files' `status` name the tag. The commit holding these values and this revision is tagged `qual-sm120-contract-1` (annotated) and the tag is pushed. All 149 qualification tests pass on gnode2 with the frozen inputs (job 49442).
+  - *Reason:* the approved contract, the tag check and its tests were in place; the freeze pins the code, constants, inputs, limits, recipe, baseline and wrapper together before any sm_120 tuning.
+- Qualification no longer blocks sm_120 tuning; porting still needs the user's go-ahead. Any change under `scripts/qualification` is now a contract amendment with a new tag.
+
 ## Revision 43 (2026-10-12)
 
 Status update; no requirement changes.
