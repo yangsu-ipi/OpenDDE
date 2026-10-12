@@ -8,7 +8,8 @@ Usage:
         [-- EXTRA_PRED_FLAGS ...]
 
 Run from the repository root. Each row runs as
-``run_opendde.py [--draw-trace ...] --set sorted_by_ranking_score=false
+``run_opendde.py [--draw-trace ...] --run-record DIR/<row>.run.json
+--set sorted_by_ranking_score=false
 [--set <row overrides>] -- pred -i <input> -o DIR/<row> <common flags>
 <row flags> --seeds <seeds> <extra flags>`` with the row's environment added.
 Extra flags come last, so ``-- --dtype fp32 --deterministic true`` overrides
@@ -21,11 +22,15 @@ stands for the row's output directory. An unset variable is an error.
 ``--tier1-capture DIR`` passes ``DIR/<row>`` to ``run_opendde.py
 --tier1-capture``, and ``--tier1-replay DIR`` passes ``DIR/<row>`` as the
 recorded reference for the fixed-input confidence-head pass.
+
+``build_command`` is the one construction of a row's command; the acceptance
+command (``accept.py``) rebuilds each recorded run's command with it.
 """
 
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -34,11 +39,39 @@ from pathlib import Path
 WRAPPER = Path(__file__).with_name("run_opendde.py")
 
 
-def _expand(value: str, out: Path) -> str:
-    expanded = os.path.expandvars(value).replace("{out}", str(out))
+VARIABLE = re.compile(r"\$\{(\w+)\}|\$(\w+)")
+
+
+def _expand(value: str, out: Path, environ=os.environ) -> str:
+    def replace(match: re.Match) -> str:
+        name = match.group(1) or match.group(2)
+        return environ.get(name, match.group(0))
+
+    expanded = VARIABLE.sub(replace, value).replace("{out}", str(out))
     if "$" in expanded:
         raise SystemExit(f"error: unset environment variable in {value!r}")
     return expanded
+
+
+def build_command(
+    row: dict, manifest: dict, row_out: Path, seeds: str, extra=(), environ=os.environ
+) -> tuple[list[str], list[str], dict[str, str]]:
+    """Return a row's config overrides, ``pred`` arguments and added environment."""
+    overrides = ["sorted_by_ranking_score=false"]
+    overrides += [_expand(o, row_out, environ) for o in row.get("overrides", [])]
+    cli_args = [
+        "pred",
+        "-i",
+        row["input"],
+        "-o",
+        str(row_out),
+        *manifest["common_flags"],
+        *(_expand(flag, row_out, environ) for flag in row["flags"]),
+        "--seeds",
+        seeds,
+        *extra,
+    ]
+    return overrides, cli_args, dict(row.get("env", {}))
 
 
 def main() -> int:
@@ -78,24 +111,15 @@ def main() -> int:
             wrapper += ["--tier1-capture", str(args.tier1_capture / row_id)]
         if args.tier1_replay:
             wrapper += ["--tier1-replay", str(args.tier1_replay / row_id)]
-        wrapper += ["--set", "sorted_by_ranking_score=false"]
+        wrapper += ["--run-record", str(args.out / f"{row_id}.run.json")]
         row_out = args.out / row_id
-        for override in row.get("overrides", []):
-            wrapper += ["--set", _expand(override, row_out)]
-        cmd = wrapper + [
-            "--",
-            "pred",
-            "-i",
-            row["input"],
-            "-o",
-            str(row_out),
-            *manifest["common_flags"],
-            *(_expand(flag, row_out) for flag in row["flags"]),
-            "--seeds",
-            seeds,
-            *extra,
-        ]
-        env = {**os.environ, **row.get("env", {})}
+        overrides, cli_args, row_env = build_command(
+            row, manifest, row_out, seeds, extra
+        )
+        for override in overrides:
+            wrapper += ["--set", override]
+        cmd = wrapper + ["--", *cli_args]
+        env = {**os.environ, **row_env}
         args.out.mkdir(parents=True, exist_ok=True)
         print(f"=== {row_id}: {' '.join(cmd[2:])}", flush=True)
         if row.get("env"):

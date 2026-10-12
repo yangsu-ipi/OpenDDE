@@ -1,4 +1,4 @@
 {
- "description": "Held-out log (qualification_protocol.md, reserved held-out pool). Record a draw's seeds here, and commit, before running off or the candidate on any held-out row; append H3's extra Zn seeds one at a time before running each. Seeds are drawn from 201-299 and are single-use across every draw.",
+ "description": "Held-out log (qualification_protocol.md, reserved held-out pool and E5). Each draw records id, gpu, candidate, code_commit (the candidate's code revision), candidate_args (its declared arguments beyond the stock command), seeds (two per held-out row) and zn_extra. Commit a draw, as a change to this file only, before running off or the candidate on any held-out row; append H3's extra Zn seeds one at a time, each committed before its run. Never edit or remove an entry: the acceptance command requires the file's Git history to be append-only. Seeds are drawn from 201-299 and are single-use across every draw.",
  "draws": []
 }

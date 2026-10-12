@@ -1,5 +1,28 @@
 {
  "description": "Rows each GPU and route must cover for full candidate acceptance, and the frozen limit hashes (qualification_protocol.md, E5). accept.py reads only this file for the required rows; command-line flags cannot change them.",
+ "recipe": {
+  "note": "The acceptance recipe, the step 0 off recipe (qualification_protocol.md, E5). Every run is built by run_rows.build_command from its manifest row and the logged seeds, with `extra` (full runs: off, candidate, repeat, H3 extra seeds) or `tier1_extra` (tier 1 capture runs) appended; candidate runs then append the draw's candidate_args. `env` is the inference environment every run must have beyond its row's env (empty: LAYERNORM_TYPE and every OPENDDE_ variable unset); `host_env` names host-specific variables that are recorded but not compared. `diffusion_chunk_size` is the sampler chunk size every traced rollout must record.",
+  "extra": [
+   "--deterministic",
+   "true"
+  ],
+  "tier1_extra": [
+   "--deterministic",
+   "true",
+   "--cycle",
+   "1",
+   "--sample",
+   "1"
+  ],
+  "env": {},
+  "host_env": [
+   "OPENDDE_ROOT_DIR",
+   "OPENDDE_QUAL_DATA",
+   "OPENDDE_QUAL_KALIGN"
+  ],
+  "diffusion_chunk_size": 5
+ },
+ "baseline": "baseline_off.json",
  "gpus": {
   "sm_120": {
    "capability": [

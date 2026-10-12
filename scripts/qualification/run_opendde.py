@@ -3,7 +3,7 @@
 
 Usage:
     python scripts/qualification/run_opendde.py [--phase-timing OUT.json]
-        [--draw-trace OUT.jsonl] [--set KEY=VALUE ...]
+        [--draw-trace OUT.jsonl] [--set KEY=VALUE ...] [--run-record OUT.json]
         [--tier1-capture DIR [--tier1-replay DIR]] -- pred -i input.json -o out_dir ...
 
 Everything after ``--`` is passed unchanged to the ``opendde`` CLI. Without
@@ -36,6 +36,12 @@ reference run) the confidence head runs a second time on the recorded inputs
 fixed-input result is saved instead of the native head output. The extra
 work happens after each stock stage returns and never touches the tensors the
 run writes out; Fold-CP runs are refused. Keep it off timing runs.
+
+``--run-record`` writes the run's provenance on its own, for runs that are
+neither traced nor timed: the command line, config overrides, exit code,
+fingerprint, the wrapper options and the inference-relevant environment
+(``ENV_PREFIXES``, read before the run). The same fields head the trace and
+timing files.
 """
 
 import argparse
@@ -55,6 +61,7 @@ from typing import Any
 import torch
 
 COMPARISON_DTYPE = torch.bfloat16
+ENV_PREFIXES = ("OPENDDE_", "LAYERNORM_TYPE", "CUBLAS_WORKSPACE_CONFIG")
 
 
 def _sync() -> None:
@@ -549,6 +556,7 @@ def main() -> int:
     parser.add_argument("--set", dest="overrides", action="append", default=[])
     parser.add_argument("--tier1-capture", type=Path)
     parser.add_argument("--tier1-replay", type=Path)
+    parser.add_argument("--run-record", type=Path)
     options = parser.parse_args(argv[:split])
     if options.tier1_replay and not options.tier1_capture:
         parser.error("--tier1-replay needs --tier1-capture")
@@ -573,6 +581,18 @@ def main() -> int:
     meta: dict[str, Any] = {
         "cli_args": cli_args,
         "config_overrides": options.overrides,
+        "wrapper": {
+            name: None if value is None else str(value)
+            for name, value in (
+                ("draw_trace", options.draw_trace),
+                ("phase_timing", options.phase_timing),
+                ("tier1_capture", options.tier1_capture),
+                ("tier1_replay", options.tier1_replay),
+            )
+        },
+        "env": {
+            k: v for k, v in sorted(os.environ.items()) if k.startswith(ENV_PREFIXES)
+        },
     }
     start = time.perf_counter()
     exit_code = 0
@@ -585,6 +605,9 @@ def main() -> int:
         meta["exit_code"] = exit_code
         meta["host_memory"] = _host_peak_bytes()
         meta["fingerprint"] = fingerprint()
+        if options.run_record is not None:
+            options.run_record.parent.mkdir(parents=True, exist_ok=True)
+            options.run_record.write_text(json.dumps(meta, indent=1) + "\n")
         if timer is not None:
             options.phase_timing.parent.mkdir(parents=True, exist_ok=True)
             options.phase_timing.write_text(

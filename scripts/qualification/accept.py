@@ -4,37 +4,53 @@
 Usage:
     python scripts/qualification/accept.py EVIDENCE.json [--out VERDICT.json]
 
-Run from the repository root on the GPU host, with ``OPENDDE_QUAL_DATA`` set.
-This command, not ``tier2_gates.py evaluate`` or any other diagnostic, decides
-acceptance. The rows a GPU and route must cover come from
-``inputs/acceptance.json``, never from the command line or the evidence file.
+Run from the root of the acceptance checkout on the GPU host, with
+``OPENDDE_QUAL_DATA`` set. This command, not ``tier2_gates.py evaluate`` or
+any other diagnostic, decides acceptance. The rows a GPU and route must cover
+and the run recipe come from ``inputs/acceptance.json``, never from the
+command line or the evidence file.
 
-EVIDENCE.json names the GPU, route, candidate, commit and held-out draw, and
-lists run sets. Each set has ``rows`` and the run directories ``off`` and
-``cand`` written by ``run_rows.py --draw-trace``. A full set also names
-``cand_repeat`` (a second candidate run, for determinism), ``tier1`` (a
-``tier1_compare.py`` output) and ``tier2`` (a ``tier2_gates.py measure``
-output), and the development set names ``off_baseline`` for the drift check. A
-set with ``"zn_only": true`` holds H3's extra Zn seeds: traces only.
+EVIDENCE.json names the GPU, route, candidate and held-out draw, and lists run
+sets. Every run directory is a ``run_rows.py --out`` directory, whose
+``<row>.run.json`` records the run. A full set has ``rows`` and the runs
+``off`` and ``cand`` (``--draw-trace``), ``cand_repeat`` (a second candidate
+run, traced or not), ``tier1_off`` and ``tier1_cand`` (tier 1 capture runs),
+``tier1`` (a ``tier1_compare.py`` output of those captures) and ``tier2`` (a
+``tier2_gates.py measure`` output of ``off`` and ``cand``). A set with
+``"zn_only": true`` holds H3 extra Zn seeds: ``rows``, ``seeds``, ``off`` and
+``cand``, traces only.
 
 Checks:
 - every required row appears in exactly one full set, and no other row does;
 - the frozen inputs match their digests, repository and external;
 - the held-out log is well formed: seeds from 201-299, each used once in the
   whole log, two per held-out row, extra Zn seeds only where ``zn_rule``
-  allows them;
-- per row: ``off`` and candidate traces are usable, match under the raw hash,
-  come from the evidence commit with no uncommitted changes, on this GPU, with
-  the same software versions, deterministic, writing to the declared
-  directory, and use the expected seeds (development rows 101 and 102; a
-  held-out row its logged seeds; H3's extra runs its logged extra seeds);
-- per row: two candidate runs give byte-identical prediction artifacts, and
-  development rows' ``off`` matches the step 0 baseline byte for byte;
-- per row: every job and seed passes the approved tier 1 limits;
+  allows them; the draw records the candidate's code commit and its declared
+  arguments;
+- Git: the checkout is clean and differs from the draw's code commit only in
+  the held-out log, and the log's history only ever appends;
+- per run, from its run record: exit status 0; a commit that differs from the
+  code commit only in the held-out log, is an ancestor of the checkout and,
+  for a held-out row, already logs the run's seeds; no uncommitted changes;
+  this GPU; the command line ``run_rows.build_command`` gives for the row,
+  seeds and recipe (``off`` exactly the stock command, candidate runs the
+  stock command plus the declared arguments); the recipe environment; the
+  wrapper options of its kind; and one set of software versions across runs;
+- per traced pair: traces belong to their run records; rollouts are exactly
+  the input's jobs times the seeds, with the recipe's sample count, step
+  count, chunk size and guidance setting; every expected draw is recorded on
+  both sides; ``off`` and candidate rollout settings and raw draw hashes match;
+- per row: ``off``, candidate and repeat runs hold exactly the expected
+  prediction artifacts; the repeat is a separate run and byte-identical to the
+  candidate; development ``off`` artifacts match the committed step 0
+  baseline digests;
+- per row: the tier 1 comparison measured the declared tier 1 captures, the
+  candidate capture replayed the declared ``off`` capture, and every job and
+  seed passes the approved tier 1 limits;
 - tier 2: every job of every required row passes ``tier2_gates.evaluate``
-  with the expected seeds, H3's Zn seed pairs are its primary seeds followed
-  by its logged extra seeds (read from the extra runs), and the aggregate Zn
-  claim is ``qualified``;
+  with the expected seeds, H3's extra seeds are covered by their own runs and
+  measured from them in log order, and the aggregate Zn claim is
+  ``qualified``;
 - the limits files match the hashes frozen in ``acceptance.json``.
 
 Exit status: 0 full acceptance; 1 failure; 2 every check passes except the
@@ -47,19 +63,23 @@ import argparse
 import hashlib
 import json
 import os
+import subprocess
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
 import compare_outputs
 import freeze_inputs
+import run_rows
 import tier2_gates
 import trace_tools
 
 INPUTS = Path("scripts/qualification/inputs")
-DEV_SEEDS = (101, 102)
 HELD_OUT_RANGE = (201, 299)
 HELD_OUT_SEEDS_PER_ROW = 2
 FULL, FAIL, PARTIAL, PROVISIONAL = 0, 1, 2, 3
+CANDIDATE_KINDS = ("cand", "repeat", "tier1 cand")
+HEX = set("0123456789abcdef")
 
 
 class Checks:
@@ -82,6 +102,12 @@ def _flag(args: list[str], name: str):
     return args[args.index(name) + 1] if name in args[:-1] else None
 
 
+def _last(args: list[str], name: str):
+    """The value of the last occurrence of ``name`` (later flags override)."""
+    found = [i for i, a in enumerate(args[:-1]) if a == name]
+    return args[found[-1] + 1] if found else None
+
+
 def _get(entry: dict[str, Any], dotted: str):
     """``section.key``; the key itself may contain dots (``margin_0.1``)."""
     value: Any = entry
@@ -90,6 +116,96 @@ def _get(entry: dict[str, Any], dotted: str):
             return None
         value = value[part]
     return value
+
+
+def _same_path(a, b) -> bool:
+    return a is not None and b is not None and Path(a).resolve() == Path(b).resolve()
+
+
+class Repo:
+    """Read-only Git queries on the checkout that holds the inputs."""
+
+    def __init__(self, path: Path):
+        self.path = path
+
+    @staticmethod
+    def _run(cwd: Path, *args: str) -> str | None:
+        try:
+            return subprocess.run(
+                ["git", "-C", str(cwd), *args],
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout
+        except (OSError, subprocess.CalledProcessError):
+            return None
+
+    @classmethod
+    def find(cls, root: Path):
+        top = cls._run(root, "rev-parse", "--show-toplevel")
+        return None if top is None else cls(Path(top.strip()))
+
+    def git(self, *args: str) -> str | None:
+        return self._run(self.path, *args)
+
+    def commit(self, rev) -> str | None:
+        if not isinstance(rev, str) or not rev:
+            return None
+        out = self.git("rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}")
+        return out.strip() if out else None
+
+    def changed(self, a: str, b: str) -> list[str] | None:
+        out = self.git("diff", "--name-only", a, b)
+        return None if out is None else sorted(out.splitlines())
+
+    def is_ancestor(self, a: str, b: str) -> bool:
+        return self.git("merge-base", "--is-ancestor", a, b) is not None
+
+    def show(self, rev: str, path: str) -> str | None:
+        return self.git("show", f"{rev}:{path}")
+
+    def history(self, rev: str, path: str) -> list[str]:
+        out = self.git("rev-list", "--reverse", "--topo-order", rev, "--", path)
+        return out.split() if out else []
+
+
+class Git:
+    """The acceptance checkout, the draw's code commit and per-run commit checks."""
+
+    def __init__(self, repo: Repo, code: str, head: str, log_path: str):
+        self.repo, self.code, self.head, self.log_path = repo, code, head, log_path
+        self._runs: dict[str, tuple[bool, Any]] = {}
+        self._logs: dict[str, Any] = {}
+
+    def run_commit(self, rev) -> tuple[bool, Any]:
+        """A run's commit must hold the code commit's tree except for the
+        held-out log, and lie in the checkout's history."""
+        key = json.dumps(rev)
+        if key not in self._runs:
+            full = self.repo.commit(rev)
+            changed = self.repo.changed(self.code, full) if full else None
+            ok = (
+                changed is not None
+                and set(changed) <= {self.log_path}
+                and self.repo.is_ancestor(full, self.head)
+            )
+            self._runs[key] = (ok, {"commit": rev, "changed": changed})
+        return self._runs[key]
+
+    def draw_at(self, rev, draw_id):
+        if not isinstance(rev, str):
+            return None
+        if rev not in self._logs:
+            try:
+                self._logs[rev] = json.loads(self.repo.show(rev, self.log_path) or "")
+            except json.JSONDecodeError:
+                self._logs[rev] = None
+        draws = [
+            d
+            for d in (self._logs[rev] or {}).get("draws", [])
+            if d.get("id") == draw_id
+        ]
+        return draws[0] if len(draws) == 1 else None
 
 
 def check_digests(checks: Checks, manifest: Path) -> None:
@@ -109,42 +225,54 @@ def check_digests(checks: Checks, manifest: Path) -> None:
         checks.add(name, not diff, {"files": len(frozen), "differing": diff})
 
 
-def check_log(checks: Checks, log, draw_id, gpu, candidate, held_out_rows, limits):
-    """Return {row: seeds} and {row: extra Zn seeds} for the evidence's draw."""
-    seen: dict[int, str] = {}
-    repeated = []
+def _seed_places(log):
     for draw in log.get("draws", []):
         for kind in ("seeds", "zn_extra"):
             for row, seeds in draw.get(kind, {}).items():
                 for s in seeds:
-                    where = f"{draw.get('id')}/{kind}/{row}"
-                    if s in seen:
-                        repeated.append([s, seen[s], where])
-                    seen[s] = where
+                    yield s, f"{draw.get('id')}/{kind}/{row}"
+
+
+def check_log(checks: Checks, log, draw_id, gpu, candidate, held_out_rows, limits):
+    """Return the evidence's draw from the current log ({} if it is missing)."""
+    seen: dict[int, str] = {}
+    repeated = []
+    for s, where in _seed_places(log):
+        if s in seen:
+            repeated.append([s, seen[s], where])
+        seen[s] = where
     checks.add("held-out seeds used once", not repeated, repeated)
     lo, hi = HELD_OUT_RANGE
     out_of_range = sorted(s for s in seen if not lo <= s <= hi)
     checks.add("held-out seeds in 201-299", not out_of_range, out_of_range)
     draws = [d for d in log.get("draws", []) if d.get("id") == draw_id]
-    if not held_out_rows:
-        return {}, {}
     if not checks.add("held-out draw logged", len(draws) == 1, draw_id):
-        return {}, {}
+        return {}
     draw = draws[0]
     checks.add(
         "held-out draw matches evidence",
         draw.get("gpu") == gpu and draw.get("candidate") == candidate,
         {"gpu": draw.get("gpu"), "candidate": draw.get("candidate")},
     )
-    seeds = {r: list(v) for r, v in draw.get("seeds", {}).items()}
+    code, args = draw.get("code_commit"), draw.get("candidate_args")
+    checks.add(
+        "held-out draw records the code commit and candidate arguments",
+        isinstance(code, str)
+        and len(code) == 40
+        and set(code) <= HEX
+        and isinstance(args, list)
+        and bool(args)
+        and all(isinstance(a, str) for a in args),
+        {"code_commit": code, "candidate_args": args},
+    )
+    seeds = draw.get("seeds", {})
     bad = {
         r: seeds.get(r)
         for r in held_out_rows
         if len(set(seeds.get(r, []))) != HELD_OUT_SEEDS_PER_ROW
     }
     checks.add("two logged seeds per held-out row", not bad, bad)
-    extra = {r: list(v) for r, v in draw.get("zn_extra", {}).items()}
-    for row, s in extra.items():
+    for row, s in draw.get("zn_extra", {}).items():
         rule = tier2_gates._limit(limits, row, "", "zn_rule")
         cap = rule.get("extra_seeds_max") if isinstance(rule, dict) else None
         checks.add(
@@ -152,7 +280,93 @@ def check_log(checks: Checks, log, draw_id, gpu, candidate, held_out_rows, limit
             cap is not None and len(s) <= cap,
             {"rule": rule, "seeds": s},
         )
-    return seeds, extra
+    return draw
+
+
+def _without_zn_extra(draw):
+    return {k: v for k, v in draw.items() if k != "zn_extra"}
+
+
+def _extends(old, new) -> bool:
+    """``new`` keeps every draw of ``old`` unchanged, except that extra Zn
+    seeds may be appended, and may add draws after them."""
+    a, b = old.get("draws", []), new.get("draws", [])
+    if len(b) < len(a):
+        return False
+    for d, e in zip(a, b):
+        if _without_zn_extra(d) != _without_zn_extra(e):
+            return False
+        za, zb = d.get("zn_extra", {}), e.get("zn_extra", {})
+        if any(zb.get(row, [])[: len(s)] != s for row, s in za.items()):
+            return False
+    return True
+
+
+def check_git(checks: Checks, root: Path, draw) -> Git | None:
+    repo = Repo.find(root)
+    if not checks.add("inputs are in a Git checkout", repo is not None):
+        return None
+    log_path = (
+        (root / "held_out_log.json")
+        .resolve()
+        .relative_to(repo.path.resolve())
+        .as_posix()
+    )
+    code = repo.commit(draw.get("code_commit"))
+    if not checks.add("code commit present", code is not None, draw.get("code_commit")):
+        return None
+    head = repo.commit("HEAD")
+    status = repo.git("status", "--porcelain")
+    checks.add(
+        "acceptance checkout clean",
+        status == "",
+        None if status is None else status.splitlines(),
+    )
+    changed = repo.changed(code, head)
+    checks.add(
+        "acceptance checkout differs from the code commit only in the held-out log",
+        changed is not None and set(changed) <= {log_path},
+        changed,
+    )
+    versions = []
+    for rev in repo.history(head, log_path):
+        try:
+            versions.append((rev, json.loads(repo.show(rev, log_path) or "")))
+        except json.JSONDecodeError:
+            versions.append((rev, None))
+    unreadable = [rev[:12] for rev, v in versions if v is None]
+    rewritten = [
+        new[:12]
+        for (_, a), (new, b) in zip(versions, versions[1:])
+        if a is not None and b is not None and not _extends(a, b)
+    ]
+    checks.add(
+        "held-out log history only appends",
+        bool(versions) and not unreadable and not rewritten,
+        {"versions": len(versions), "unreadable": unreadable, "rewritten": rewritten},
+    )
+    places: dict[int, str] = {}
+    reused = set()
+    for _, log in versions:
+        for s, where in _seed_places(log or {}):
+            if places.setdefault(s, where) != where:
+                reused.add((s, places[s], where))
+    checks.add(
+        "held-out seeds used once across the log history",
+        not reused,
+        sorted(reused),
+    )
+    return Git(repo, code, head, log_path)
+
+
+def _record(run_dir: Path, row: str):
+    path = run_dir / f"{row}.run.json"
+    if not path.is_file():
+        return None
+    try:
+        return json.loads(path.read_text())
+    except json.JSONDecodeError:
+        return None
 
 
 def _trace(path: Path):
@@ -161,51 +375,290 @@ def _trace(path: Path):
     return trace_tools.load(path)
 
 
-def check_traces(checks: Checks, row, off_dir, cand_dir, seeds, ev, capability):
-    name = f"{row} traces"
-    meta_a, rec_a = _trace(off_dir / f"{row}.trace.jsonl")
-    meta_b, rec_b = _trace(cand_dir / f"{row}.trace.jsonl")
-    if not checks.add(f"{name} present", meta_a is not None and meta_b is not None):
+def expected_artifacts(jobs, seeds, n_sample: int) -> set[str]:
+    return {
+        f"{job}/seed_{s}/predictions/{name}"
+        for job in jobs
+        for s in seeds
+        for i in range(n_sample)
+        for name in (
+            f"{job}_sample_{i}.cif",
+            f"{job}_full_data_sample_{i}.json",
+            f"{job}_summary_confidence_sample_{i}.json",
+        )
+    }
+
+
+class Context:
+    """What every run check needs: inputs, recipe, draw and Git state."""
+
+    def __init__(self, checks, manifest, recipe, draw, git, capability):
+        self.checks, self.manifest, self.recipe = checks, manifest, recipe
+        self.table = {r["id"]: r for r in manifest["rows"]}
+        self.draw, self.git, self.capability = draw, git, capability
+        self.versions: set[str] = set()
+
+    def jobs(self, row):
+        return [
+            j["name"] for j in json.loads(Path(self.table[row]["input"]).read_text())
+        ]
+
+    def seeds(self, row):
+        if self.table[row]["role"] == "development":
+            return list(self.manifest["development_seeds"])
+        return list(self.draw.get("seeds", {}).get(row, []))
+
+
+def _n_sample(rec) -> int:
+    value = _last((rec or {}).get("cli_args") or [], "--sample")
+    return int(value) if value and value.isdigit() else 0
+
+
+def check_run(ctx: Context, label, run_dir: Path, row, seeds, kind, zn=False):
+    """Check one run's record; return it (None if missing or failed)."""
+    name = f"{row} {label}"
+    rec = _record(run_dir, row)
+    if not ctx.checks.add(
+        f"{name} run record",
+        rec is not None and rec.get("exit_code") == 0,
+        None if rec is None else {"exit_code": rec.get("exit_code")},
+    ):
+        return None
+    fp = rec.get("fingerprint") or {}
+    args = rec.get("cli_args") or []
+    out = _flag(args, "-o")
+    commit_ok, commit_detail = (
+        ctx.git.run_commit(fp.get("commit"))
+        if ctx.git
+        else (False, {"commit": fp.get("commit")})
+    )
+    capability = list((fp.get("gpu") or {}).get("capability") or [])
+    ctx.checks.add(
+        f"{name} provenance",
+        commit_ok
+        and not fp.get("dirty_paths")
+        and capability == ctx.capability
+        and _same_path(out, run_dir / row),
+        {
+            **commit_detail,
+            "dirty_paths": fp.get("dirty_paths"),
+            "capability": capability,
+            "out": out,
+        },
+    )
+    ctx.versions.add(json.dumps(fp.get("versions"), sort_keys=True))
+    if ctx.table[row]["role"] == "held-out":
+        draw = (
+            ctx.git.draw_at(fp.get("commit"), ctx.draw.get("id")) if ctx.git else None
+        )
+        if zn:
+            logged = (draw or {}).get("zn_extra", {}).get(row, [])
+            present = draw is not None and set(seeds) <= set(logged)
+        else:
+            present = draw is not None and draw.get("seeds", {}).get(row) == list(seeds)
+        ctx.checks.add(f"{name} seeds logged at its commit", present, seeds)
+    extra = list(ctx.recipe["tier1_extra" if kind.startswith("tier1") else "extra"])
+    if kind in CANDIDATE_KINDS:
+        extra += list(ctx.draw.get("candidate_args") or [])
+    env = rec.get("env")
+    try:
+        overrides, expected, row_env = run_rows.build_command(
+            ctx.table[row],
+            ctx.manifest,
+            Path(out or "-"),
+            ",".join(str(s) for s in seeds),
+            extra,
+            environ=env or {},
+        )
+    except SystemExit as error:
+        ctx.checks.add(f"{name} command", False, str(error))
+        return rec
+    same = args == expected and rec.get("config_overrides") == overrides
+    ctx.checks.add(
+        f"{name} command",
+        same,
+        None
+        if same
+        else {
+            "expected": [overrides, expected],
+            "recorded": [rec.get("config_overrides"), args],
+        },
+    )
+    host = set(ctx.recipe["host_env"])
+    found_env = None if env is None else {k: v for k, v in env.items() if k not in host}
+    ctx.checks.add(
+        f"{name} environment",
+        found_env == {**ctx.recipe["env"], **row_env},
+        found_env,
+    )
+    wrapper = rec.get("wrapper")
+    if not isinstance(wrapper, dict):
+        ctx.checks.add(f"{name} wrapper options", False, wrapper)
+        return rec
+    trace = wrapper.get("draw_trace")
+    traced = _same_path(trace, run_dir / f"{row}.trace.jsonl")
+    if kind in ("off", "cand"):
+        trace_ok = traced
+    elif kind == "repeat":
+        trace_ok = trace is None or traced
+    else:
+        trace_ok = trace is None
+    tier1 = kind.startswith("tier1")
+    ctx.checks.add(
+        f"{name} wrapper options",
+        trace_ok
+        and (wrapper.get("tier1_capture") is not None) == tier1
+        and (wrapper.get("tier1_replay") is not None) == (kind == "tier1 cand")
+        and wrapper.get("phase_timing") is None,
+        wrapper,
+    )
+    return rec
+
+
+def check_rollouts(ctx: Context, name, meta, jobs, seeds, cli) -> None:
+    n_sample, n_step = _last(cli, "--sample"), _last(cli, "--step")
+    guided = _last(cli, "--use_tfg_guidance") == "true"
+    rollouts = meta.get("rollouts") or []
+    found = Counter((r.get("sample_name"), r.get("seed")) for r in rollouts)
+    expected = Counter((j, s) for j in jobs for s in seeds)
+    wrong = [
+        {k: r.get(k) for k in ("sample_name", "seed", "N_sample", "N_step")}
+        for r in rollouts
+        if str(r.get("N_sample")) != n_sample
+        or str(r.get("N_step")) != n_step
+        or r.get("diffusion_chunk_size") != ctx.recipe["diffusion_chunk_size"]
+        or bool((r.get("guidance_configs") or {}).get("enable")) != guided
+    ]
+    ctx.checks.add(
+        f"{name} rollouts",
+        found == expected and not wrong,
+        {
+            "missing": [list(k) for k in expected - found],
+            "unexpected": [list(k) for k in found - expected],
+            "wrong_settings": wrong,
+        },
+    )
+
+
+def _rollout_key(r):
+    return (str(r.get("sample_name")), str(r.get("seed")), str(r.get("rollout")))
+
+
+def check_traces(ctx: Context, name, off_dir, cand_dir, recs, jobs, seeds, row):
+    loaded = {
+        tag: _trace(run / f"{row}.trace.jsonl")
+        for tag, run in (("off", off_dir), ("cand", cand_dir))
+    }
+    if not ctx.checks.add(
+        f"{name} traces present", all(m is not None for m, _ in loaded.values())
+    ):
         return
-    problems = [f"off: {r}" for r in trace_tools.unusable(meta_a, rec_a)]
-    problems += [f"cand: {r}" for r in trace_tools.unusable(meta_b, rec_b)]
-    checks.add(f"{name} usable", not problems, problems)
-    cmp = trace_tools.compare(rec_a, rec_b, "raw_sha256")
-    checks.add(
-        f"{row} random inputs match off (raw)",
+    problems = []
+    for tag, (meta, records) in loaded.items():
+        problems += [f"{tag}: {r}" for r in trace_tools.unusable(meta, records)]
+        rec = recs.get(tag)
+        if rec is None:
+            problems.append(f"{tag}: no usable run record")
+        elif meta.get("cli_args") != rec.get("cli_args") or meta.get(
+            "fingerprint"
+        ) != rec.get("fingerprint"):
+            problems.append(f"{tag}: trace header differs from its run record")
+    if not ctx.checks.add(f"{name} traces usable", not problems, problems):
+        return
+    for tag, (meta, records) in loaded.items():
+        check_rollouts(ctx, f"{name} {tag}", meta, jobs, seeds, recs[tag]["cli_args"])
+        draws = trace_tools.check_manifest(meta, records)
+        ctx.checks.add(
+            f"{name} {tag} draws complete",
+            draws["ok"],
+            {
+                k: draws.get(k)
+                for k in ("expected", "observed", "missing_by_site", "extra_by_site")
+            },
+        )
+    a, b = (
+        sorted(m.get("rollouts") or [], key=_rollout_key) for m, _ in loaded.values()
+    )
+    ctx.checks.add(f"{name} off and candidate rollout settings match", a == b)
+    cmp = trace_tools.compare(loaded["off"][1], loaded["cand"][1], "raw_sha256")
+    ctx.checks.add(
+        f"{name} random inputs match off (raw)",
         cmp["ok"],
         {
             k: cmp[k]
             for k in ("compared", "only_in_a", "only_in_b", "mismatched_by_site")
         },
     )
-    fp_a, fp_b = meta_a.get("fingerprint", {}), meta_b.get("fingerprint", {})
-    for tag, meta, fp, run_dir in (
-        ("off", meta_a, fp_a, off_dir),
-        ("cand", meta_b, fp_b, cand_dir),
-    ):
-        args = meta.get("cli_args", [])
-        out = _flag(args, "-o")
-        checks.add(
-            f"{row} {tag} provenance",
-            fp.get("commit") == ev["commit"]
-            and not fp.get("dirty_paths")
-            and list((fp.get("gpu") or {}).get("capability") or []) == capability
-            and _flag(args, "--deterministic") == "true"
-            and out is not None
-            and Path(out).resolve() == (run_dir / row).resolve(),
-            {
-                "commit": fp.get("commit"),
-                "dirty_paths": fp.get("dirty_paths"),
-                "capability": (fp.get("gpu") or {}).get("capability"),
-                "out": out,
-            },
-        )
-        found = sorted({r["seed"] for r in meta.get("rollouts", [])})
-        checks.add(f"{row} {tag} seeds", found == sorted(seeds), found)
-    checks.add(
-        f"{row} off and candidate share software versions",
-        fp_a.get("versions") == fp_b.get("versions"),
+
+
+def check_artifacts(ctx: Context, name, row_dir: Path, expected: set[str]) -> None:
+    found = set(compare_outputs.artifacts(row_dir))
+    ctx.checks.add(
+        f"{name} artifacts complete",
+        bool(expected) and found == expected,
+        {"missing": len(expected - found), "unexpected": sorted(found - expected)[:5]},
+    )
+
+
+def _identity(rec):
+    fp = (rec or {}).get("fingerprint") or {}
+    return [fp.get("host"), fp.get("slurm_job_id"), fp.get("utc")]
+
+
+def check_repeat(ctx: Context, row, cand: Path, repeat: Path, rec_cand, rec_rep):
+    ctx.checks.add(
+        f"{row} repeat is a separate run",
+        rec_cand is not None
+        and rec_rep is not None
+        and not _same_path(cand, repeat)
+        and _identity(rec_cand) != _identity(rec_rep),
+        {"cand": _identity(rec_cand), "repeat": _identity(rec_rep)},
+    )
+    det = compare_outputs.compare(cand / row, repeat / row)
+    ctx.checks.add(f"{row} candidate deterministic", det["ok"], det)
+
+
+def check_drift(ctx: Context, row, off: Path, baseline) -> None:
+    base = (baseline or {}).get("rows", {}).get(row)
+    now = compare_outputs.digest(off / row)["artifacts"]
+    differing = sorted(
+        k for k in set(base or {}) | set(now) if (base or {}).get(k) != now.get(k)
+    )
+    ctx.checks.add(
+        f"{row} off matches step 0 baseline",
+        base is not None and bool(now) and not differing,
+        {"baseline": base is not None, "differing": len(differing)},
+    )
+
+
+def _wrapper(rec) -> dict:
+    return (rec or {}).get("wrapper") or {}
+
+
+def check_tier1_runs(ctx: Context, s, row, seeds, data) -> None:
+    runs = s.get("tier1_off"), s.get("tier1_cand")
+    if not ctx.checks.add(f"{row} tier 1 runs declared", all(runs)):
+        return
+    rec_off = check_run(ctx, "tier 1 off", Path(runs[0]), row, seeds, "tier1 off")
+    rec_cand = check_run(ctx, "tier 1 cand", Path(runs[1]), row, seeds, "tier1 cand")
+    cap_off = _wrapper(rec_off).get("tier1_capture")
+    cap_cand = _wrapper(rec_cand).get("tier1_capture")
+    replay = _wrapper(rec_cand).get("tier1_replay")
+    ref, other = data.get("ref"), data.get("other")
+    ctx.checks.add(
+        f"{row} tier 1 measured its declared captures",
+        ref is not None
+        and other is not None
+        and _same_path(Path(ref) / row, cap_off)
+        and _same_path(Path(other) / row, cap_cand)
+        and _same_path(replay, cap_off),
+        {
+            "ref": ref,
+            "other": other,
+            "capture_off": cap_off,
+            "capture_cand": cap_cand,
+            "replay": replay,
+        },
     )
 
 
@@ -240,6 +693,89 @@ def _measure_dir(data, key, row, job, seed) -> Path:
     return Path(data[key]) / row / job / f"seed_{seed}"
 
 
+def check_zn_sets(ctx: Context, zn_sets) -> dict[str, dict[int, tuple[Path, Path]]]:
+    """Check each extra-seed run pair; return {row: {seed: (off, cand)}}."""
+    runs: dict[str, dict[int, list[tuple[Path, Path]]]] = {}
+    for s in zn_sets:
+        seeds = list(s.get("seeds") or [])
+        off, cand = Path(s["off"]), Path(s["cand"])
+        label = "extra seeds " + ",".join(str(x) for x in seeds)
+        for row in s.get("rows", []):
+            if row not in ctx.table:
+                ctx.checks.add(f"{row} in manifest", False)
+                continue
+            recs = {
+                tag: check_run(ctx, f"{label} {tag}", run, row, seeds, tag, zn=True)
+                for tag, run in (("off", off), ("cand", cand))
+            }
+            jobs = ctx.jobs(row)
+            check_traces(ctx, f"{row} {label}", off, cand, recs, jobs, seeds, row)
+            expected = expected_artifacts(jobs, seeds, _n_sample(recs["off"]))
+            for tag, run in (("off", off), ("cand", cand)):
+                check_artifacts(ctx, f"{row} {label} {tag}", run / row, expected)
+            for seed in seeds:
+                runs.setdefault(row, {}).setdefault(seed, []).append((off, cand))
+    for row, by_seed in runs.items():
+        logged = list(ctx.draw.get("zn_extra", {}).get(row, []))
+        once = all(len(v) == 1 for v in by_seed.values())
+        ctx.checks.add(
+            f"{row} extra Zn runs cover the logged seeds",
+            once and sorted(by_seed) == sorted(logged),
+            {"logged": logged, "run": sorted(by_seed)},
+        )
+    return {
+        row: {seed: pairs[0] for seed, pairs in by_seed.items()}
+        for row, by_seed in runs.items()
+    }
+
+
+def _check_zn_extra(checks, row, seeds, extra, t2, extra_runs):
+    for e in t2.get("entries", []):
+        if e["id"] != row or not e.get("zn"):
+            continue
+        by_seed = [b["seeds"][0] for b in e["zn"].get("by_seed") or []]
+        checks.add(
+            f"{row} {e['job']} Zn seed order",
+            by_seed == list(seeds) + list(extra),
+            by_seed,
+        )
+        for s in extra:
+            pair = extra_runs.get(s)
+            same = pair is not None and all(
+                _same_path(
+                    _measure_dir(t2, key, row, e["job"], s),
+                    run / row / e["job"] / f"seed_{s}",
+                )
+                for key, run in zip(("off", "cand"), pair)
+            )
+            checks.add(f"{row} {e['job']} extra seed {s} measured from its runs", same)
+
+
+def check_row(ctx: Context, s, row, route, baseline, t1, t1_limits) -> None:
+    """Every check on one row of a full set except tier 2."""
+    off, cand = Path(s["off"]), Path(s["cand"])
+    seeds, jobs = ctx.seeds(row), ctx.jobs(row)
+    recs = {
+        tag: check_run(ctx, tag, run, row, seeds, tag)
+        for tag, run in (("off", off), ("cand", cand))
+    }
+    check_traces(ctx, row, off, cand, recs, jobs, seeds, row)
+    expected = expected_artifacts(jobs, seeds, _n_sample(recs["off"]))
+    for tag, run in (("off", off), ("cand", cand)):
+        check_artifacts(ctx, f"{row} {tag}", run / row, expected)
+    if ctx.checks.add(f"{row} repeat run declared", bool(s.get("cand_repeat"))):
+        repeat = Path(s["cand_repeat"])
+        rec_rep = check_run(ctx, "repeat", repeat, row, seeds, "repeat")
+        check_artifacts(ctx, f"{row} repeat", repeat / row, expected)
+        check_repeat(ctx, row, cand, repeat, recs["cand"], rec_rep)
+    if row in route.get("drift_rows", []):
+        check_drift(ctx, row, off, baseline)
+    if row in route.get("tier1_rows", []):
+        if ctx.checks.add(f"{row} tier 1 evidence declared", t1 is not None):
+            check_tier1_runs(ctx, s, row, seeds, t1)
+            check_tier1(ctx.checks, row, jobs, seeds, t1, t1_limits)
+
+
 def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
     checks = Checks()
     required_file = json.loads((root / "acceptance.json").read_text())
@@ -253,7 +789,6 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
     route = (gpu or {}).get("routes", {}).get(evidence.get("route"))
     if not checks.add("GPU and route declared", gpu is not None and route is not None):
         return _verdict(checks, evidence, frozen=False)
-    capability = list(gpu["capability"])
     required = list(route["rows"])
 
     full_sets = [s for s in evidence.get("sets", []) if not s.get("zn_only")]
@@ -269,7 +804,7 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
     check_digests(checks, manifest_path)
     held_out = [r for r in required if table.get(r, {}).get("role") == "held-out"]
     log = json.loads((root / "held_out_log.json").read_text())
-    logged, zn_extra = check_log(
+    draw = check_log(
         checks,
         log,
         evidence.get("held_out_draw"),
@@ -278,46 +813,35 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
         held_out,
         t2_limits,
     )
+    git = check_git(checks, root, draw)
+    ctx = Context(
+        checks, manifest, required_file["recipe"], draw, git, list(gpu["capability"])
+    )
+    baseline_path = root / required_file["baseline"]
+    baseline = (
+        json.loads(baseline_path.read_text()) if baseline_path.is_file() else None
+    )
+    checks.add("step 0 baseline digests present", baseline is not None)
 
-    def seeds_of(row):
-        if table[row]["role"] == "development":
-            return list(DEV_SEEDS)
-        return logged.get(row, [])
-
+    extra_runs = check_zn_sets(ctx, zn_sets)
     entries = []
     results = []
     for s in full_sets:
-        off, cand = Path(s["off"]), Path(s["cand"])
-        repeat = Path(s["cand_repeat"]) if s.get("cand_repeat") else None
-        baseline = Path(s["off_baseline"]) if s.get("off_baseline") else None
         t1 = json.loads(Path(s["tier1"]).read_text()) if s.get("tier1") else None
         t2 = json.loads(Path(s["tier2"]).read_text()) if s.get("tier2") else None
         for row in s.get("rows", []):
             if row not in table:
                 checks.add(f"{row} in manifest", False)
                 continue
-            seeds = seeds_of(row)
-            jobs = [
-                j["name"] for j in json.loads(Path(table[row]["input"]).read_text())
-            ]
-            check_traces(checks, row, off, cand, seeds, evidence, capability)
-            if checks.add(f"{row} repeat run declared", repeat is not None):
-                det = compare_outputs.compare(cand / row, repeat / row)
-                checks.add(f"{row} candidate deterministic", det["ok"], det)
-            if row in route.get("drift_rows", []):
-                if checks.add(f"{row} off baseline declared", baseline is not None):
-                    drift = compare_outputs.compare(off / row, baseline / row)
-                    checks.add(f"{row} off matches step 0 baseline", drift["ok"], drift)
-            if row in route.get("tier1_rows", []):
-                if checks.add(f"{row} tier 1 evidence declared", t1 is not None):
-                    check_tier1(checks, row, jobs, seeds, t1, t1_limits)
+            check_row(ctx, s, row, route, baseline, t1, t1_limits)
             if not checks.add(f"{row} tier 2 evidence declared", t2 is not None):
                 continue
-            ok_paths = (
-                Path(t2.get("off", "")).resolve() == off.resolve()
-                and Path(t2.get("cand", "")).resolve() == cand.resolve()
+            seeds = ctx.seeds(row)
+            checks.add(
+                f"{row} tier 2 measured these runs",
+                _same_path(t2.get("off"), s["off"])
+                and _same_path(t2.get("cand"), s["cand"]),
             )
-            checks.add(f"{row} tier 2 measured these runs", ok_paths)
             for e in t2.get("entries", []):
                 if e["id"] != row:
                     continue
@@ -329,9 +853,10 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
                         found,
                     )
                 entries.append(e)
-            if row in zn_extra:
+            logged_extra = draw.get("zn_extra", {}).get(row)
+            if logged_extra:
                 _check_zn_extra(
-                    checks, row, seeds, zn_extra[row], t2, zn_sets, evidence, capability
+                    checks, row, seeds, logged_extra, t2, extra_runs.get(row, {})
                 )
         t2_rows = [r for r in s.get("rows", []) if r in table]
         if t2 is not None and t2_rows:
@@ -341,8 +866,14 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
             entries = []
     for r in results:
         checks.add(f"{r['id']} {r['job']} tier 2", r["pass"], r["failed"])
-    undeclared = sorted({r for z in zn_sets for r in z.get("rows", [])} - set(zn_extra))
-    checks.add("extra Zn runs have logged seeds", not undeclared, undeclared)
+    logged_rows = {r for r, v in draw.get("zn_extra", {}).items() if v}
+    unlogged = sorted({r for z in zn_sets for r in z.get("rows", [])} - logged_rows)
+    checks.add("extra Zn runs have logged seeds", not unlogged, unlogged)
+    checks.add(
+        "every run shares one set of software versions",
+        len(ctx.versions) == 1,
+        sorted(ctx.versions),
+    )
     zn = tier2_gates.zn_claim(results)
     frozen = gpu.get("frozen", {})
     hashes = {"tier1": sha256(t1_path), "tier2": sha256(t2_path)}
@@ -353,34 +884,10 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
                 f"{k} limits match the frozen hash",
                 frozen[f"{k}_limits_sha256"] == v,
             )
-    return _verdict(checks, evidence, is_frozen, zn, hashes)
+    return _verdict(checks, evidence, is_frozen, zn, hashes, draw.get("code_commit"))
 
 
-def _check_zn_extra(checks, row, seeds, extra, t2, zn_sets, ev, capability):
-    sets = [s for s in zn_sets if row in s.get("rows", [])]
-    if not checks.add(f"{row} extra Zn runs declared", len(sets) == 1):
-        return
-    off, cand = Path(sets[0]["off"]), Path(sets[0]["cand"])
-    check_traces(checks, row, off, cand, extra, ev, capability)
-    for e in t2.get("entries", []):
-        if e["id"] != row or not e.get("zn"):
-            continue
-        by_seed = [b["seeds"][0] for b in e["zn"].get("by_seed") or []]
-        checks.add(
-            f"{row} {e['job']} Zn seed order",
-            by_seed == list(seeds) + list(extra),
-            by_seed,
-        )
-        for s in extra:
-            same = all(
-                _measure_dir(t2, key, row, e["job"], s).resolve()
-                == (run / row / e["job"] / f"seed_{s}").resolve()
-                for key, run in (("off", off), ("cand", cand))
-            )
-            checks.add(f"{row} {e['job']} extra seed {s} measured from its runs", same)
-
-
-def _verdict(checks, evidence, frozen, zn="none", hashes=None):
+def _verdict(checks, evidence, frozen, zn="none", hashes=None, code_commit=None):
     """Any failed check fails. With every check passing, a Zn claim other than
     ``qualified`` (H3 unresolved at its seed cap) is a partial result without
     Zn, which is not an acceptance; unfrozen limits make the result provisional."""
@@ -400,7 +907,7 @@ def _verdict(checks, evidence, frozen, zn="none", hashes=None):
         "gpu": evidence.get("gpu"),
         "route": evidence.get("route"),
         "candidate": evidence.get("candidate"),
-        "commit": evidence.get("commit"),
+        "code_commit": code_commit,
         "held_out_draw": evidence.get("held_out_draw"),
         "limits_sha256": hashes,
         "failed": [c["check"] for c in failed],
