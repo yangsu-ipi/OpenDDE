@@ -38,6 +38,7 @@ INPUTS = ROOT / "scripts" / "qualification" / "inputs"
 VERSIONS = {"torch": "2.7.1+cu128"}
 HOST_ENV = {"OPENDDE_QUAL_DATA": "/qual", "OPENDDE_QUAL_KALIGN": "/bin/kalign"}
 CAND_ARGS = ["--optimization_mode", "fast"]
+CONTRACT_TAG = "qual-sm120-contract-test"
 H3_JOB = "9sat_unconstrained"
 N_SAMPLE = 5
 DEV = [f"D{i}" for i in range(1, 16)]
@@ -47,7 +48,7 @@ HELD = [f"H{i}" for i in range(1, 11)]
 def _git(repo: Path, *args: str) -> str:
     return subprocess.run(
         ["git", "-C", str(repo), "-c", "user.name=test", "-c", "user.email=t@t"]
-        + ["-c", "commit.gpgsign=false", *args],
+        + ["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false", *args],
         check=True,
         capture_output=True,
         text=True,
@@ -152,12 +153,25 @@ class World:
     """A passing evidence set, its run records and the Git checkout accept.py reads."""
 
     def __init__(
-        self, tmp: Path, h3_extra=(), h3_zn=None, frozen=False, cand_args=CAND_ARGS
+        self,
+        tmp: Path,
+        h3_extra=(),
+        h3_zn=None,
+        frozen=False,
+        cand_args=CAND_ARGS,
+        candidate_change=None,
     ):
+        """The checkout has a contract commit (tagged ``CONTRACT_TAG`` when
+        ``frozen``), then the candidate's code commit, which changes model code
+        outside the qualification directory and applies ``candidate_change``."""
         self.tmp = tmp
         self.repo = tmp / "repo"
-        self.inputs = self.repo / "inputs"
+        self.qual = self.repo / "scripts" / "qualification"
+        self.inputs = self.qual / "inputs"
         shutil.copytree(INPUTS, self.inputs, ignore=shutil.ignore_patterns("msa"))
+        (self.qual / "zn_sites.py").write_text("SAME_OUTCOME = 2.0\n")
+        (self.repo / "opendde").mkdir()
+        (self.repo / "opendde" / "model.py").write_text("stock = True\n")
         self.manifest = json.loads((INPUTS / "manifest.json").read_text())
         self.table = {r["id"]: r for r in self.manifest["rows"]}
         self.limits = json.loads((INPUTS / "tier2_limits.json").read_text())
@@ -173,13 +187,23 @@ class World:
         (self.inputs / "baseline_off.json").write_text(json.dumps(baseline))
         self.log = {"description": "test", "draws": []}
         self.write_log()
-        if frozen:
-            acceptance["gpus"]["sm_120"]["frozen"] = {
+        acceptance["gpus"]["sm_120"]["frozen"] = (
+            {
                 "tier1_limits_sha256": accept.sha256(self.inputs / "tier1_limits.json"),
                 "tier2_limits_sha256": accept.sha256(self.inputs / "tier2_limits.json"),
+                "contract_tag": CONTRACT_TAG,
             }
-            (self.inputs / "acceptance.json").write_text(json.dumps(acceptance))
+            if frozen
+            else {}
+        )
+        (self.inputs / "acceptance.json").write_text(json.dumps(acceptance))
         _git(self.repo, "init", "-q")
+        self.contract = self.commit("contract")
+        if frozen:
+            _git(self.repo, "tag", "-a", CONTRACT_TAG, "-m", "contract")
+        (self.repo / "opendde" / "model.py").write_text("stock = False\n")
+        if candidate_change:
+            candidate_change(self)
         self.code = self.commit("candidate code")
         self.cand_args = list(cand_args)
         self.draw = {
@@ -471,6 +495,65 @@ def test_complete_pass_is_provisional_until_frozen_then_full(tmp_path):
     world = World(tmp_path / "b", frozen=True)
     verdict = world.run()
     assert verdict["exit_code"] == accept.FULL and verdict["zn_claim"] == "qualified"
+    contract = [c["check"] for c in verdict["checks"] if "contract tag" in c["check"]]
+    assert contract == [
+        "contract tag present",
+        "code commit descends from the contract tag",
+        "qualification files unchanged since the contract tag",
+    ]
+
+
+def _bump_constant(world):
+    (world.qual / "zn_sites.py").write_text("SAME_OUTCOME = 2.5\n")
+
+
+def _loosen_limits_and_rehash(world):
+    path = world.inputs / "tier2_limits.json"
+    limits = json.loads(path.read_text())
+    limits["classes"]["flexible"]["pair_fnat_min"] = 0.1
+    path.write_text(json.dumps(limits))
+    acceptance = json.loads((world.inputs / "acceptance.json").read_text())
+    acceptance["gpus"]["sm_120"]["frozen"]["tier2_limits_sha256"] = accept.sha256(path)
+    (world.inputs / "acceptance.json").write_text(json.dumps(acceptance))
+
+
+@pytest.mark.parametrize("change", [_bump_constant, _loosen_limits_and_rehash])
+def test_qualification_change_in_the_candidate_commit_fails(tmp_path, change):
+    """A gate constant, or limits changed together with their frozen hash."""
+    world = World(tmp_path, frozen=True, candidate_change=change)
+    verdict = _fails(world, "qualification files unchanged since the contract tag")
+    assert verdict["failed"] == ["qualification files unchanged since the contract tag"]
+
+
+def test_code_commit_not_descending_from_the_tag_fails(tmp_path):
+    """The same qualification tree, but tagged on unrelated history."""
+    world = World(tmp_path, frozen=True)
+    tree = _git(world.repo, "rev-parse", f"{CONTRACT_TAG}^{{tree}}")
+    orphan = _git(world.repo, "commit-tree", tree, "-m", "elsewhere")
+    _git(world.repo, "tag", "-f", "-a", CONTRACT_TAG, "-m", "moved", orphan)
+    verdict = _fails(world, "code commit descends from the contract tag")
+    assert verdict["failed"] == ["code commit descends from the contract tag"]
+
+
+def test_missing_contract_tag_fails(tmp_path):
+    world = World(tmp_path, frozen=True)
+    _git(world.repo, "tag", "-d", CONTRACT_TAG)
+    _fails(world, "contract tag present")
+
+
+def test_freeze_without_a_contract_tag_fails(tmp_path):
+    """Limit hashes alone do not declare a complete freeze."""
+
+    def drop_tag_name(world):
+        acceptance = json.loads((world.inputs / "acceptance.json").read_text())
+        acceptance["gpus"]["sm_120"]["frozen"]["contract_tag"] = None
+        (world.inputs / "acceptance.json").write_text(json.dumps(acceptance))
+
+    world = World(tmp_path, frozen=True, candidate_change=drop_tag_name)
+    verdict = _fails(world, "contract tag present")
+    assert "qualification files unchanged since the contract tag" not in [
+        c["check"] for c in verdict["checks"]
+    ]
 
 
 def test_changed_limits_after_freeze_fail(tmp_path):

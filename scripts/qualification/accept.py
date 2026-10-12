@@ -59,12 +59,17 @@ Checks:
   ``tier2_gates.evaluate`` with the expected seeds, H3's extra seeds are covered by their own runs and
   measured from them in log order, and the aggregate Zn claim is
   ``qualified``;
-- the limits files match the hashes frozen in ``acceptance.json``.
+- once ``acceptance.json`` declares a freeze: the limits files match its
+  hashes, and its ``contract_tag`` exists, is an ancestor of the draw's code
+  commit, and the qualification directory (code, constants, inputs, limits,
+  recipe, baseline, wrapper) is unchanged from the tag apart from the
+  held-out log. This runs at the candidate's commit, so it catches accidental
+  change, not deliberate tampering.
 
 Exit status: 0 full acceptance; 1 failure; 2 every check passes except the
 Zn claim, which is reported as a partial result without Zn and is not an
 acceptance (an H3 unresolved at its seed cap is a held-out failure); 3 every
-check passes but the limits are not frozen yet (provisional).
+check passes but no freeze is declared yet (provisional).
 """
 
 import argparse
@@ -309,6 +314,29 @@ def _extends(old, new) -> bool:
         if any(zb.get(row, [])[: len(s)] != s for row, s in za.items()):
             return False
     return True
+
+
+def check_contract(checks: Checks, git: Git | None, root: Path, tag) -> None:
+    """The draw's code commit descends from the frozen contract tag and holds
+    the tag's qualification directory (code, constants, inputs, limits,
+    recipe, baseline and wrapper) unchanged apart from the held-out log."""
+    repo = git.repo if git else None
+    tagged = repo.commit(f"refs/tags/{tag}") if repo and isinstance(tag, str) else None
+    if not checks.add("contract tag present", tagged is not None, tag):
+        return
+    checks.add(
+        "code commit descends from the contract tag",
+        repo.is_ancestor(tagged, git.code),
+        {"tag": tag, "code_commit": git.code},
+    )
+    qual = root.resolve().parent.relative_to(repo.path.resolve()).as_posix()
+    out = repo.git("diff", "--name-only", tagged, git.code, "--", qual)
+    changed = None if out is None else sorted(set(out.splitlines()) - {git.log_path})
+    checks.add(
+        "qualification files unchanged since the contract tag",
+        changed == [],
+        changed,
+    )
 
 
 def check_git(checks: Checks, root: Path, draw) -> Git | None:
@@ -1040,27 +1068,29 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
     zn = tier2_gates.zn_claim(results)
     frozen = gpu.get("frozen", {})
     hashes = {"tier1": sha256(t1_path), "tier2": sha256(t2_path)}
-    is_frozen = all(frozen.get(f"{k}_limits_sha256") for k in hashes)
+    fields = [f"{k}_limits_sha256" for k in hashes] + ["contract_tag"]
+    is_frozen = any(frozen.get(f) for f in fields)
     if is_frozen:
         for k, v in hashes.items():
             checks.add(
                 f"{k} limits match the frozen hash",
-                frozen[f"{k}_limits_sha256"] == v,
+                frozen.get(f"{k}_limits_sha256") == v,
             )
+        check_contract(checks, git, root, frozen.get("contract_tag"))
     return _verdict(checks, evidence, is_frozen, zn, hashes, draw.get("code_commit"))
 
 
 def _verdict(checks, evidence, frozen, zn="none", hashes=None, code_commit=None):
     """Any failed check fails. With every check passing, a Zn claim other than
     ``qualified`` (H3 unresolved at its seed cap) is a partial result without
-    Zn, which is not an acceptance; unfrozen limits make the result provisional."""
+    Zn, which is not an acceptance; an undeclared freeze makes it provisional."""
     failed = checks.failed()
     if failed:
         status, code = "fail", FAIL
     elif zn != "qualified":
         status, code = "partial without Zn (not an acceptance)", PARTIAL
     elif not frozen:
-        status, code = "provisional: limits not frozen", PROVISIONAL
+        status, code = "provisional: contract not frozen", PROVISIONAL
     else:
         status, code = "full acceptance", FULL
     return {
