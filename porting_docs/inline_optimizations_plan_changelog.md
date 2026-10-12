@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 53 (2026-10-12)
+
+Documentation only. The frozen contract, limits and held-out log are unchanged; no porting or GPU run was started.
+
+- Add an independent contract-version gate before the first held-out draw and at final acceptance. Use the approved verifier from a trusted checkout, check the candidate's declared tag against the approved tag, and test an actual contract-2 verifier/candidate against contract-3. Reason: a candidate branched from contract-2 carries an `accept.py` that has no newest-tag or receipt check; adding contract-3 to its tag list cannot make that older code enforce either rule. The current unit test calls contract-3 code with a stale tag, which does not cover this path.
+- Replace the obsolete instructions to implement the receipt binding and create contract-3 with its completed status and the remaining candidate-side rehearsal. Correct the protocol's current test count to 175. Reason: future-tense instructions beside completed work could cause a second amendment or obscure the actual readiness gate.
+- State that the logged receipt is a pre-draw record, not independent proof that `dev-rehearsal` ran. Its verdict hash is recorded but not checked against a retained verdict file; final acceptance reevaluates the same development evidence. Reason: the procedure should describe the assurance the current verifier provides without claiming more than its checks establish.
+
 ## Revision 52 (2026-10-12)
 
 Status update recording the contract-3 amendment (user go-ahead); no requirement changes.
