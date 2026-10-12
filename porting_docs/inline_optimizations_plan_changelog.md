@@ -2,6 +2,24 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 33 (2026-10-11)
+
+Documentation only. The full sm_120 tier 2 contract remains unapproved; no limit, acceptance code, GPU run or held-out output changed. Revision 32's findings were checked against `accept.py`, `run_opendde.py`, `trace_tools.py` and `compare_outputs.py` and hold; this revision adds what they missed and simplifies two repairs.
+
+- Add a run record written on every `run_opendde.py` invocation: the existing header plus the wrapper options.
+  - *Reason:* the header is written only into trace or timing files, so the trace-off repeat and the tier 1 captures record no provenance, and no run records its `--tier1-replay` source.
+- Derive the expected rollouts and prediction artifacts from the input's jobs, the logged seeds and the frozen recipe, and require the trace to match them before `check_manifest()`.
+  - *Reason:* `check_manifest()` takes its expectation from the trace's own `rollouts`, so a rollout missing from both header and records, or a wrong `N_sample` or `N_step`, passes; a job missing from both a candidate and its repeat passes the byte comparison.
+- Rebuild each run's expected command line from the manifest row with `run_rows.py`'s own construction, and require `off` to match it exactly and the candidate to add exactly its declared arguments; check `LAYERNORM_TYPE` and `CUBLAS_WORKSPACE_CONFIG` from the fingerprint.
+  - *Reason:* nothing today requires the candidate to differ from `off`, so a candidate that silently ran `off` passes every check. The code commit pins defaults, so rebuilding the command line covers the effective settings without dumping the resolved config.
+- Bind each held-out draw entry to the candidate's `code_commit` and declared arguments; require every run (not only H3's) to come from a clean commit differing from `code_commit` only in `held_out_log.json` and containing its seeds; require the log's Git history to be append-only, with seeds single-use across every version. This replaces revision 32's ordered-descent rule.
+  - *Reason:* development and tier 1 runs may also precede the draw's log commit; without `code_commit` a candidate changed after a held-out failure could rerun the same logged draw; an edited or removed entry is invisible to a check of the current file. The H3 seed order is already checked through `by_seed`, so an ancestry chain adds nothing.
+- Name the baseline manifest's source runs (tier 1 `off`, jobs 48900-48903 at `44e1fd1`, for D1-D13; the Zn calibration `off` for D14 and D15) and their recipe, and remove `off_baseline` from the evidence set.
+  - *Reason:* once the digests are committed, an evidence-supplied path adds nothing but an aliasing risk; the source runs must share the acceptance recipe for the drift check to mean anything.
+- State that acceptance runs come from a Git checkout, and propose a dedicated acceptance clone on gnode2 for the user's decision.
+  - *Reason:* the scratch copy carries no commit, and H3's log commits require updating the checkout between jobs, which the no-sync rule for `~/OpenDDE` would block while other jobs are queued.
+- Add the corresponding failure tests and an implementation order (protocol E5).
+
 ## Revision 32 (2026-10-11)
 
 Documentation only. The full sm_120 tier 2 contract remains unapproved; no limit, acceptance code, GPU run or held-out output changed.
