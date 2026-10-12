@@ -2,6 +2,12 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 47 (2026-10-12)
+
+Status update; no requirement changes.
+
+- Record that the `dev-rehearsal` route and exit code 4 are implemented and tested (`c113fb2`; 156 qualification tests pass on gnode2, job 49450). The branch's `scripts/qualification` now differs from `qual-sm120-contract-1`, so the next step is the amendment: tag `qual-sm120-contract-2`, rerun the D1 smoke test at it and record contract-1 as superseded, before porting starts.
+
 ## Revision 46 (2026-10-12)
 
 Documentation only. The approved sm_120 limits, held-out assignments and frozen tag are unchanged.
