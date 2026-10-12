@@ -2,6 +2,12 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 43 (2026-10-12)
+
+Status update; no requirement changes.
+
+- Record that the contract-tag check is implemented and tested (`0dfbca0`): `acceptance.json` gains `frozen.contract_tag`; once a freeze is declared, `accept.py` requires both limit hashes, the tag, the draw's code commit descending from it and no change under `scripts/qualification` apart from the held-out log; a partial freeze fails. The test fixture uses a contract commit and clears the copied `frozen` block. All 149 qualification tests pass on gnode2 (job 49437). Only the freeze itself remains before sm_120 tuning.
+
 ## Revision 42 (2026-10-12)
 
 Documentation only. The approved sm_120 contract, limits, held-out assignments, qualification code and GPU results are unchanged; nothing is frozen yet.
