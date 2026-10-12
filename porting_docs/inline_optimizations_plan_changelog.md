@@ -2,6 +2,19 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 30 (2026-10-11)
+
+Documentation only. No GPU run, limit, evaluator or held-out output changed.
+
+- Make an H3 Zn result unresolved at its four-extra-seed cap a held-out failure (candidate rejected, set used up); "partial without Zn" is a report label only. State the expected cost for a harmless candidate.
+  - *Reason:* revision 29 recorded the unresolved result separately without saying whether the candidate is rejected, while the existing rule counts an inconclusive held-out result after its declared resolution test as a failure. The extra seeds are that test. If H3 behaves like D3, at most three same-outcome pairs in 30 samples has probability below 1% at a 30% same-outcome rate and about 12% at 20%.
+- Replace the row-completeness requirement with one acceptance command over a declared evidence set: required rows per GPU and route in a committed file; input digests, commit and limits hash; per row the random-input comparison, tier 1, determinism, tier 2 measurements and held-out log entries; seed provenance checks; exit 0 only for full acceptance; tests for each way a pass could be faked.
+  - *Reason:* the evaluator checks only seed and sample counts, so a held-out row run with seeds 101/102 would pass, making H10 a copy of D4; trace, tier 1 and determinism results come from separate commands; development and held-out evidence arrive in separate measurements.
+- State that a retry after a held-out failure uses fresh seeds on inputs already seen, a weaker seed-only test, and that extra held-out inputs can be reserved only before the first held-out run.
+  - *Reason:* the pool has ten inputs; "a fresh set" cannot mean unseen inputs.
+- Record reduced assurance for flexible interface Fnat 0.55 without a fourth contrast, and add the near-duplicate count at its cap and D11's constrained-distance change to the reduced-assurance list. Count 15 distinct development results.
+  - *Reason:* `--deterministic false` changes only reduction order and would barely test a limit resting on three same-outcome pairs. D3 and D13's `1a14` job are the same input with the same seeds, so the near-duplicate cap was reached on one input, not two.
+
 ## Revision 29 (2026-10-11)
 
 Documentation only. The held-out classes are accepted as predeclared sm_120 tests, but the full tier 2 contract remains unapproved. No held-out prediction, GPU run, limit file or evaluator was changed.
