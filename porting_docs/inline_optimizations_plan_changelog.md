@@ -2,6 +2,21 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 36 (2026-10-11)
+
+Documentation only. Full sm_120 tier 2 approval remains withheld; no limit, acceptance code, GPU output or held-out result changed. Revision 35's three findings were checked against `tier2_gates.py`, `accept.py` and `run_opendde.py` and hold; this revision sharpens the repairs.
+
+- Derive tier 2 seed pairs per row from the held-out log (`measure --draw ID`) and record them on every entry, instead of only checking a hand-typed list.
+  - *Reason:* `measure` takes one `--seed-pairs` list per call, so beyond crossed pairs, one measurement cannot cover the held-out set, whose rows each have their own seeds; the synthetic acceptance tests wrote the held-out `tier2` file directly and hid this.
+- Bind measurements to runs by digests recorded on both sides: the producing run records what it wrote, the measurement records what it read and its code revision, and `accept.py` compares them. Drop recomputation as an alternative.
+  - *Reason:* this proves the measurement read exactly that run's outputs, makes a missing `tier1.pt` a failure, and avoids rereading tens of gigabytes of captures; `compare_structures` needs at least 12 CPUs and about 17 GB per pass.
+- Record in the run record whether the output and capture directories existed before the run, and require that they did not; keep `run_rows.py`'s refusal as well.
+  - *Reason:* a refusal in `run_rows.py` alone is a procedure the acceptance command cannot see.
+- Test the exceptional-exit path on CPU with a monkeypatched CLI, and note that killed jobs write no record.
+  - *Reason:* a controlled exception on GPU would need a fault-injection hook in the wrapper; the CPU test covers the same code deterministically.
+- Specify the GPU smoke test as an end-to-end D1 slice (traced `off`, untraced repeat, tier 1 capture, measurement, per-row acceptance checks including drift against the step 0 baseline), with candidate-side checks stated as covered only synthetically. Add an implementation order.
+  - *Reason:* the drift check on a fresh run is the most informative real check available before a candidate exists.
+
 ## Revision 35 (2026-10-11)
 
 Documentation only. Full sm_120 tier 2 approval remains withheld. No numeric limit, acceptance code, GPU output or held-out result changed.
