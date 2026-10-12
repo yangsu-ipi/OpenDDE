@@ -2,6 +2,13 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 56 (2026-10-12)
+
+Status update recording the contract-4 amendment (user go-ahead); no requirement changes.
+
+- Record `qual-sm120-contract-4` (commit `3e6284a`, annotated tag pushed): relative to `qual-sm120-contract-3`, only `qual_gate.py` (new), `accept.py` and `acceptance.json` changed; the limit files and hashes are unchanged. Earlier tags are superseded, the port branches from `qual-sm120-contract-4`, and no further amendment is planned before a first candidate exists.
+- Record the D1 GPU smoke test at the tag (61 of 61 checks and 188 qualification tests, job 49476) and the real-repository gate runs: the repository at the tag and a candidate commit on it pass; a candidate at `qual-sm120-contract-3` is refused on the named tag, descent and qualification files.
+
 ## Revision 55 (2026-10-12)
 
 Status update; no requirement changes.
