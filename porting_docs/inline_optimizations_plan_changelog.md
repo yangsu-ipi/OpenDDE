@@ -2,6 +2,17 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 45 (2026-10-12)
+
+Documentation only. The approved sm_120 limits, qualification code, held-out assignments and frozen tag are unchanged; no porting or candidate run began.
+
+- Separate contract approval and freeze from readiness to open held-out inputs. Require a development-only acceptance route or mode for D1-D15, with the production per-run, per-row and tier checks, complete candidate evidence, an independent repeat, no held-out seed use and no exit 0. Test its success and representative failures, then rehearse the first candidate on development rows.
+  - *Reason:* the current `accept.py` has only the `port-chosen` route, which requires H1-H10 and a held-out draw. The proposed rehearsal cannot run as written, while candidate-side behavior has only synthetic coverage. A harness failure on held-out data would consume the set.
+- Require a new contract tag and D1 stock-side smoke test after adding that route or mode, before any held-out draw. Check that the tag and freeze commit are present in the dedicated acceptance clone.
+  - *Reason:* the freeze rejects changes under `scripts/qualification`, including this necessary addition; a local tag alone does not establish that the acceptance clone can resolve it.
+- Replace stale claims that the sm_120 limit hashes still need freezing with the recorded `qual-sm120-contract-1` status in the plan and protocol.
+  - *Reason:* the hashes were recorded at Revision 44, so those future-tense instructions contradicted the freeze status.
+
 ## Revision 44 (2026-10-12)
 
 Status update recording the sm_120 freeze (user go-ahead); no requirement changes.
