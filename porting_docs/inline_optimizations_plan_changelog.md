@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 31 (2026-10-11)
+
+Status update only; no requirement changes.
+
+- Record that the acceptance command required by revision 30 is built and tested (`accept.py`, 17 tests; 88 qualification tests pass on gnode2), and that the reduced-assurance items are recorded.
+  - *Reason:* the status line listed both as open.
+- State what remains before the sm_120 freeze: the user's approval of the full contract, including the command's implementation choices and stated gaps (protocol E5), then recording the limit hashes in `acceptance.json`.
+  - *Reason:* those choices (tier 1, determinism and trace checks on held-out rows; seeds single-use across the log) add GPU runs per candidate and limit future draws, so they belong in the approval.
+
 ## Revision 30 (2026-10-11)
 
 Documentation only. No GPU run, limit, evaluator or held-out output changed.
