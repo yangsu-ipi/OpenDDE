@@ -2,6 +2,16 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 87 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Verify archives with the unmodified `accept.evidence_digest` from the tag checkout, presenting the archive read-only at the original paths with bubblewrap, instead of a mapping-aware reimplementation. Reason: `evidence_digest` reads declared paths as written and evidence JSONs use absolute paths, so the frozen function reproduces the ledger digest directly; `bwrap` works unprivileged on gnode2 while `unshare` is blocked by AppArmor (checked 2026-10-13); a second implementation would need its own tests and could drift from `accept.py`.
+- Add a per-job launch guard to the batch script and state that it, not the rerun rule, is the main protection. Reason: held-out runs use two seeds with predictions written after each, so a mid-run capacity failure usually leaves first-seed predictions and is not rerun-eligible, while a job that never launches is not an attempt.
+- Replace "nearly all run outputs" with the stand-in breakdown (28 GB tier 1 captures, 6.9 GB predictions, 0.9 GB tier 1 run outputs) and estimate by component. Reason: captures dominate and scale with tokens times seeds, and the held-out rows differ in size from the development rows.
+- Require fresh output and capture directories for a capacity rerun. Reason: `accept.py` requires that neither existed before the run.
+- Split the D5 cross-machine comparison into an exact template-hit/alignment digest and a feature digest, build the VM from the same conda lockfile, and attribute only a hit-stage difference to Kalign or the template pipeline. Reason: a same-machine repeat cannot detect differences between CPUs, and floating-point features may differ between CPUs or numpy/BLAS builds for reasons unrelated to Kalign.
+
 ## Revision 86 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
