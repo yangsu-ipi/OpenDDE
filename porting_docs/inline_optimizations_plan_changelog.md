@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 79 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Run every qualification run from a private, read-only copy of the runtime assets under `/data/yang.su/` (selected checkpoint, `common/` and the kalign binary, about 3.3 GB), with `OPENDDE_ROOT_DIR` and `OPENDDE_QUAL_KALIGN` pointed at it; its digests are the freeze-time reference, and creating it is a contract-6 release step. Ordinary porting runs may keep using the shared directory. Reason: `/data/shared/models/opendde` is owned and writable by the administrators, the two variables are unchecked per-host settings, and an asset refresh while a line is open would invalidate the evidence set and burn the draw's seeds.
+- Add the kalign binary to the template-row assets. Reason: D5's template alignment runs it, and neither its path nor its bytes were checked.
+- Link the freeze-time assets to step 0 through the byte-identical drift check (D1 at contract-6, all 15 development rows at the first rehearsal, D5 covering template metadata and kalign), leaving file identity explicitly unclaimed. Reason: the drift check is the retained evidence revision 78 asked for, at the level of outputs.
+- Describe the template-cache absence check as defence in depth. Reason: the cache lives under `{out}`, which `accept.py` already requires not to exist before the run.
+
 ## Revision 78 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
