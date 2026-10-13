@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 74 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Make contract-6 and its seed-budget decision a prerequisite for development porting, and remove the older statements that porting may start before the decision or that the first candidate commit is the latest deadline. Reason: the new run-provenance rule must cover development inference from its first run; the amendment and tests have their own cost.
+- Treat a reserved seed on D8 as a stop, alongside D4, and limit their development exemption to the exact frozen input digest, row recipe and seeds below 200. Reason: the revised do-not-run rule already stopped on both inputs at reserved seeds, while the older budget text exempted all development inputs except D4; a changed 9lh2 sibling must not inherit D8's exemption.
+- Specify contract-6 provenance for file and directory inputs: inventory every discovered source JSON, capture the effective JSON at the inference read point after preprocessing, map both to jobs and actual seeds, and compare paired effective inputs with path-independent handling for generated files. Add the corresponding failure tests. Reason: a single pre-run path hash neither covers directory input nor proves what inference read after MSA or template preprocessing.
+- Define the audit match as a canonical entity signature with types, sequences or ligand identities, and counts, alongside input digests; retain signatures and digests for protected siblings not in `digests.json`. Correct 9lh2 and 7wux from "two chains" to two protein sequence entries with count two each, plus ligands. Reason: those JSONs expand to more than two chains, and a sequence-only or manifest-digest-only check misses entity changes and unlisted siblings.
+
 ## Revision 73 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
