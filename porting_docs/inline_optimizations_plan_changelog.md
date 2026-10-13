@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 86 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Narrow the one-time capacity rerun to a documented filesystem or quota failure before any prediction artifact was written. Preserve the failed tree, scheduler evidence and any run record; a forced kill can leave no run record. Keep the candidate and all declared arguments fixed, and abandon the line if the failure or artifact state is ambiguous. Reason: a broad "capacity" exception could permit rerunning a model failure or discarding an unfavorable partial result, while missing run metadata cannot prove that no prediction was produced.
+- Require a tested mapping-aware verifier before deleting archived held-out outputs. It must reproduce the ledger's held-out `evidence_digest` from unchanged original set declarations and relocated run records, traces and measurements, using the recorded path map. Reason: `evidence_digest` includes original paths in each declaration and dereferences those paths, so a simple recomputation after relocation would fail even for an intact archive.
+- Scope the D5 cross-machine digest to the complete model-consumed template feature set, define its canonical serialization, and check repeatability on gnode2 before comparing the VM. A differing Kalign binary cannot be described as an identical asset; differing features make D5 a different preprocessing workload. Reason: an equal digest of an unspecified feature subset cannot prove broad CPU determinism or equivalence of every preprocessing step.
+
 ## Revision 85 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
