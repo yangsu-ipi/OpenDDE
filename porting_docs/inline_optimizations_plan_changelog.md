@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 63 (2026-10-12)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Record each closed acceptance line's final pushed commit ID and verdict in a version-controlled `porting_docs/qualification_line_ledger.md` (created at the first closure), outside the acceptance clone. Before a later candidate's rehearsal, require those commits in its ancestry and its held-out log to extend each recorded version under `_extends`; recover an unavailable commit before proceeding. Reason: branch names can move or disappear, and checking their current tips alone cannot establish continuity from an earlier draw.
+- Make the D1 candidate smoke a paired `off`/candidate check from the candidate code commit, with draw-trace and tier 1 comparison, and include the runner hook targets in the diff review. Compare `instrumentation.py` with the active contract tag. Reason: a candidate-only run has no stock comparison, runner hooks are also outside the frozen qualification directory, and a fixed contract-5 comparison would reject a later approved amendment.
+- Use one contract-amendment rule throughout the live plan and protocol: before the first held-out draw or between completed draws, never during one. If hook changes alter measurement semantics, recalibrate after the stock smoke test. Reason: old pre-first-draw wording contradicted revision 62's between-draw policy.
+
 ## Revision 62 (2026-10-12)
 
 Operator rules and wording; contract-5, qualification code and numeric limits are unchanged, and no GPU work or porting began.
