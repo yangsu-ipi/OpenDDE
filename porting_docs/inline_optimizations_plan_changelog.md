@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 70 (2026-10-12)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Add a held-out do-not-run list, applying from the start of porting: H1 (`examples/cofold/input.json`, the default example of `inference_demo.sh` and several documents), all `examples/tfg/9sat/` and `9xqn/` files, `9lh2_contact.json` and its guided sibling `9lh2_pocket.json`, and the H2, H8 and H9 qualification inputs; D4's input (H10) only at reserved seeds. Porting, profiling, benchmarking, smoke, debugging and documentation runs use development inputs only. Before every draw, scan registered run stores for these inputs by path and by `digests.json` digest; a hit is the stop condition. Reason: running a held-out input at any seed exposes it, the default example is H1, and nothing previously named the files or detected such a run.
+- Refocus the seed audit on seed and input pairs: require explicit `--seeds` below 200, read the seed actually used from `seed_<n>` output directories or run records, treat a reserved seed on a development input other than D4 as a recorded deviation, and stop only for a held-out input or D4's input at a reserved seed. Reason: OpenDDE picks a random seed from 1 to 65536 when none is given, and a seed carries holdout information only on a held-out input; H10 shares D4's input.
+- State each serial line's cost: the whole development set reruns, about 4 GPU-hours on sm_120 from the stand-in timings, because ledger and documentation commits change the code commit. Budget lines in GPU-hours as well as seeds. Reason: the draw-budget decision should see both costs.
+
 ## Revision 69 (2026-10-12)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
