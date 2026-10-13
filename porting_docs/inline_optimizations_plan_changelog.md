@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 67 (2026-10-12)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Keep the existing `qual-sm120-contract-N` family as the default shared sm_120/sm_80 contract family. If a new shared family is chosen instead, retire the old one with a higher-numbered tag at the transition and test that a contract-5 gate refuses an old candidate. Reason: the gate searches only the tag family named by its own checkout, so an unretired old family could still approve an old candidate.
+- Separate the current directory-wide coupling from the proposed GPU-scoped alternative. The shared design re-tags and D1-smoke-tests both GPUs after every amendment. A scoped design first needs shared/private file boundaries, per-GPU handling of `acceptance.json`, changes to the gate and verifier, and a tested transition; only then can GPU-private changes avoid re-tagging the other GPU. Reason: the previous text promised independent changes while also requiring both GPUs to re-tag for every change.
+- Require proof that the GitHub tag and acceptance-branch rulesets are active, match the intended refs and have no unapproved bypass before the next contract amendment or first receipt push. Retain the rule IDs and verification result. Reason: a configured but ineffective rule does not protect the newest tag or the line-checker's ref inventory.
+- Bound the seed-history claim to the records actually audited, record search scope and gaps, and reserve any expanded range against later development use. Reason: scanning known run stores cannot prove that an unrecorded ad hoc run never used a seed.
+
 ## Revision 66 (2026-10-12)
 
 Documentation only; contract-5, qualification code and limits are unchanged. No GPU work or porting began.
