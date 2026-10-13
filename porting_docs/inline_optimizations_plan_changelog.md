@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 84 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Separate the archive prechecks by what each digest binds: `record.json` hashes the evidence JSON text, the receipt holds a canonical digest of development evidence, and run records hash prediction artifacts and tier 1 captures. Verify each against its own source; give other files a new archive-time manifest baseline. Reason: comparing unlike digests, or treating an archive-time manifest as an earlier verdict binding, would misstate which bytes were accepted.
+- Require an operator-writable destination with a storage-admin durable-write and independent-verification procedure before the first receipt. Keep local originals if the only destination is the current `soft` NFS mount; a same-client read after `sync` or direct I/O is insufficient proof of server-side persistence. Reason: verification must justify removing the local evidence, not just show that the producing client can read cached or server-returned bytes.
+- When headroom falls below the remaining estimate plus margin, stop launching jobs, preserve the open-line evidence, assess active jobs, and never reuse declared draw seeds. Resume only after a fresh preflight under the same contract, or close the line as abandoned. Reason: a blanket instruction to continue into likely disk exhaustion risks invalid evidence and the shared filesystem.
+- Exercise D5 during sm_80 stock calibration whether the copied Kalign runs or a VM-specific binary is needed. Reason: byte-identical executables do not by themselves establish preprocessing behavior on the VM.
+
 ## Revision 83 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
