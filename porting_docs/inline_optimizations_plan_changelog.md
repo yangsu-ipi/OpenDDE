@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 81 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Add a disk-headroom rule: budget about 70 GB per acceptance line (the stand-in rehearsal's evidence was 36 GB, and a held-out batch should be similar), check free space on the filesystem and the quota before the receipt and each held-out batch, archive closed lines to `/mnt/nas-backups`, and archive rather than delete unneeded step 0 artifacts. Reason: on 2026-10-13 the quota had about 250 GiB and the shared `/data` filesystem 215 GB free (95% full), and a held-out run that fails for lack of disk is a harness failure that still spends its seeds.
+- Require plain `cp` or `rsync` without link options for the private asset copy. Reason: `/data/shared` and `/data/yang.su` are one filesystem, so a hard link is possible; revision 80's device-and-inode check already rejects one, and this states how to avoid creating it.
+- State the cross-GPU asset-identity rule: the sm_80 copy's checkpoint and both CCD files must match the sm_120 freeze-time digests, with Kalign recorded per machine. Reason: independent freezes could otherwise qualify two different checkpoints under one claim.
+
 ## Revision 80 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
