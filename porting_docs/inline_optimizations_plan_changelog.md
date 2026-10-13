@@ -2,6 +2,16 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 65 (2026-10-12)
+
+Documentation only; contract-5, qualification code and limits are unchanged. No GPU work or porting began.
+
+- Move the held-out budget decision from the start of porting to before fixing the first held-out candidate's code commit and rehearsal. Budget the intended GPU/mode claims and retries; leave `big` conditional on capacity measurements. Reason: development can proceed without spending holdout seeds, but a contract amendment after rehearsal would invalidate the candidate's tag-bound receipt.
+- Distinguish seed-range expansion from reserving new inputs. A wider range needs changes to both the frozen manifest and `accept.py`'s hard-coded range, plus digests and tests. A new input does not become an alternate set under routes that require H1-H10; distinct future sets need their own predeclared rows, limits and route selection. Reason: merely reserving inputs or editing the manifest would not deliver the intended retry capacity.
+- Treat cross-GPU seed uniqueness as pending until the sm_80 contract inherits the shared log, prior line history and ledger. Amend the sm_120 contract between draws if sm_80 qualification changes its frozen directory. Reason: the current acceptance recipe contains only sm_120, so separate A100 checkouts would not automatically see spent seeds.
+- Open a ledger entry when the receipt branch is first pushed, before the draw. Have the planned line checker reconcile ledger entries with the approved remote's acceptance refs, verify closed ref tips and reject open entries; test missing, unlisted and moved refs along with the merge cases. Protect the refs or retain independent push records. Reason: a checker that examines only listed lines cannot find an omitted one, while a deleted and never-recorded ref remains outside its visibility.
+- Replace the instruction to add held-out inputs after the pool runs out with a stop and a separately approved campaign. Reason: inputs chosen after held-out results have been seen cannot be represented as a fresh holdout under this qualification.
+
 ## Revision 64 (2026-10-12)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
