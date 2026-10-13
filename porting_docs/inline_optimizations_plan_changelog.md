@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 61 (2026-10-12)
+
+Documentation only. Contract-5, qualification code and numeric limits are unchanged; no GPU work or porting began.
+
+- Replace the plan's and protocol's future-tense gate repair and tag-amendment instructions with the completed contract-5 status. The first optimized candidate still needs its own full development rehearsal through the frozen entrypoint before a held-out draw; the earlier stand-in rehearsal preceded the final fixes, and the post-tag D1 smoke tested the stock side. Reason: leaving the old steps live could prompt an unnecessary contract-6 amendment or imply that the first candidate's rehearsal was already covered.
+- State that the existing `porting/inline-optimizations` branch descends from contract-5 and its qualification files match the tag, and correct the amendment order. Reason: telling an operator to create that already-existing branch from the tag is ambiguous, while the out-of-order tag list obscured the freeze history.
+- Require an operator check of the controlled gate checkout's expected `origin` URL and retention of the URL in each gate report. Treat missing or unreadable `--accept` evidence as a CLI-input error to correct and rerun, not as a completed failed-gate record. Reason: clean Git status does not authenticate remote configuration, and contract-5 hashes the evidence before it can return a failed-gate record; these are bounded operator inputs, not grounds for another contract amendment.
+- Correct the protocol's old statement that sm_120 absolute limits still need to be set. Reason: they have been approved and frozen since contract-1.
+
 ## Revision 60 (2026-10-12)
 
 Status update recording the contract-5 amendment (user go-ahead); no requirement changes.
