@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 76 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Permit deterministic legacy-MSA format conversion while refusing directory inputs and MSA, template or RNA-MSA searches. D2, D4, D13 and H2 contain `proteinChain.msa`; the runner writes a derived JSON even though their MSA data are precomputed. Contract-6 must record the source-to-effective mapping and check the expected effective digest instead of requiring source and read-point digests to match. Reason: revision 75's equality rule would reject four frozen rows; changing their inputs would disturb the freeze and baseline.
+- Compare individual protected protein and nucleic-acid sequences as well as whole-complex signatures, and flag any guidance restraint on a 9lh2-containing input. Apply the reserved-seed stop to changed 7wux and 9lh2 siblings too. Edited, truncated or homologous sequences require manual classification. Reason: an exact whole-complex signature or source-byte match misses a protected chain moved into a different assembly, while exact matching cannot establish that every variant is absent.
+- Capture referenced MSA, RNA-MSA and template bytes at their data-reader reads, including D5's frozen template-mmCIF files; reject an unexpected template-cache read and fail closed if a reader is not covered. Reason: a pre-run digest does not prove which bytes the model consumed.
+- Add D4 legacy-conversion, synthetic H2-format and D5 template provenance tests, plus a change between preflight and data read. Keep the D1 stock GPU smoke and report its coverage limit. Reason: D1 has neither legacy conversion nor templates, so it cannot validate those contract-6 paths.
+
 ## Revision 75 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
