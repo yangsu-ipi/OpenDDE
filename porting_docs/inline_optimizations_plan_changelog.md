@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 90 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Reclassify the D1/D4 token-squared capture and prediction fits as point estimates. Build per-role upper envelopes from development measurements for the exact candidate, with an additive small-row floor, atom-count and dtype allowances, and an explicit safety factor. Use provisional bounds for the first full development-evidence preflight, then freeze candidate-specific bounds before the receipt. Reason: `tier1.pt` includes atom-level coordinates and live-dtype representations, D1 already exceeds the capture point fit, and the rehearsal cannot size itself from measurements it has not yet produced.
+- Derive held-out token-count upper bounds from the frozen JSON, CCD records and tokenizer rules without running protected inference or preprocessing; stop if a count cannot be justified. Reason: an input such as H7 names `CCD_NAG` without listing its heavy atoms, so JSON text alone does not establish the model's token count.
+- Make the whole-line preflight use the sum of conservative bounds for every uncompleted job, including active jobs, tier 1 runs and extra Zn runs, with the 36 GB per-block and 92 GB initial-line figures as floors only. Reason: per-job guards cannot compensate for a receipt preflight that admits a line using a smaller nominal total.
+- Say that a failed direct `torch.save` can leave a truncated `tier1.pt`, and that historical headroom could fit at most about two lines at the 92 GB floor. Reason: a failed save may occur before a file is opened, and candidate-specific bounds may exceed the floor.
+
 ## Revision 89 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
