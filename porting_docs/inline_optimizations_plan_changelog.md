@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 77 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Record why the expected effective digest matters and test it: the legacy-MSA conversion adds MSA paths only when `os.path.exists` succeeds on repository-relative paths resolved against the working directory, so a run from elsewhere silently omits the MSAs; H2 has no baseline, so `off` and the candidate would both run without MSAs and pass the paired comparison. Add a wrong-working-directory failure test. Reason: the check closes a held-out-only failure that the drift check cannot see.
+- Digest the `$OPENDDE_ROOT_DIR` assets each run reads (checkpoint, CCD data and, for template rows, `release_date_cache.json` and `obsolete_to_successor.json`), record them in the run record, require one value per evidence set (equal on sm_120 to step 0 values recorded in contract-6) and test a changed asset. Reason: these are the largest unfrozen inputs; D5's template prefilter depends on the release-date cache, and an asset change between rehearsal and held-out runs would otherwise go unnoticed. Revision 76's fail-closed reader rule would otherwise have failed every run.
+- Replace data-reader hooks with bracket digests (before and after the run, equal and matching the frozen digests) for referenced MSA, RNA-MSA and template files, and drop the template-cache hook because D5's verified overrides already fix a fresh `{out}/template_cache` and `fetch_remote=false`. Reason: within E5's accident-only trust boundary this shows the bytes read, and it keeps contract-6 to one new hook target, the JSON parser read.
+
 ## Revision 76 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
