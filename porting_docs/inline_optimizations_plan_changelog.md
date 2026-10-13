@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 69 (2026-10-12)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Require a fresh descendant `code_commit` for each serial acceptance line, including a second mode or GPU using unchanged model code. The clean merge tip can serve as that commit; rehearse its exact arguments. Reason: distinct mode arguments satisfy the one-draw check, but an old commit cannot contain a prior line's merged held-out log.
+- Apply the below-200 seed policy to every future non-held-out run on both GPUs, register new run stores, and audit all registered stores before each draw. Stop and re-budget if a reserved seed appears. Reason: auditing only the original stores would miss later calibration or ad hoc runs that consumed held-out seeds.
+- Check ruleset target, include and exclude patterns, required rule types and a present, empty `bypass_actors` field; require a caller with ruleset write access to see that field. Treat the tag-pattern check as configuration evidence, retain API results with the relevant record, and repeat before every contract-tag push and acceptance step. Reason: GitHub omits bypass actors from lower-privilege reads, and a static tag match cannot demonstrate server enforcement at push time.
+
 ## Revision 68 (2026-10-12)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
