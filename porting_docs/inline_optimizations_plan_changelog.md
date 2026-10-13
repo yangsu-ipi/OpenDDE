@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 89 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Give the per-job held-out bounds as formulas: about 1,411 bytes times tokens squared per `tier1.pt` seed, and about 2.75 MB plus 221 bytes times tokens squared per prediction seed and role, each checked against every development row before use. Count held-out tokens from the input JSON text, not through OpenDDE's pipeline, and record approximate counts and totals (about 35 GB, consistent with the 36 GB placeholder). Reason: `tier1.pt` holds only token-by-token tensors, and the stand-in's D4 and D1 sizes fit the quadratic form within 1.3% for captures, so bounds can be fixed before launch instead of left open; H3's extra Zn seeds run `off` and candidate without tier 1 capture (`check_zn_sets`), adding about 0.9 GB rather than capture-sized output.
+- Use the recorded per-job bounds, not development high-water marks, when deciding whether active held-out jobs may finish. Reason: the rehearsal's per-row marks describe development rows only.
+- Note that `tier1.pt` is written by one direct `torch.save` to its final path, so a capacity failure mid-save leaves a truncated, result-bearing file. Reason: whoever applies the rerun rule needs to know a partial capture is the expected failure state.
+- Build the archive-verification namespace with a `--tmpfs` over the line's original root and read-only binds of each archived path, hiding the parents of any declared paths outside it. Reason: an unbound file then cannot exist, `evidence_digest` records it as `None`, and the ledger digest cannot be reproduced, so fall-through to the originals is excluded by construction.
+
 ## Revision 88 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
