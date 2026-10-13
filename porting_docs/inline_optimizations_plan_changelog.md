@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 68 (2026-10-12)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- State that the sm_80 freeze is a qualification-code amendment under either contract design: `accept.py` reads fixed `tier1_limits.json` and `tier2_limits.json` paths and one top-level `baseline_off.json` of sm_120 digests, so A100 needs per-GPU limit and baseline paths (and possibly recipe values such as `diffusion_chunk_size`), synthetic tests and an sm_120 D1 smoke test. Estimate that shared cost for both designs. Reason: revision 67 implied only the GPU-scoped design needed verifier changes, while A100's own limits and drift baseline cannot coexist with sm_120's in the current files.
+- Specify ruleset verification through the GitHub API (ruleset `enforcement`, `conditions`, rules and empty `bypass_actors`; the branch-rules endpoint for an `accept/` name; a static check of the tag pattern), forbid test pushes of matching refs, save the JSON in each record directory and repeat the check at every protected step. State that the owner can still edit rulesets, so this guards against accidents only. Reason: a matching test tag would become undeletable, one check proves only that moment, and the retained JSON must not be read as tamper-proof.
+- Make the seed-range reservation concrete: development and tuning runs use seeds below 200, and the seed audit is repeated over the same stores before each draw. Reason: the revision 67 reservation had no rule behind it.
+
 ## Revision 67 (2026-10-12)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
