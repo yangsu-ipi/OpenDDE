@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 62 (2026-10-12)
+
+Operator rules and wording; contract-5, qualification code and numeric limits are unchanged, and no GPU work or porting began.
+
+- Add held-out log continuity across candidates: push each acceptance line as `accept/sm120-<receipt-id>`, merge every such branch into `porting/inline-optimizations` before a later candidate's code commit, and check that the later candidate's log extends each branch tip; plan and documentation commits never go into `~/opendde-accept`. Reason: `accept.py` checks seed reuse, one draw per candidate and append-only history only along the acceptance checkout's own history, which must differ from the code commit only in the held-out log, so acceptance lines diverge from the porting branch and a later candidate without their log commits would see an empty log. Gate enforcement is left as a possible amendment between draws.
+- Add the model-side harness hooks as a port constraint: `opendde/utils/instrumentation.py` and its call sites unchanged, the wrapped stage methods' names, signatures and roles kept, an empty `instrumentation.py` diff against the tag and a review of the hook sites before each rehearsal, and a one-row D1 candidate smoke test before the full rehearsal. Reason: these are in the candidate's own tree, outside the gate and contract check; most breakage fails only after GPU-hours, and a bypassed stage could change what tier 1 compares.
+- Name the accepted `origin` URL forms and check them in the retained gate report's `remote` field; state that unreadable `--accept` evidence raises whether or not the gate passed (exit 1, no `record.json`) and that the command itself refuses an existing record directory; allow contract amendments between draws, never while a draw is open. Reason: wording found against the code in the revision 61 review.
+
 ## Revision 61 (2026-10-12)
 
 Documentation only. Contract-5, qualification code and numeric limits are unchanged; no GPU work or porting began.
