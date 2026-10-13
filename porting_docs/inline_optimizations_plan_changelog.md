@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 88 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Require the archive check to enumerate every path read by the frozen `accept.evidence_digest`, hide local originals inside the bubblewrap namespace, bind archived files at their declared names, and fail on missing archive coverage. Keep the digest, artifact-hash, manifest and tamper checks. Reason: binding only an archived `runs` directory over a visible filesystem can read an unbound local tier 1 or tier 2 measurement and falsely pass before deletion.
+- Bar a capacity rerun after any prediction, `tier1.pt` capture or other result-bearing artifact is written, and inventory both prediction and capture paths before considering the rerun. Reason: tier 1 captures include distogram and confidence outputs and can exist before prediction dumping.
+- Diagnose a D5 feature-digest mismatch by key and dtype, comparing discrete fields exactly and reporting floating differences under a stated relative-difference policy plus nonfinite patterns. Investigate hit-stage, parsing, ordering and numerical causes before attribution. Reason: equal measured hits with different features do not establish a floating-point-only or Kalign-independent cause.
+- Derive conservative held-out per-job output bounds from row shapes, seed counts and development high-water marks; include pair tensors' quadratic token growth and reserve capacity for active jobs, or launch serially. Reason: the 36 GB stand-in aggregate cannot safely be divided evenly among differently sized held-out jobs, and simultaneous guards could spend the same free space twice.
+
 ## Revision 87 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
