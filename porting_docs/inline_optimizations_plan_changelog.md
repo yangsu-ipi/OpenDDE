@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 80 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Make the sm_120 qualification source unambiguous: contract-6 uses a frozen private copy; ordinary porting can still use the shared store. Copy files independently, reject links back to the shared store, freeze resolved paths and digests, and preflight them before a held-out batch. Reason: the older store paragraph contradicted revision 79, and a link or stale asset could defeat the copy or waste held-out seeds.
+- Check Kalign's resolved effective-configuration path and digest against the frozen executable, and reject a missing or nonexecutable requested binary before launch. Add a fallback test. Keep the mid-run replacement limit explicit. Reason: `resolve_kalign_binary` can choose `kalign` from `PATH` when the requested binary is absent; hashing the environment variable's path would not establish what was selected at configuration time.
+- Scope the private copy to sm_120 and require an independent, later sm_80 freeze on the A100 VM. Describe the step 0 drift comparison as output equality, including the template-enabled D5 row, without claiming identity or individual use of each asset. Reason: the gnode2 path is not available on the A100 VM, and equal predictions cannot identify which asset bytes step 0 read.
+- Update the protocol's freeze-record prose to distinguish contract-5's shared assets from the planned contract-6 copy. Reason: it still described the shared CCD and Kalign locations as if they remained the qualification recipe.
+
 ## Revision 79 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
