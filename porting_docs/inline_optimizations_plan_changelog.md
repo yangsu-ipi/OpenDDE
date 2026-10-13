@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 75 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Define protection by what is fresh: complexes never in development (9sat, 9xqn, 7pzb, H1, H8, H9) are protected in any form, as are development complexes carrying a held-out restraint (the 9lh2 contact and pocket inputs). D8's restraint-free 9lh2 input and D4's 7wux input are free at seeds below 200 with any flags or step counts; either at a reserved seed, or any protected input outside a draw, is the stop. The entity signature records restraints for complexes seen in development. Reason: revision 74's exact-recipe exemption would have stopped qualification on any profiling, memory or debugging run of D4, the only input above 1,000 tokens, and its restraint-free signature could not tell D8 from H7.
+- Make contract-6 provenance fail closed: support only single-file inputs with precomputed MSA and template paths (all 25 rows), refuse directory inputs and runs that would generate MSA or template data, record source, read-point and referenced-file digests and actual seeds, and require identical input digests for paired roles; tests listed. Reason: no qualification row or realistic porting run needs directory or MSA-search provenance, and contract-6 now gates porting.
+- Add contract-6's read-point hook target to the harness-hook list. Reason: it wraps a function in the candidate's own tree, like the stage methods.
+- Commit the signature inventory, including protected siblings missing from `digests.json`, in contract-6 under `scripts/qualification/inputs`. Reason: the audit's reference data should be frozen with the code that checks against it.
+
 ## Revision 74 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
