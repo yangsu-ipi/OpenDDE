@@ -2,6 +2,17 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 73 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Remove the development row D8 (`9lh2_unconstrained.json`) from the do-not-run list, keeping `9lh2_contact.json` (H7) and `9lh2_pocket.json`, and exempt D8 and D4 from the list and from sequence grouping when they run as their development rows through the harness at development seeds; either input at a reserved seed outside a draw is the stop condition. Reason: revision 72's directory-wide 9lh2 entry and sequence grouping covered D8 and D4, so every D1-D15 rehearsal would break the list and the pre-draw audit would always stop on step 0 and stand-in runs.
+- Correct the freshness claim: the first draw can test H1-H6, H8 and H9 as unseen inputs; H7 is constraint-fresh only (its complex is seen through D8) and H10 is seed-only. Reason: H7 is the D8 complex plus a contact restraint.
+- Record the sequence baseline (only H7/D8 and H10/D4 share chain sequences; all 25 row inputs are in `digests.json`), so the grouping is an exact-sequence plus digest match, and check new development inputs against it. Reason: a reproducible check instead of judgement.
+- Land contract-6 before development porting starts. Reason: it supplies the run provenance the audit relies on, and it must precede the first candidate anyway.
+- Scope the wrapper rule to end-to-end inference runs; allow direct Python-entry runs on development or synthetic inputs with a minimal record, and exempt operator- and kernel-level tests. Reason: step 1 needs `runner.inference.run()` checks, which the wrapper does not cover.
+- Give the first, only potentially full-strength, draw to sm_120 `fast`, never to `exact`. Reason: it is the claim that gains most from fresh inputs.
+
 ## Revision 72 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
