@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 71 (2026-10-12)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Adopt the seed-budget plan (user request): widen the held-out seed range to 201-999 as `qual-sm120-contract-6` before the first held-out candidate's code commit, with the files and release steps listed (rulesets verified, run-store audit, tests, tag, D1 smoke and gate; about half a day and 10 GPU-minutes); implementation and tagging await the user's go-ahead. Reason: widening is cheap and removes the risk that one failure plus the A100 claim exhausts a four-draw pool.
+- Declare the intended claims before that code commit (`fast` on sm_120, then A100 `fast`, `big` only if capacity measurements justify it) and settle whether `exact` needs a held-out draw. Reason: the validation-matrix rule ties a draw to any port-chosen sm_120 row, so `exact` decides whether the full claim set needs four draws or six.
+- State that widening buys draws, not strength: retries and a second mode's draw on the same GPU reuse seen inputs, so only each GPU's first draw is full strength; new held-out inputs are the only way to buy strength, cost days and must be decided before the first held-out run. Reason: the budget decision should not treat extra seeds as fresh holdouts.
+- Correct revisions 65-70: widening needs no input digest changes, because `digests.json` does not cover `manifest.json`.
+
 ## Revision 70 (2026-10-12)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
