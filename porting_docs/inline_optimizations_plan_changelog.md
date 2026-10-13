@@ -2,6 +2,18 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 83 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Measure quota headroom to the soft limit and compare in bytes. Reason: on gnode2 the `/data` quota is 570 GiB soft and 600 GiB hard, with 350 GiB used; past the soft limit a grace period starts and writes then fail, so revision 82's 250 GiB figure (measured to the hard limit) overstated usable headroom by 30 GiB.
+- Check the whole remaining line budget before the development-evidence run, not only at the receipt commit. Reason: by the receipt the 36 GB rehearsal already exists, so that check needs only 56 GB, and a line could spend a full rehearsal before finding no room for its draw.
+- Require a writable archive destination before the first receipt and add it to the receipt preflight. Reason: `/mnt/nas-backups` is root-owned with mode 711 and not writable by the operator, and no per-user directory was found; at 92 GB per line the current headroom allows about two lines before archiving is needed.
+- Verify NAS copies with cache-bypassing reads after `sync`, replacing the representative read-back; confirm the read-only mode with `stat`; check local files against the run records' artifact digests and the recorded evidence digest before writing the manifest; and record the local-to-archive path mapping. Reason: the NAS is a `soft` NFSv3 mount, a hash read straight after copying can come from the client page cache, and a manifest taken only at archive time would preserve files changed after the verdict.
+- Replace revision 82's GPU-scoped fallback for differing portable inputs. The input JSONs, MSAs, references and D5's template mmCIFs are already checked by `accept.py`'s `check_digests` against the shared `digests.json` and `external_digests.json`; run those checks and the runtime-asset comparison as a preflight before sm_80 stock calibration, treat a mismatch as a copy error, and stop for a separate contract decision if bytes cannot be matched. Reason: under the shared digest files, sm_80 acceptance on different inputs fails, so the fallback had no implementable path without a further amendment.
+- Copy gnode2's frozen Kalign to the A100 VM and require digest equality, falling back to a VM-specific Kalign, D5 stock calibration and a stated difference only if it cannot run there. Reason: Kalign links only libc, so one binary makes D5's workload identical on both GPUs at little cost.
+- Say what to do when free space falls during a batch (free the operator's own files outside open lines; do not abort, since the seeds are spent), and update the paragraph labels and the protocol's remaining steps. Splitting the long seed-budget bullet into sub-bullets is left for a later revision.
+
 ## Revision 82 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
