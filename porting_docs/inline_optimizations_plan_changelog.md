@@ -2,6 +2,16 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 64 (2026-10-12)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Record the held-out seed budget as a user decision needed before porting: seeds are single-use across the whole log for every GPU, each draw uses 20 seeds plus up to four H3 extras, and the 99-seed pool allows at most four draws across sm_120, A100 and retries, while each mode is a separate candidate. More inputs can be reserved only before the first held-out run, and a wider seed range is a contract amendment. Reason: the shortage would otherwise surface only after the first draw, when inputs can no longer be added.
+- Allow at most one open acceptance line at a time across all GPUs; a later candidate's code commit waits until every earlier line is merged. Reason: `accept.py` walks the log's history across both sides of a merge, so concurrent lines would interleave versions that fail the append-only check for every later candidate, and their seeds could collide.
+- Define line closure: a final verdict, or abandonment after any pushed log commit (a stopped draw or a dropped receipt), each recorded in the ledger as `accepted`, `rejected` or `abandoned` and merged. Reason: revision 63 covered only draws that reach a verdict, while an abandoned draw's seeds are still spent.
+- Plan a read-only line checker outside `scripts/qualification` (ledger ancestry plus `_extends` against each recorded tip) and CPU merge-topology tests, before the second candidate's rehearsal. Reason: a merge resolved toward the porting branch passes the ancestry check and `accept.py`, and only the log comparison catches it.
+- Run the paired smoke test from a clean checkout of the code commit with `PYTHONPATH` set, and add D9 when the diff touches the guidance path. Reason: D1 never reaches the TFG draw sites, and the editable install can otherwise load another checkout's code.
+
 ## Revision 63 (2026-10-12)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
