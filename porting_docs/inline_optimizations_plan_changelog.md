@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 78 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Freeze runtime-asset digests at contract-6, and call them freeze-time references rather than step 0 values. The committed step 0 baseline records prediction outputs, not the assets used to produce them. Historical identity needs independent retained evidence. Reason: a later hash cannot prove which bytes an earlier run read.
+- Record each runtime asset's path from the effective configuration and require a frozen digest for that selected path, including the checkpoint, both CCD files and the template metadata files when used. Refuse an unlisted override, and hash the checkpoint in every run rather than caching its digest by path, size and modification time. Reason: configuration can select files outside `$OPENDDE_ROOT_DIR`, and those cache keys do not identify contents.
+- Treat matching before/after hashes of referenced data as stability checks, not direct evidence of read bytes. Keep the low-complexity bracket approach within the accident-only trust boundary, with an explicit no-mid-run-replacement assumption and a fresh-template-cache check for D5; fail if the cache is already populated. Reason: a file can change between hashes, and the template reader can load a parsed cache instead of an mmCIF.
+- Add tests for an overridden asset path, a prepopulated D5 template cache and a changed checkpoint with the same path, size and modification time. Reason: these cases distinguish the amended provenance rule from revision 77's weaker checks.
+
 ## Revision 77 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
