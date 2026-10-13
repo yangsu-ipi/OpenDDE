@@ -2,6 +2,16 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 85 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Replace "do not reuse seeds" and "if the contract permits" in the low-space rule with an explicit capacity-rerun rule: a run that failed or was cancelled before writing predictions may be rerun once with its declared seeds in a fresh output directory, recorded as a capacity rerun with the failed run's record kept; a completed run is never rerun, and the evidence names the first completed run. Reason: contract-5 already permits this (a failed run cannot be evidence; per-run checks require a fresh directory, exit 0 and logged seeds; seed uniqueness is per log entry, not per run), while the literal no-reuse reading forced abandonment, spending a draw and, for the first draw, the only fresh-input test.
+- Let active jobs finish only if headroom covers their estimated remaining output from the rehearsal's per-row high-water marks. Reason: "capacity remains adequate" had no threshold.
+- At line closure, push the held-out `evidence_digest` and the hashes of `record.json`, `gate.json`, `verdict.json` and the archive manifest in the ledger entry. Reason: the receipt binds only development evidence, and held-out run records sit beside the artifacts they hash, so after local removal an auditor had no off-machine reference for held-out bytes; `evidence_digest` already accepts any evidence sets.
+- Recompute `record.json`'s `evidence_sha256` with the gate's own function. Reason: `qual_gate.py` hashes decoded text with normalised newlines, so `sha256sum` of the raw bytes matches only by accident.
+- Make the sm_80 D5 preprocessing comparison concrete: compare the contract-6 D5 CPU preprocessing test's canonical template-feature digest between gnode2 and the VM. State that D5 is the only template row, so a Kalign difference cannot affect a held-out row. Reason: sm_80 predictions differ numerically anyway and cannot reveal a preprocessing difference.
+
 ## Revision 84 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
