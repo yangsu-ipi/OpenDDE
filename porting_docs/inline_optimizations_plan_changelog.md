@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 72 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Treat the first H1-H10 draw across both GPUs as the only draw that can test H1-H9 as unseen inputs under the serial workflow, subject to the pre-draw audit; H10 is always seed-only. Later modes and GPUs use seen inputs and get seed-only claims; a separate full-strength A100 or mode claim needs inputs reserved before the first draw. Reason: sm_120 results can inform later A100 choices, even if A100 uses fresh seeds.
+- Extend the do-not-run family to `9lh2_unconstrained.json` and compare target sequences and entities as well as paths and available digests. Reason: it is the same H7 complex without the contact constraint; a copied or reformatted input evades a byte-digest match.
+- Make the historical run audit best-effort, and add resolved input path, pre-run input digest and actual per-job seeds to future run records in the planned contract-6 amendment, with verifier checks against frozen inputs and declared seeds. Require the wrapper and a retained record for future non-held-out runs; re-estimate the CPU effort and test the new fields. Reason: current run records store arguments, not input bytes or resolved seeds, so a source-file digest cannot establish what an old run consumed.
+- Require a separate held-out draw for each full `exact` GPU claim; until then, describe the mode as development-validated. Reason: the validation matrix requires a draw for any port-chosen mode, and deterministic identity tests do not silently waive that rule.
+
 ## Revision 71 (2026-10-12)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
