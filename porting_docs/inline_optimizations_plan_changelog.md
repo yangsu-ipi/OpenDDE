@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 66 (2026-10-12)
+
+Documentation only; contract-5, qualification code and limits are unchanged. No GPU work or porting began.
+
+- State that an sm_80 contract always changes the sm_120 contract directory and that the coupling runs both ways (shared `acceptance.json` with top-level `recipe` and `baseline`; each contract check covers all of `scripts/qualification`), so every amendment for either GPU re-tags the other and needs D1 smoke tests on both. Choose a shared tag family or a GPU-scoped contract check before A100 qualification work, build it into the sm_80 freeze amendment, and schedule that freeze between sm_120 lines. Reason: revision 65 called the coupling conditional, and an unplanned coupled re-tag would invalidate candidates and force A100 provisioning.
+- Require GitHub rulesets before the first receipt is pushed: tags `qual-*-contract-*` blocked from update and deletion, branches `accept/**` blocked from deletion and force-pushes (user action; the public fork had none). Reason: besides hiding acceptance lines, deleting the newest contract tag on the remote would make the gate approve a candidate at an older contract.
+- Frame the budget decision as widening the seed range (one amendment, seed-only retries; first scan step 0 and stand-in run records to confirm the new range was never used) or narrowing the claims, and state that new held-out inputs are a substantial selection, preparation and route task. Reason: the three options are not equally cheap, and the documents alone cannot prove a seed range unused.
+
 ## Revision 65 (2026-10-12)
 
 Documentation only; contract-5, qualification code and limits are unchanged. No GPU work or porting began.
