@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 82 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Replace the approximate 70 GB line budget with an initial 92 GB minimum: 36 GB of observed rehearsal output, 36 GB provisionally for held-out output and a 20 GB margin. Before the receipt and each held-out batch, record filesystem and quota headroom and stop if either cannot cover the estimated remainder plus the greater of 20 GB or 25%. Reason: the former estimate was below the sum of its own components, and an undefined margin cannot support a repeatable stop decision on a shared filesystem.
+- Archive closed lines and unneeded step 0 outputs only after checking the NAS mount and capacity, verifying destination files against a path/size/SHA-256 manifest and testing a read-back. Keep the archive location, manifest digest and qualification records locally. Reason: a pathname on the NAS does not establish that evidence can be audited or restored.
+- For a combined same-workload cross-GPU claim, require equal digests for portable source inputs, referenced data and template metadata as well as the checkpoint and CCD files. Freeze Kalign separately and exercise D5 during sm_80 stock calibration; a difference in portable inputs requires a separately approved GPU-scoped claim and affected-row recalibration. Reason: the revision 81 rule could describe two different evaluation workloads as one cross-GPU result.
+- Update the protocol's revision label and remaining-step wording to match these rules.
+
 ## Revision 81 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
