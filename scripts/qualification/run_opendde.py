@@ -45,6 +45,36 @@ directories existed before the run, any exception that ended it, and the
 SHA-256 of every prediction artifact and tier 1 capture it left
 (``provenance.py``). Any exception other than a zero ``SystemExit`` is
 recorded as exit code 1. The same fields head the trace and timing files.
+
+A recorded run also records its input provenance (contract-6, protocol E5)
+under ``provenance``, and fails closed:
+
+- Before launch it accepts only ``pred`` on a single input JSON file and
+  refuses a directory, or a run that would search for a protein MSA,
+  template or RNA MSA (``provenance.search_reasons``). A template run must
+  name an existing executable ``--kalign_binary_path``, so Kalign cannot
+  fall back to ``PATH``, and set ``data.template.fetch_remote=false``,
+  ``prot_template_mmcif_dir`` and a ``prot_template_cache_dir`` inside the
+  output directory that does not exist yet. A refused run is not started;
+  its record has exit code 2 and the reason.
+- It records the source JSON's path and SHA-256, the SHA-256 of the bytes
+  the inference parser reads (``runner.inference._load_inference_jobs_synchronized``,
+  the parser-read hook; the parsed jobs must equal those bytes' jobs), and
+  the expected effective digest after ``pred``'s format-only legacy MSA
+  conversion.
+- It records before and after digests of every MSA, RNA-MSA and template
+  file the effective JSON names and, for template runs, of every file in
+  the mmCIF directory, and checks at the parser read that the template
+  cache is still absent.
+- After the run it records the selected runtime assets from the validated
+  effective configuration (checkpoint, both CCD files and, for template
+  runs, the release-date and obsolete-PDB files and the resolved Kalign
+  binary) with fresh SHA-256 digests, and the seeds each job's output layout
+  holds.
+
+``accept.py`` compares these with the frozen inputs and the runtime-asset
+reference. Before and after digests show files were stable between the two
+hashes; they do not prove what each later read returned.
 """
 
 import argparse
@@ -403,10 +433,215 @@ def _wrap(owner: Any, name: str, make):
     setattr(owner, name, make(original))
 
 
+def _truthy(value: str) -> bool:
+    import click
+
+    return bool(click.BOOL.convert(value, None, None))
+
+
+def _override_values(overrides: list[str]) -> dict[str, Any]:
+    return {".".join(path): value for path, value in map(_parse_override, overrides)}
+
+
+class RunProvenance:
+    """Input, referenced-file, runtime-asset and seed provenance of one
+    recorded ``pred`` run (contract-6; see the module docstring)."""
+
+    def __init__(self, cli_args: list[str], overrides: list[str]) -> None:
+        self.cli_args = cli_args
+        self.overrides = _override_values(overrides)
+        self.record: dict[str, Any] = {"refused": None}
+        self.input: Path | None = None
+        self.jobs: list[str] = []
+        self.configs: Any = None
+        self.cache_dir: Path | None = None
+        self.mmcif_dir: Path | None = None
+
+    def _flag(self, name: str, default: bool) -> bool:
+        value = _cli_value_last(self.cli_args, name)
+        return default if value is None else _truthy(value)
+
+    def preflight(self) -> str | None:
+        """Record the source state; return why the run is refused, if it is."""
+        import provenance
+
+        args = self.cli_args
+        if not args or args[0] != "pred":
+            return "a recorded run supports only the pred command"
+        source = _cli_value_last(args, "-i") or _cli_value_last(args, "--input")
+        out = _cli_value_last(args, "-o") or _cli_value_last(args, "--out_dir")
+        if source is None or out is None:
+            return "a recorded run needs -i and -o"
+        path = Path(source)
+        if path.is_dir() or path.suffix != ".json" or not path.is_file():
+            return f"a recorded run needs a single input JSON file, got {source}"
+        flags = {
+            "use_msa": self._flag("--use_msa", True),
+            "use_template": self._flag("--use_template", False),
+            "use_rna_msa": self._flag("--use_rna_msa", False),
+        }
+        data = path.read_bytes()
+        try:
+            effective, jobs = provenance.effective_input(data, flags["use_msa"])
+        except (ValueError, TypeError, AttributeError) as error:
+            return f"input JSON unreadable: {type(error).__name__}: {error}"
+        self.input = path
+        self.jobs = [j.get("name") for j in jobs if isinstance(j, dict)]
+        references = provenance.referenced_files(jobs)
+        self.record.update(
+            source={
+                "path": source,
+                "resolved": os.path.realpath(path),
+                "sha256": provenance.sha256_bytes(data),
+            },
+            flags=flags,
+            expected_effective_sha256=provenance.sha256_bytes(effective),
+            parser_reads=[],
+            referenced={
+                p: {**provenance.file_state(p), "before": None, "after": None}
+                for p in references
+            },
+            template_mmcif=None,
+            template_cache=None,
+            kalign=None,
+            assets={},
+            seeds={},
+        )
+        for state in self.record["referenced"].values():
+            state["before"] = state.pop("sha256")
+        searches = provenance.search_reasons(jobs, **flags)
+        if searches:
+            return "the run would search: " + "; ".join(searches)
+        if flags["use_template"]:
+            return self._template_preflight(Path(out))
+        return None
+
+    def _template_preflight(self, out: Path) -> str | None:
+        import provenance
+
+        kalign = _cli_value_last(self.cli_args, "--kalign_binary_path")
+        executable = (
+            kalign is not None and Path(kalign).is_file() and os.access(kalign, os.X_OK)
+        )
+        self.record["kalign"] = {
+            "requested": kalign,
+            "requested_resolved": None if kalign is None else os.path.realpath(kalign),
+            "executable": executable,
+        }
+        if not executable:
+            return f"--kalign_binary_path must name an executable file, got {kalign}"
+        if self.overrides.get("data.template.fetch_remote") is not False:
+            return "a template run must set data.template.fetch_remote=false"
+        cache = self.overrides.get("data.template.prot_template_cache_dir")
+        mmcif = self.overrides.get("data.template.prot_template_mmcif_dir")
+        if not isinstance(cache, str) or not isinstance(mmcif, str):
+            return "a template run must set prot_template_cache_dir and prot_template_mmcif_dir"
+        self.cache_dir, self.mmcif_dir = Path(cache), Path(mmcif)
+        inside = Path(os.path.realpath(cache)).is_relative_to(os.path.realpath(out))
+        self.record["template_cache"] = {
+            "path": cache,
+            "inside_output": inside,
+            "absent_before": not self.cache_dir.exists(),
+            "absent_at_parse": None,
+        }
+        self.record["template_mmcif"] = {
+            "dir": mmcif,
+            "resolved": os.path.realpath(mmcif),
+            "before": provenance.tree_digests(mmcif),
+            "after": None,
+        }
+        if not inside or self.cache_dir.exists():
+            return f"the template cache {cache} must be new and inside the output directory"
+        return None
+
+    def parser_read(self, fn):
+        """The parser-read hook: hash the bytes of the JSON the inference
+        parser reads and require the parsed jobs to equal them."""
+        import provenance
+        from opendde.data.inference.input_validation import validate_inference_jobs
+
+        def wrapper(path, *args, **kwargs):
+            data = Path(path).read_bytes()
+            cache = self.record.get("template_cache")
+            if cache is not None:
+                cache["absent_at_parse"] = not self.cache_dir.exists()
+                if not cache["absent_at_parse"]:
+                    raise RuntimeError(f"template cache {self.cache_dir} prepopulated")
+            jobs = fn(path, *args, **kwargs)
+            try:
+                same = validate_inference_jobs(json.loads(data)) == jobs
+            except ValueError:
+                same = False
+            self.record["parser_reads"].append(
+                {
+                    "path": str(path),
+                    "resolved": os.path.realpath(path),
+                    "sha256": provenance.sha256_bytes(data),
+                    "matches_parse": same,
+                }
+            )
+            if not same:
+                raise RuntimeError(f"parsed jobs differ from the bytes of {path}")
+            return jobs
+
+        return wrapper
+
+    def capture_config(self, configs: Any) -> None:
+        if self.configs is None:
+            self.configs = configs
+
+    def _assets(self) -> dict[str, Any]:
+        """Paths of the runtime assets the validated configuration selected."""
+        from opendde.utils.download import resolve_checkpoint_path
+
+        c = self.configs
+        paths = {
+            "checkpoint": resolve_checkpoint_path(c),
+            "ccd_components_file": c.data.ccd_components_file,
+            "ccd_components_rdkit_mol_file": c.data.ccd_components_rdkit_mol_file,
+        }
+        if c.use_template:
+            template = c.data.template
+            paths.update(
+                release_dates_path=template.release_dates_path,
+                obsolete_pdbs_path=template.obsolete_pdbs_path,
+                kalign_binary_path=template.kalign_binary_path,
+            )
+        return paths
+
+    def finish(self, out_dir: Path) -> None:
+        """After the run: second digests, runtime assets and output seeds."""
+        import provenance
+
+        for path, state in self.record.get("referenced", {}).items():
+            state["after"] = provenance.file_state(path)["sha256"]
+        mmcif = self.record.get("template_mmcif")
+        if mmcif is not None:
+            mmcif["after"] = provenance.tree_digests(mmcif["dir"])
+        if self.configs is not None:
+            self.record["assets"] = {
+                name: {"path": path, **provenance.file_state(path)}
+                for name, path in self._assets().items()
+            }
+            self.record["effective_config"] = {
+                "use_template": bool(self.configs.use_template),
+                "prot_template_cache_dir": self.configs.data.template.prot_template_cache_dir,
+                "prot_template_mmcif_dir": self.configs.data.template.prot_template_mmcif_dir,
+            }
+        self.record["seeds"] = provenance.job_seeds(out_dir, self.jobs)
+
+
+def _install_provenance(prov: RunProvenance) -> None:
+    import runner.inference as inference_module
+
+    _wrap(inference_module, "_load_inference_jobs_synchronized", prov.parser_read)
+
+
 def _install(
     timer: PhaseTimer | None,
     trace: DrawTrace | None,
     tier1: Tier1Capture | None = None,
+    prov: RunProvenance | None = None,
 ) -> None:
     import opendde.model.opendde as model_module
     import runner.dumper as dumper_module
@@ -429,6 +664,8 @@ def _install(
 
     def prepare_prediction_batch(fn):
         def wrapper(runner, configs, data, *, seed, **kwargs):
+            if prov is not None:
+                prov.capture_config(configs)
             for obj in contexts:
                 obj.context = {"sample_name": str(data["sample_name"]), "seed": seed}
             if timer is not None:
@@ -467,6 +704,9 @@ def _install(
 
     if tier1 is not None:
         _install_tier1(tier1)
+
+    if prov is not None:
+        _install_provenance(prov)
 
     if trace is not None:
 
@@ -518,6 +758,12 @@ def _host_peak_bytes() -> dict[str, Any]:
 
 def _cli_value(args: list[str], name: str) -> str | None:
     return args[args.index(name) + 1] if name in args[:-1] else None
+
+
+def _cli_value_last(args: list[str], name: str) -> str | None:
+    """The value of the last occurrence of ``name``, as click resolves it."""
+    found = [i for i, a in enumerate(args[:-1]) if a == name]
+    return args[found[-1] + 1] if found else None
 
 
 def _parse_override(text: str) -> tuple[list[str], Any]:
@@ -584,7 +830,11 @@ def main() -> int:
         if options.tier1_capture
         else None
     )
-    _install(timer, trace, tier1)
+    prov = RunProvenance(cli_args, options.overrides) if options.run_record else None
+    refused = prov.preflight() if prov is not None else None
+    if prov is not None:
+        prov.record["refused"] = refused
+    _install(timer, trace, tier1, prov)
     overrides = [_parse_override(text) for text in options.overrides]
     if overrides:
         _install_overrides(overrides)
@@ -620,10 +870,15 @@ def main() -> int:
     start = time.perf_counter()
     exit_code = 1
     try:
-        result = opendde_cli.main(
-            args=cli_args, prog_name="opendde", standalone_mode=False
-        )
-        exit_code = result if isinstance(result, int) else 0
+        if refused is not None:
+            exit_code = 2
+            meta["exception"] = f"refused: {refused}"
+            print(f"error: run refused: {refused}", file=sys.stderr)
+        else:
+            result = opendde_cli.main(
+                args=cli_args, prog_name="opendde", standalone_mode=False
+            )
+            exit_code = result if isinstance(result, int) else 0
     except SystemExit as exc:
         exit_code = exc.code if isinstance(exc.code, int) else int(exc.code is not None)
         if exit_code:
@@ -651,6 +906,12 @@ def main() -> int:
                     else provenance.capture_digests(options.tier1_capture)
                 ),
             }
+            if refused is None and out_dir is not None:
+                try:
+                    prov.finish(Path(out_dir))
+                except Exception as exc:  # recorded; accept.py then fails the run
+                    prov.record["finish_error"] = f"{type(exc).__name__}: {exc}"
+            meta["provenance"] = prov.record
         if options.run_record is not None:
             options.run_record.parent.mkdir(parents=True, exist_ok=True)
             options.run_record.write_text(json.dumps(meta, indent=1) + "\n")

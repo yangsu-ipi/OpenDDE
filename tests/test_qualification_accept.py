@@ -25,6 +25,8 @@ pytest.importorskip("rdkit")
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts" / "qualification"))
 import accept  # noqa: E402
+import assets  # noqa: E402
+import provenance  # noqa: E402
 import run_rows  # noqa: E402
 import tier2_gates as t2  # noqa: E402
 
@@ -43,6 +45,17 @@ H3_JOB = "9sat_unconstrained"
 N_SAMPLE = 5
 DEV = [f"D{i}" for i in range(1, 16)]
 HELD = [f"H{i}" for i in range(1, 11)]
+DIGESTS = json.loads((INPUTS / "digests.json").read_text())
+EXTERNAL = json.loads((INPUTS / "external_digests.json").read_text())
+EFFECTIVE = json.loads((INPUTS / "effective_inputs.json").read_text())
+ASSET_ROOT = "/qual-assets"
+ASSET_REF = {
+    name: {
+        "path": f"{ASSET_ROOT}/{rel}",
+        "sha256": hashlib.sha256(name.encode()).hexdigest(),
+    }
+    for name, rel in assets.LAYOUT.items()
+}
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -202,6 +215,8 @@ class World:
             else {}
         )
         (self.inputs / "acceptance.json").write_text(json.dumps(acceptance))
+        reference = {"gpus": {"sm_120": {"root": ASSET_ROOT, "assets": ASSET_REF}}}
+        (self.inputs / "runtime_assets.json").write_text(json.dumps(reference))
         _git(self.repo, "init", "-q")
         self.contract = self.commit("contract")
         if frozen:
@@ -337,6 +352,7 @@ class World:
                 "tier1_sha256": _captures(capture, jobs, seeds) if tier1 else {},
             },
             "exit_code": 0,
+            "provenance": self.provenance(row, seeds, cli, run / row),
             "fingerprint": {
                 "commit": commit,
                 "dirty_paths": [],
@@ -353,6 +369,88 @@ class World:
         if traced:
             write_trace(run, row, rec, self.rollouts(row, seeds))
         return rec
+
+    def provenance(self, row, seeds, cli, row_out):
+        """The contract-6 input provenance ``run_opendde.py`` records for a
+        run that read its frozen inputs and this GPU's frozen assets."""
+        spec = self.table[row]
+        flags = {
+            "use_msa": accept._cli_flag(cli, "--use_msa", True),
+            "use_template": accept._cli_flag(cli, "--use_template", False),
+            "use_rna_msa": accept._cli_flag(cli, "--use_rna_msa", False),
+        }
+        key = Path(spec["input"]).as_posix()
+        effective = EFFECTIVE.get(key) if flags["use_msa"] else None
+        read = effective["effective_sha256"] if effective else DIGESTS[key]
+        _, jobs = provenance.effective_input(
+            (ROOT / spec["input"]).read_bytes(), flags["use_msa"]
+        )
+        referenced = {
+            p: {
+                "resolved": str(ROOT / p),
+                "before": DIGESTS[Path(p).as_posix()],
+                "after": DIGESTS[Path(p).as_posix()],
+            }
+            for p in provenance.referenced_files(jobs)
+        }
+        names = accept.BASE_ASSETS + (
+            accept.TEMPLATE_ASSETS if flags["use_template"] else ()
+        )
+        prov = {
+            "refused": None,
+            "source": {
+                "path": spec["input"],
+                "resolved": str(ROOT / key),
+                "sha256": DIGESTS[key],
+            },
+            "flags": flags,
+            "expected_effective_sha256": read,
+            "parser_reads": [
+                {
+                    "path": "effective.json",
+                    "resolved": "effective.json",
+                    "sha256": read,
+                    "matches_parse": True,
+                }
+            ],
+            "referenced": referenced,
+            "template_mmcif": None,
+            "template_cache": None,
+            "kalign": None,
+            "assets": {
+                n: {
+                    "path": ASSET_REF[n]["path"],
+                    "resolved": ASSET_REF[n]["path"],
+                    "sha256": ASSET_REF[n]["sha256"],
+                }
+                for n in names
+            },
+            "seeds": {job: sorted(seeds) for job in self.jobs(row)},
+        }
+        if flags["use_template"]:
+            prefix = accept._override(spec, "data.template.prot_template_mmcif_dir")
+            tree = {
+                k[len(prefix) + 1 :]: v
+                for k, v in EXTERNAL.items()
+                if k.startswith(prefix + "/")
+            }
+            prov["template_mmcif"] = {
+                "dir": "/qual/template_mmcif",
+                "before": tree,
+                "after": dict(tree),
+            }
+            prov["template_cache"] = {
+                "path": str(row_out / "template_cache"),
+                "inside_output": True,
+                "absent_before": True,
+                "absent_at_parse": True,
+            }
+            prov["kalign"] = {
+                "requested": HOST_ENV["OPENDDE_QUAL_KALIGN"],
+                "requested_resolved": ASSET_REF["kalign_binary_path"]["path"],
+                "executable": True,
+            }
+        return prov
 
     def _build_set(self, name, rows, commit, h3_zn):
         base = self.tmp / name
@@ -487,6 +585,8 @@ def _repo_root(monkeypatch):
     monkeypatch.setattr(
         accept.freeze_inputs, "external_digests", lambda m: stored["external"]
     )
+    effective = json.loads((INPUTS / "effective_inputs.json").read_text())
+    monkeypatch.setattr(accept.freeze_inputs, "effective_digests", lambda m: effective)
     monkeypatch.setattr(accept.trace_tools, "check_manifest", _fake_manifest)
 
 
@@ -658,7 +758,7 @@ def test_reused_held_out_seed_fails(world):
             "id": "sm_120-0",
             "gpu": "sm_120",
             "candidate": "old",
-            "seeds": {"H1": [201, 299]},
+            "seeds": {"H1": [201, 999]},
         }
     )
     world.commit_log()
@@ -702,7 +802,7 @@ def test_run_commit_outside_the_checkout_history_fails(world):
 
 def test_edited_log_entry_fails(world):
     original = copy.deepcopy(world.log)
-    world.draw["seeds"]["H1"] = [298, 299]
+    world.draw["seeds"]["H1"] = [998, 999]
     world.commit_log("edit a draw")
     world.log = original
     world.commit_log("put it back")
@@ -1200,6 +1300,9 @@ def test_run_rows_refuses_existing_paths(tmp_path, monkeypatch):
     assert len(calls) == 1 and str(out / "D8") in calls[0]
 
 
+D1_INPUT = "examples/cofold/protein_200.json"
+
+
 def _wrapper(monkeypatch):
     pytest.importorskip("torch")
     import run_opendde
@@ -1218,8 +1321,9 @@ def test_run_record_reports_an_uncaught_exception(tmp_path, monkeypatch):
 
     monkeypatch.setattr(opendde_cli, "main", fail)
     record = tmp_path / "D1.run.json"
-    argv = ["run_opendde.py", "--run-record", str(record), "--"]
-    monkeypatch.setattr(sys, "argv", argv + ["pred", "-o", str(tmp_path / "D1")])
+    argv = ["run_opendde.py", "--run-record", str(record), "--", "pred", "-i", D1_INPUT]
+    argv += ["-o", str(tmp_path / "D1"), "--use_msa", "false"]
+    monkeypatch.setattr(sys, "argv", argv)
     with pytest.raises(RuntimeError):
         run_opendde.main()
     rec = json.loads(record.read_text())
@@ -1241,8 +1345,8 @@ def test_run_record_lists_outputs_and_existing_directories(tmp_path, monkeypatch
     monkeypatch.setattr(opendde_cli, "main", run)
     record = tmp_path / "D1.run.json"
     argv = ["run_opendde.py", "--run-record", str(record)]
-    argv += ["--tier1-capture", str(capture), "--", "pred", "-o", str(out)]
-    monkeypatch.setattr(sys, "argv", argv)
+    argv += ["--tier1-capture", str(capture), "--", "pred", "-i", D1_INPUT]
+    monkeypatch.setattr(sys, "argv", argv + ["-o", str(out), "--use_msa", "false"])
     assert run_opendde.main() == 0
     rec = json.loads(record.read_text())
     assert rec["exit_code"] == 0 and rec["exception"] is None
@@ -1693,3 +1797,180 @@ def test_missing_measurement_file_fails_without_raising(world, tier):
 def test_unreadable_measurement_file_fails_without_raising(world):
     Path(world.sets[1]["tier2"]).write_text("{not json")
     _fails(world, "held-out tier 2 measurement readable")
+
+
+# Held-out seed range (contract-6: 201-999)
+
+
+@pytest.mark.parametrize("seed", [200, 1000])
+def test_held_out_seed_outside_the_range_fails(world, seed):
+    world.log["draws"].append(
+        {"id": "sm_120-0", "gpu": "sm_120", "candidate": "old", "seeds": {"H1": [seed]}}
+    )
+    world.commit_log()
+    _fails(world, "held-out seeds in 201-999")
+
+
+def test_held_out_seed_at_the_new_upper_bound_is_in_range(world):
+    world.log["draws"].append(
+        {"id": "sm_120-0", "gpu": "sm_120", "candidate": "old", "seeds": {"H1": [999]}}
+    )
+    world.commit_log()
+    verdict = world.run()
+    assert not _failed(verdict, "held-out seeds in")
+
+
+# Input provenance (contract-6)
+
+
+def _edit_prov(world, row, kind, fn):
+    world.edit_record(row, kind, lambda r: fn(r["provenance"]))
+
+
+def test_complete_pass_checks_provenance_of_every_run(world):
+    verdict = world.run()
+    assert verdict["failed"] == []
+    names = {c["check"] for c in verdict["checks"]}
+    for check in (
+        "D4 off input read as frozen",
+        "H10 cand referenced files stable and frozen",
+        "D5 off template mmCIF files stable and frozen",
+        "D5 off template cache new at the parser read",
+        "D5 off requested Kalign is the frozen binary",
+        "H2 tier 1 off runtime assets match the frozen reference",
+        "H9 repeat output holds the declared seeds",
+        "every run used one path and digest per runtime asset",
+        "runtime-asset reference frozen for this GPU",
+    ):
+        assert check in names, check
+
+
+def test_missing_or_refused_provenance_fails(world):
+    world.edit_record("D1", "off", lambda r: r.pop("provenance"))
+    _fails(world, "D1 off input provenance recorded")
+    world.edit_record(
+        "D2", "cand", lambda r: r.update(provenance={"refused": "search"})
+    )
+    _fails(world, "D2 cand input provenance recorded")
+
+
+def test_json_changed_before_the_parser_read_fails(world):
+    """An unchanged input must be read with its source digest."""
+    _edit_prov(
+        world, "H1", "cand", lambda p: p["parser_reads"][0].update(sha256="0" * 64)
+    )
+    _fails(world, "H1 cand input read as frozen")
+
+
+def test_legacy_msa_input_read_without_its_conversion_fails(world):
+    """Run from another working directory, the conversion drops the MSA
+    paths; the parser then reads neither the source nor the frozen
+    effective bytes."""
+    _edit_prov(
+        world, "H2", "off", lambda p: p["parser_reads"][0].update(sha256=_sha("no msa"))
+    )
+    _fails(world, "H2 off input read as frozen")
+    _edit_prov(
+        world,
+        "D4",
+        "cand",
+        lambda p: p["parser_reads"][0].update(
+            sha256=DIGESTS["scripts/qualification/inputs/d4_7wux.json"]
+        ),
+    )
+    _fails(world, "D4 cand input read as frozen")
+
+
+def test_source_digest_not_frozen_fails(world):
+    _edit_prov(world, "D7", "repeat", lambda p: p["source"].update(sha256="0" * 64))
+    _fails(world, "D7 repeat input read as frozen")
+
+
+def test_referenced_file_changed_during_the_run_fails(world):
+    def edit(p):
+        key = next(iter(p["referenced"]))
+        p["referenced"][key]["after"] = "0" * 64
+
+    _edit_prov(world, "D3", "off", edit)
+    _fails(world, "D3 off referenced files stable and frozen")
+
+
+def test_referenced_file_missing_from_the_record_fails(world):
+    _edit_prov(world, "D13", "cand", lambda p: p["referenced"].popitem())
+    _fails(world, "D13 cand referenced files stable and frozen")
+
+
+def test_asset_override_without_a_frozen_reference_fails(world):
+    def edit(p):
+        p["assets"]["checkpoint"].update(
+            resolved="/data/shared/models/opendde/checkpoint/opendde.pt"
+        )
+
+    _edit_prov(world, "D6", "off", edit)
+    verdict = _fails(world, "D6 off runtime assets match the frozen reference")
+    assert _failed(verdict, "every run used one path and digest per runtime asset")
+
+
+def test_runtime_asset_changed_between_runs_fails(world):
+    """Same path, size and modification time, different bytes: only the
+    content digest shows it."""
+    _edit_prov(
+        world,
+        "H5",
+        "repeat",
+        lambda p: p["assets"]["ccd_components_file"].update(sha256="0" * 64),
+    )
+    verdict = _fails(world, "H5 repeat runtime assets match the frozen reference")
+    assert _failed(verdict, "every run used one path and digest per runtime asset")
+
+
+def test_missing_runtime_asset_reference_fails(world):
+    (world.inputs / "runtime_assets.json").write_text(json.dumps({"gpus": {}}))
+    verdict = _fails(world, "runtime-asset reference frozen for this GPU")
+    assert _failed(verdict, "D1 off runtime assets match the frozen reference")
+
+
+def test_actual_seed_mismatch_fails(world):
+    job = world.jobs("H6")[0]
+    _edit_prov(
+        world, "H6", "cand", lambda p: p["seeds"].update({job: [p["seeds"][job][0]]})
+    )
+    _fails(world, "H6 cand output holds the declared seeds")
+
+
+def test_prepopulated_template_cache_fails(world):
+    _edit_prov(
+        world, "D5", "cand", lambda p: p["template_cache"].update(absent_at_parse=False)
+    )
+    _fails(world, "D5 cand template cache new at the parser read")
+
+
+def test_template_mmcif_changed_during_the_run_fails(world):
+    def edit(p):
+        key = next(iter(p["template_mmcif"]["after"]))
+        p["template_mmcif"]["after"][key] = "0" * 64
+
+    _edit_prov(world, "D5", "off", edit)
+    _fails(world, "D5 off template mmCIF files stable and frozen")
+
+
+def test_kalign_other_than_the_frozen_binary_fails(world):
+    _edit_prov(
+        world,
+        "D5",
+        "repeat",
+        lambda p: p["kalign"].update(requested_resolved="/usr/bin/kalign"),
+    )
+    _fails(world, "D5 repeat requested Kalign is the frozen binary")
+
+
+def test_changed_effective_digest_reference_fails(world):
+    path = world.inputs / "effective_inputs.json"
+    _edit_json(
+        path,
+        lambda d: d["scripts/qualification/inputs/d2_7r6r.json"].update(
+            effective_sha256="0" * 64
+        ),
+    )
+    verdict = _fails(world, "effective input digests")
+    assert _failed(verdict, "D2 off input read as frozen")

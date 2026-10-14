@@ -1,0 +1,25 @@
+{
+ "description": "Registered OpenDDE run stores for the held-out do-not-run audit (scripts/qualification/run_audit.py; plan revision 75 onward). Register every new store here before its first run; this file lives outside scripts/qualification, so registering a store is not a contract amendment. Paths are on gnode2 unless stated.",
+ "stores": [
+  {
+   "path": "/data/yang.su/opendde-step0",
+   "registered": "2026-10-14",
+   "note": "Step 0 baselines, calibration, controls, smoke tests for contracts 1-5 (2026-10-10 to 2026-10-12). Many early runs predate run records; their seeds come from the output layout and their inputs only from job names."
+  },
+  {
+   "path": "/data/yang.su/opendde-standin",
+   "registered": "2026-10-14",
+   "note": "Stand-in end-to-end rehearsal before contract-5 (2026-10-12)."
+  },
+  {
+   "path": "/home/yang.su/OpenDDE",
+   "registered": "2026-10-14",
+   "note": "Porting checkout; searched for ad hoc output directories (none found on 2026-10-14)."
+  },
+  {
+   "path": "/home/yang.su/opendde-dev-checks",
+   "registered": "2026-10-14",
+   "note": "Job scripts and logs; searched for ad hoc output directories (none found on 2026-10-14)."
+  }
+ ]
+}

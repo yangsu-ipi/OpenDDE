@@ -1,0 +1,138 @@
+{
+ "row": "D5",
+ "seed": 101,
+ "input": "examples/cofold/template/example_9fm7.json",
+ "input_sha256": "ae6ac988e1f64b738894d987e7f0d4d6d9fc0ba00fa1b989778ff371414bfc18",
+ "hits_sha256": "c4d3b1ed079045b222b55d0b416bf0f5a972c6d01c2ade6338aba26819b8c52a",
+ "features_sha256": "0c9512897f8f169756b0a6c062fa93020602eab0c9c6ffc7b5bc97daa0cd6c34",
+ "per_key": {
+  "template_aatype": {
+   "dtype": "int64",
+   "shape": [
+    4,
+    644
+   ],
+   "sha256": "8e0f2fe2fa31c9e02fa70a9e9e13073a583ff490c133dccff4d91101cfb09425"
+  },
+  "template_atom_mask": {
+   "dtype": "int64",
+   "shape": [
+    4,
+    644,
+    24
+   ],
+   "sha256": "7fe9189983ed8340fd86aec3edc09bc8313259f9645e2bc67a38b27397ea7abc"
+  },
+  "template_atom_positions": {
+   "dtype": "float32",
+   "shape": [
+    4,
+    644,
+    24,
+    3
+   ],
+   "sha256": "391d006400d52bd97707731fc1f8aa8b9e65828bb4e45519d2c1d27120a0876d"
+  },
+  "template_backbone_frame_mask": {
+   "dtype": "float32",
+   "shape": [
+    4,
+    644,
+    644
+   ],
+   "sha256": "7319b724820124f87dd97869e448597494b22ad58c8d80ac88009395a3ce4623"
+  },
+  "template_distogram": {
+   "dtype": "float32",
+   "shape": [
+    4,
+    644,
+    644,
+    39
+   ],
+   "sha256": "1e5dbf9bc47f66d2982fcf9e2bacf9a70c4af7756d12db9482eb62f23f5f4782"
+  },
+  "template_pseudo_beta_mask": {
+   "dtype": "float32",
+   "shape": [
+    4,
+    644,
+    644
+   ],
+   "sha256": "7319b724820124f87dd97869e448597494b22ad58c8d80ac88009395a3ce4623"
+  },
+  "template_unit_vector": {
+   "dtype": "float32",
+   "shape": [
+    4,
+    644,
+    644,
+    3
+   ],
+   "sha256": "c502291b6f056381802ca2710150ebd0e1e2949679c015493592006a471d1787"
+  }
+ },
+ "hits": [
+  {
+   "query_length": 291,
+   "names": [
+    "5ocm_A",
+    "3zgy_A",
+    "5a9s_B",
+    "5a9r_A"
+   ],
+   "errors": 3,
+   "warnings": 471
+  }
+ ],
+ "environment": {
+  "host": "gnode2",
+  "machine": "x86_64",
+  "processor": "",
+  "numpy": "2.4.1",
+  "torch": "2.7.1+cu128",
+  "kalign": {
+   "path": "/data/yang.su/opendde-qual-assets/bin/kalign",
+   "resolved": "/data/yang.su/opendde-qual-assets/bin/kalign",
+   "sha256": "169d5f3989a264bb6d8faf77dc681a54fc0352b00e82c9cc53d8525bd471f79e"
+  },
+  "release_dates": {
+   "resolved": "/data/yang.su/opendde-qual-assets/common/release_date_cache.json",
+   "sha256": "8b1ef12ddc01a0d5eb2d388c77ded91aa906eebce7440726c57b6f8d1a3ec142"
+  },
+  "obsolete_pdbs": {
+   "resolved": "/data/yang.su/opendde-qual-assets/common/obsolete_to_successor.json",
+   "sha256": "2bc08348d0efba438c109bb27be6fa25b611d371c60b8a8da3de387a4a0698ad"
+  },
+  "mmcif_dir": "/data/yang.su/opendde-qual-data/template_mmcif",
+  "cli_args": [
+   "pred",
+   "-i",
+   "examples/cofold/template/example_9fm7.json",
+   "-o",
+   "/tmp/d5-template-0_tnz2w5/out",
+   "--sample",
+   "5",
+   "--step",
+   "200",
+   "--cycle",
+   "10",
+   "--dtype",
+   "bf16",
+   "--use_template",
+   "false",
+   "--use_rna_msa",
+   "false",
+   "--enable_tf32",
+   "false",
+   "--use_msa",
+   "true",
+   "--use_template",
+   "true",
+   "--kalign_binary_path",
+   "/data/yang.su/opendde-qual-assets/bin/kalign",
+   "--seeds",
+   "101"
+  ]
+ }
+}

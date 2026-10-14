@@ -1,0 +1,50 @@
+{
+ "ok": true,
+ "stores": [
+  "/data/yang.su/opendde-step0",
+  "/data/yang.su/opendde-standin",
+  "/home/yang.su/OpenDDE",
+  "/home/yang.su/opendde-dev-checks"
+ ],
+ "counts": {
+  "stop": 0,
+  "deviation": 0,
+  "gap": 0,
+  "unverified": 799,
+  "runs": 819
+ },
+ "gaps": [],
+ "findings": [],
+ "runs_by_status": {
+  "verified (recorded commit) | D1": 20,
+  "unverified (job name only) | D1": 80,
+  "unverified (job name only) | D4,H10": 52,
+  "unverified (job name only) | D13,D3": 82,
+  "unverified (job name only) | D13,D2": 100,
+  "unverified (job name only) | D10": 37,
+  "unverified (job name only) | D11,D12,D9": 114,
+  "unverified (job name only) | D5": 49,
+  "unverified (job name only) | D6": 52,
+  "unverified (job name only) | D7": 46,
+  "unverified (job name only) | D8": 48,
+  "unverified (job name only) | D14": 32,
+  "unverified (job name only) | D15": 32,
+  "unverified | D1": 5,
+  "unverified | D10": 5,
+  "unverified | D9,D11,D12": 15,
+  "unverified | D13": 5,
+  "unverified | D14": 5,
+  "unverified | D15": 5,
+  "unverified | D2": 5,
+  "unverified | D3": 5,
+  "unverified | D4,H10": 5,
+  "unverified | D5": 5,
+  "unverified | D6": 5,
+  "unverified | D7": 5,
+  "unverified | D8": 5
+ },
+ "seeds_seen": [
+  101,
+  102
+ ]
+}

@@ -37,8 +37,10 @@ rehearsal, since their digest is compared with the receipt's.
 
 Checks:
 - every required row appears in exactly one full set, and no other row does;
-- the frozen inputs match their digests, repository and external;
-- the held-out log is well formed: seeds from 201-299, each used once in the
+- the frozen inputs match their digests, repository and external, and the
+  expected effective digests of inputs ``pred`` converts from the legacy MSA
+  format (``effective_inputs.json``);
+- the held-out log is well formed: seeds from 201-999, each used once in the
   whole log, two per held-out row, extra Zn seeds only where ``zn_rule``
   allows them; the draw records the candidate's code commit and its declared
   arguments; receipt ids are unique, a receipt is named by at most one draw,
@@ -60,6 +62,18 @@ Checks:
   seeds and recipe (``off`` exactly the stock command, candidate runs the
   stock command plus the declared arguments); the recipe environment; the
   wrapper options of its kind; and one set of software versions across runs;
+- per run, from its input provenance (contract-6, ``run_opendde.py``): the
+  source JSON has its frozen digest; the inference parser read it once, with
+  the source digest or, for a legacy-MSA input, the frozen effective digest;
+  every MSA, RNA-MSA and template file the effective JSON names had its
+  frozen digest before and after the run; a template run's mmCIF files had
+  their frozen digests before and after, its template cache was new at the
+  parser read, and it requested the frozen Kalign binary; the selected
+  runtime assets (checkpoint, both CCD files and, for template runs, the
+  release-date and obsolete-PDB files and the resolved Kalign) have the
+  paths and digests of this GPU's frozen reference (``runtime_assets.json``),
+  with one path and digest per asset across all runs; and each job's output
+  layout holds exactly the declared seeds;
 - per traced pair: traces belong to their run records; rollouts are exactly
   the input's jobs times the seeds, with the recipe's sample count, step
   count, chunk size and guidance setting; every expected draw is recorded on
@@ -121,13 +135,15 @@ import tier2_gates
 import trace_tools
 
 INPUTS = Path("scripts/qualification/inputs")
-HELD_OUT_RANGE = (201, 299)
+HELD_OUT_RANGE = (201, 999)
 HELD_OUT_SEEDS_PER_ROW = 2
 FULL, FAIL, PARTIAL, PROVISIONAL, REHEARSAL = 0, 1, 2, 3, 4
 CANDIDATE_KINDS = ("cand", "repeat", "tier1 cand")
 REHEARSAL_STATUS = "rehearsal passed (not an acceptance)"
 EVIDENCE_RUNS = ("off", "cand", "cand_repeat", "tier1_off", "tier1_cand")
 HEX = set("0123456789abcdef")
+BASE_ASSETS = ("checkpoint", "ccd_components_file", "ccd_components_rdkit_mol_file")
+TEMPLATE_ASSETS = ("release_dates_path", "obsolete_pdbs_path", "kalign_binary_path")
 
 
 class Checks:
@@ -261,6 +277,11 @@ def check_digests(checks: Checks, manifest: Path) -> None:
     for name, current, stored in (
         ("digests", freeze_inputs.digests, "digests.json"),
         ("external digests", freeze_inputs.external_digests, "external_digests.json"),
+        (
+            "effective input digests",
+            freeze_inputs.effective_digests,
+            "effective_inputs.json",
+        ),
     ):
         try:
             now = current(manifest)
@@ -294,6 +315,37 @@ def _declared(code, args) -> bool:
     )
 
 
+def load_provenance_references(checks: Checks, root: Path, gpu) -> dict[str, Any]:
+    """The frozen references input provenance is checked against: input and
+    external digests, effective digests of converted legacy-MSA inputs, and
+    this GPU's runtime-asset paths and digests (``runtime_assets.json``)."""
+    refs: dict[str, Any] = {}
+    for key, name in (
+        ("digests", "digests.json"),
+        ("external", "external_digests.json"),
+        ("effective", "effective_inputs.json"),
+    ):
+        try:
+            refs[key] = json.loads((root / name).read_text())
+        except (OSError, json.JSONDecodeError):
+            refs[key] = None
+    try:
+        assets = json.loads((root / "runtime_assets.json").read_text())
+        refs["assets"] = ((assets.get("gpus") or {}).get(gpu) or {}).get("assets")
+    except (OSError, json.JSONDecodeError):
+        refs["assets"] = None
+    checks.add(
+        "runtime-asset reference frozen for this GPU",
+        isinstance(refs["assets"], dict)
+        and all(
+            isinstance(refs["assets"].get(n), dict)
+            for n in BASE_ASSETS + TEMPLATE_ASSETS
+        ),
+        gpu,
+    )
+    return refs
+
+
 def check_rehearsal(checks: Checks, evidence) -> dict[str, Any]:
     """A rehearsal declares its code commit and candidate arguments and names
     no held-out draw; return them as a draw without seeds."""
@@ -322,7 +374,7 @@ def check_log(checks: Checks, log, draw_id, gpu, candidate, held_out_rows, limit
     checks.add("held-out seeds used once", not repeated, repeated)
     lo, hi = HELD_OUT_RANGE
     out_of_range = sorted(s for s in seen if not lo <= s <= hi)
-    checks.add("held-out seeds in 201-299", not out_of_range, out_of_range)
+    checks.add(f"held-out seeds in {lo}-{hi}", not out_of_range, out_of_range)
     check_log_receipts(checks, log)
     draws = [d for d in log.get("draws", []) if d.get("id") == draw_id]
     if not checks.add("held-out draw logged", len(draws) == 1, draw_id):
@@ -657,18 +709,34 @@ def expected_artifacts(jobs, seeds, n_sample: int) -> set[str]:
 
 
 class Context:
-    """What every run check needs: inputs, recipe, draw and Git state."""
+    """What every run check needs: inputs, recipe, draw, Git state and the
+    frozen provenance references (input digests, effective input digests and
+    this GPU's runtime assets)."""
 
-    def __init__(self, checks, manifest, recipe, draw, git, capability):
+    def __init__(self, checks, manifest, recipe, draw, git, capability, frozen=None):
         self.checks, self.manifest, self.recipe = checks, manifest, recipe
         self.table = {r["id"]: r for r in manifest["rows"]}
         self.draw, self.git, self.capability = draw, git, capability
         self.versions: set[str] = set()
+        self.frozen = frozen or {}
+        self.assets: dict[str, set] = {}
+        self._references: dict[tuple, list[str]] = {}
 
     def jobs(self, row):
         return [
             j["name"] for j in json.loads(Path(self.table[row]["input"]).read_text())
         ]
+
+    def references(self, row, use_msa: bool) -> list[str]:
+        """The files the row's effective input names, as frozen-digest keys."""
+        key = (self.table[row]["input"], use_msa)
+        if key not in self._references:
+            source = Path(key[0]).read_bytes()
+            _, jobs = provenance.effective_input(source, use_msa)
+            self._references[key] = sorted(
+                {Path(p).as_posix() for p in provenance.referenced_files(jobs)}
+            )
+        return self._references[key]
 
     def seeds(self, row):
         if self.table[row]["role"] == "development":
@@ -726,6 +794,7 @@ def check_run(ctx: Context, label, run_dir: Path, row, seeds, kind, zn=False):
     )
     ctx.versions.add(json.dumps(fp.get("versions"), sort_keys=True))
     check_imports(ctx, name, fp.get("imports"))
+    check_input_provenance(ctx, name, rec, row, seeds)
     if ctx.table[row]["role"] == "held-out":
         draw = (
             ctx.git.draw_at(fp.get("commit"), ctx.draw.get("id")) if ctx.git else None
@@ -791,6 +860,157 @@ def check_run(ctx: Context, label, run_dir: Path, row, seeds, kind, zn=False):
         wrapper,
     )
     return rec
+
+
+def _cli_flag(cli, name: str, default: bool) -> bool:
+    value = _last(cli, name)
+    return (
+        default
+        if value is None
+        else value.lower() in ("true", "1", "yes", "y", "t", "on")
+    )
+
+
+def _override(row: dict, key: str):
+    for text in row.get("overrides", []):
+        name, sep, value = text.partition("=")
+        if sep and name == key:
+            return value
+    return None
+
+
+def check_input_provenance(ctx: Context, name, rec, row, seeds) -> None:
+    """A run read its frozen input and referenced files, used this GPU's
+    frozen runtime assets and produced exactly its declared seeds
+    (contract-6; ``run_opendde.py`` records the evidence)."""
+    prov = rec.get("provenance")
+    if not ctx.checks.add(
+        f"{name} input provenance recorded",
+        isinstance(prov, dict)
+        and prov.get("refused") is None
+        and not prov.get("finish_error"),
+        None
+        if not isinstance(prov, dict)
+        else {k: prov.get(k) for k in ("refused", "finish_error")},
+    ):
+        return
+    spec, cli = ctx.table[row], rec.get("cli_args") or []
+    flags = {
+        "use_msa": _cli_flag(cli, "--use_msa", True),
+        "use_template": _cli_flag(cli, "--use_template", False),
+        "use_rna_msa": _cli_flag(cli, "--use_rna_msa", False),
+    }
+    digests = ctx.frozen.get("digests") or {}
+    key = Path(spec["input"]).as_posix()
+    source = digests.get(key)
+    effective = (
+        (ctx.frozen.get("effective") or {}).get(key) if flags["use_msa"] else None
+    )
+    expected = effective["effective_sha256"] if effective else source
+    src = prov.get("source") or {}
+    reads = prov.get("parser_reads") or []
+    read = reads[0] if len(reads) == 1 else {}
+    ctx.checks.add(
+        f"{name} input read as frozen",
+        source is not None
+        and src.get("path") == spec["input"]
+        and src.get("sha256") == source
+        and prov.get("flags") == flags
+        and read.get("matches_parse") is True
+        and read.get("sha256") == expected
+        and prov.get("expected_effective_sha256") == expected,
+        {
+            "source": [src.get("sha256"), source],
+            "parser_reads": [r.get("sha256") for r in reads],
+            "expected_read": expected,
+            "flags": [prov.get("flags"), flags],
+        },
+    )
+    want = set(ctx.references(row, flags["use_msa"]))
+    found = {
+        Path(p).as_posix(): state for p, state in (prov.get("referenced") or {}).items()
+    }
+    unstable = sorted(
+        k
+        for k in want | set(found)
+        if k not in want
+        or k not in found
+        or digests.get(k) is None
+        or found[k].get("before") != digests[k]
+        or found[k].get("after") != digests[k]
+    )
+    ctx.checks.add(
+        f"{name} referenced files stable and frozen",
+        not unstable,
+        {"files": len(want), "differing": unstable[:5]},
+    )
+    ref = ctx.frozen.get("assets")
+    if flags["use_template"]:
+        check_template_provenance(ctx, name, prov, spec, ref)
+    required = BASE_ASSETS + (TEMPLATE_ASSETS if flags["use_template"] else ())
+    got = prov.get("assets") or {}
+    wrong = {
+        n: [(got.get(n) or {}).get(k) for k in ("resolved", "sha256")]
+        for n in required
+        if not isinstance(ref, dict)
+        or n not in ref
+        or (got.get(n) or {}).get("resolved") != ref[n].get("path")
+        or (got.get(n) or {}).get("sha256") != ref[n].get("sha256")
+    }
+    ctx.checks.add(
+        f"{name} runtime assets match the frozen reference",
+        isinstance(ref, dict) and not wrong,
+        {"reference": isinstance(ref, dict), "differing": wrong},
+    )
+    for n in required:
+        if n in got:
+            ctx.assets.setdefault(n, set()).add(
+                (got[n].get("resolved"), got[n].get("sha256"))
+            )
+    jobs = ctx.jobs(row)
+    expected_seeds = {job: sorted(seeds) for job in jobs}
+    ctx.checks.add(
+        f"{name} output holds the declared seeds",
+        prov.get("seeds") == expected_seeds,
+        {"recorded": prov.get("seeds"), "declared": expected_seeds},
+    )
+
+
+def check_template_provenance(ctx: Context, name, prov, spec, ref) -> None:
+    prefix = _override(spec, "data.template.prot_template_mmcif_dir")
+    external = ctx.frozen.get("external") or {}
+    tree = (
+        {
+            k[len(prefix) + 1 :]: v
+            for k, v in external.items()
+            if k.startswith(prefix + "/")
+        }
+        if prefix
+        else {}
+    )
+    mmcif = prov.get("template_mmcif") or {}
+    ctx.checks.add(
+        f"{name} template mmCIF files stable and frozen",
+        bool(tree) and mmcif.get("before") == tree and mmcif.get("after") == tree,
+        {"frozen": len(tree), "before_matches": mmcif.get("before") == tree},
+    )
+    cache = prov.get("template_cache") or {}
+    ctx.checks.add(
+        f"{name} template cache new at the parser read",
+        cache.get("inside_output") is True
+        and cache.get("absent_before") is True
+        and cache.get("absent_at_parse") is True,
+        cache,
+    )
+    kalign = prov.get("kalign") or {}
+    frozen = ((ref or {}).get("kalign_binary_path") or {}).get("path")
+    ctx.checks.add(
+        f"{name} requested Kalign is the frozen binary",
+        frozen is not None
+        and kalign.get("executable") is True
+        and kalign.get("requested_resolved") == frozen,
+        {"requested": kalign.get("requested_resolved"), "frozen": frozen},
+    )
 
 
 def check_rollouts(ctx: Context, name, meta, jobs, seeds, cli) -> None:
@@ -1266,8 +1486,15 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
             t2_limits,
         )
     git = check_git(checks, root, draw)
+    frozen_refs = load_provenance_references(checks, root, evidence.get("gpu"))
     ctx = Context(
-        checks, manifest, required_file["recipe"], draw, git, list(gpu["capability"])
+        checks,
+        manifest,
+        required_file["recipe"],
+        draw,
+        git,
+        list(gpu["capability"]),
+        frozen_refs,
     )
     baseline_path = root / required_file["baseline"]
     baseline = (
@@ -1337,6 +1564,11 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
         "every run shares one set of software versions",
         len(ctx.versions) == 1,
         sorted(ctx.versions),
+    )
+    checks.add(
+        "every run used one path and digest per runtime asset",
+        bool(ctx.assets) and all(len(v) == 1 for v in ctx.assets.values()),
+        {n: sorted(v, key=str) for n, v in ctx.assets.items() if len(v) != 1},
     )
     zn = tier2_gates.zn_claim(results)
     development = [

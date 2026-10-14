@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 95 (2026-10-14)
+
+Records the contract-6 implementation; it is not yet committed or tagged. The numeric limits are unchanged, no held-out input ran, and porting has not started.
+
+- Add the contract-6 implementation record to the plan and protocol: the 201-999 seed range; fail-closed run provenance in `run_opendde.py` with the parser-read hook as the only new hook target; `accept.py`'s provenance checks against `effective_inputs.json` and `runtime_assets.json`; the verified and frozen private asset copy; the signature inventory with held-out token counts; the do-not-run audit (819 runs, no stop or deviation, with its unverified runs listed as gaps); the repeated D5 template digests; 251 passing tests; and a pre-tag GPU provenance check of D1, D4 and D5. Reason: the user approved implementation on 2026-10-14, and the record shows what is done before the tag is pushed, which cannot be undone.
+- State the held-out seed range as 201-999 from contract-6 wherever the protocol states the range, keeping contract-5's 201-299 for reference. Reason: the range changes with the tag, not before it.
+- Record that the GitHub rulesets were verified on 2026-10-14 and are rechecked before each contract-tag push, receipt push, held-out batch and final verdict. Reason: the verification was a prerequisite for any amendment, and one check proves only one moment.
+
 ## Revision 94 (2026-10-14)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
