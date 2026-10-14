@@ -2,6 +2,13 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 93 (2026-10-14)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Treat D8, D6 and D4 as starting size comparators, not proven bounds. Before the receipt, compare every held-out row with its comparator by frozen token and heavy-atom counts, then bound each role's captures, predictions and other outputs separately with measured bytes, schema allowances and an explicit safety factor. If a comparator does not cover a row, use another measured row or a justified worst-case bound; otherwise stop. Reason: a larger token count does not guarantee a larger atom-dependent or workload-dependent file.
+- Require both independent checksum verification of a NAS-protected copy against the pushed manifest and protected retention with a recorded restore test before local evidence is removed. A checksum alone cannot prevent later changes, and a snapshot alone does not prove its contents match the manifest. Narrow the hard-mount claim to server-timeout retries; it does not establish durable writes or prevent other write failures. Reason: the destination maps gnode2 users to one owner, so a verified live copy remains mutable.
+
 ## Revision 92 (2026-10-14)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
