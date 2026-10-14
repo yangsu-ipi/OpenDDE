@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 91 (2026-10-13)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Bound each held-out row by a dominating measured development row instead of a fitted curve: D8 for H1-H7, D6 for H8 and H9, D4 for H10, at the same role's size in the candidate's own rehearsal times the safety factor, with atom counts checked for H3. Record the expected held-out block of roughly 39 GB before the safety factor. Reason: every held-out row lies within the measured development range and capture size grows with token count, so measured sizes give bounds with nothing to fit; the stand-in's D8 captures (1,445 MiB for two seeds) put the expected block above the 36 GB floor, which the first preflight should not discover by surprise.
+- Derive held-out token counts row by row: H7 from D8 and H10 from D4 via the `z_trunk` shape in their captures, protein-only rows as residues after a standard-alphabet check, one token per Zn ion and per nucleotide, and a CCD lookup only for H2's `CCD_PCG`. Record the counts in contract-6's signature inventory. Reason: no frozen input has modified residues and the only covalent glycan is shared by D8 and H7, so a single CCD lookup remains, and frozen counts need not be recomputed at each preflight.
+- Take provisional development bounds from the stand-in's per-row, per-role measurements times the safety factor plus a dtype allowance, and require separate sizing work only if the candidate changes captured dtypes beyond it. Reason: the stand-in already measured every development row and role; `_host` keeps live dtypes, so dtype is the remaining unknown.
+
 ## Revision 90 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
