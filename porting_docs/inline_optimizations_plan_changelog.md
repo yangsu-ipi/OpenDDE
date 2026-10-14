@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 94 (2026-10-14)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Require the storage-admin protection and verification procedure before removing any local originals, in practice before the preflight of the first line that needs space freed by an earlier one, rather than before the first receipt. Reason: retaining originals already handles a missing procedure safely, and the first line fits with its originals kept (roughly 95-100 GB with margin against about 220 GiB of soft-quota headroom), so the earlier gate tied qualification to an admin request without protecting anything.
+- Copy each closed line to the destination promptly even before the procedure exists, verify it from gnode2 against the manifest and label it unprotected. Reason: `/data` is not backed up, so a second copy, even one other users could modify, protects against loss of the local disk, while the local originals stay the reference.
+- Record approximate comparator counts (tokens and heavy atoms): D8 covers H1-H7 and D6 covers H8 and H9 on both, H10 is D4; exact frozen counts are still to be computed. Reason: the fallback for an uncovered row is not expected to trigger, and stating the expected table lets the exact computation be checked against it.
+- Cite the stand-in evidence that guidance adds no workload-dependent files (D9-D12 match D3's size within 0.1% and file set). Reason: it backs the clause on workload-dependent files and shows the unguided D8 is a valid comparator for the guided H5-H7.
+
 ## Revision 93 (2026-10-14)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
