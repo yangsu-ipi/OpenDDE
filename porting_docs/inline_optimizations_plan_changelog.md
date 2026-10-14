@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 92 (2026-10-14)
+
+Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
+
+- Name the archive destination: `/mnt/compbio-data/yang.su/opendde-qualification-archive` on gnode2, an NFSv3 export from `10.12.10.10` mounted `hard`, with 6.7 TB available; operator writes succeeded. Stop using `/mnt/nas-backups`. Reason: the old target was mounted `soft` and not writable by the operator, while a `hard` mount retries through server timeouts instead of returning errors that can lose writes.
+- Record that the export maps every user to uid 1025 with mode 777, so `chmod` cannot protect an archived line, and that a `#recycle` folder exists with unconfirmed retention. Keep the storage-admin procedure (NAS-side read-only snapshots or a NAS-run checksum) as a precondition for removing local originals, and confirm the recycle-bin retention. Reason: any gnode2 user who can reach the share can modify or delete its files, so a gnode2-side hash shows only that a copy arrived, not that it will stay unchanged.
+- Name the destination in the protocol's remaining steps.
+
 ## Revision 91 (2026-10-13)
 
 Documentation only; contract-5, qualification code and numeric limits are unchanged. No GPU work or porting began.
