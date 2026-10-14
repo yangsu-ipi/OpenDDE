@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 96 (2026-10-14)
+
+Records the contract-6 release. The numeric limits are unchanged, no held-out input ran, and porting has not started.
+
+- Record the release: rulesets rechecked, commit `e69506e` pushed after a hash comparison with the tested tree, annotated tag `qual-sm120-contract-6` pushed, and at the tag (job 50625) the asset, digest and inventory preflights, the D1 stock smoke test (89 of 89 checks, including byte-identical `off` outputs against step 0 and provenance on all four D1 runs), the gate (a tag candidate passed, a contract-5 candidate was refused) and 251 tests passed. Reason: the user approved the release steps, and the record names what was checked at the tag.
+- Name `qual-sm120-contract-6` as the current tag in the plan and protocol status, the acceptance-criteria heading and the C9 freeze record; the limits remain those frozen at contract-1. Reason: contract-6 supersedes contract-5.
+- Register the pre-tag GPU check's store `/data/yang.su/opendde-c6-smoke` in `porting_docs/run_store_registry.json`. Reason: it holds development runs of D1, D4 and D5 at seed 101 and must be audited like every other store.
+
 ## Revision 95 (2026-10-14)
 
 Records the contract-6 implementation; it is not yet committed or tagged. The numeric limits are unchanged, no held-out input ran, and porting has not started.

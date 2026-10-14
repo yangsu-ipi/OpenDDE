@@ -20,6 +20,11 @@
    "path": "/home/yang.su/opendde-dev-checks",
    "registered": "2026-10-14",
    "note": "Job scripts and logs; searched for ad hoc output directories (none found on 2026-10-14)."
+  },
+  {
+   "path": "/data/yang.su/opendde-c6-smoke",
+   "registered": "2026-10-14",
+   "note": "Pre-tag contract-6 GPU provenance check (job 50623): D1, D4 and D5 at development seed 101, reduced recipe."
   }
  ]
 }
