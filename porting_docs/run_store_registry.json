@@ -25,6 +25,22 @@
    "path": "/data/yang.su/opendde-c6-smoke",
    "registered": "2026-10-14",
    "note": "Pre-tag contract-6 GPU provenance check (job 50623): D1, D4 and D5 at development seed 101, reduced recipe."
+  },
+  {
+   "path": "/ephemeral/porting",
+   "host": "A100 cloud VM (sm_80)",
+   "registered": "2026-10-14",
+   "note": "A100 stock step 0 and calibration (user go-ahead 2026-10-14): development rows D1-D15 and repository examples only, development seeds 101 and 102; outputs under runs/, job scripts under jobs/, logs under logs/. The VM is ephemeral; its outputs, logs and tier 1 captures are copied to /mnt/compbio-data/yang.su/opendde-a100/2026-10-14 on gnode2."
+  },
+  {
+   "path": "/mnt/compbio-data/yang.su/opendde-a100",
+   "registered": "2026-10-14",
+   "note": "Copies of the A100 VM runs (/ephemeral/porting on the VM, which is ephemeral), with logs and tier 1 captures, verified against sha256 manifests computed on the VM; setup recipe and job scripts in ~/opendde-dev-checks/a100 (README.md). First relayed to /data/yang.su/opendde-a100 and moved here with checksum verification the same day (user decision 2026-10-14)."
+  },
+  {
+   "path": "/mnt/compbio-data/yang.su/opendde-porting",
+   "registered": "2026-10-14",
+   "note": "Bulk porting outputs that are not qualification evidence (user decision 2026-10-14; README.md there). sm120-captures/ holds copies of the sm_120 tier 1 capture directories from opendde-step0 and opendde-standin under the same relative paths, with source sha256 manifests in sm120-captures/MANIFESTS."
   }
  ]
 }
