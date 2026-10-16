@@ -2,6 +2,16 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 108 (2026-10-16)
+
+Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation, helper implementation or GPU work is authorized.
+
+- Require the transfer helper to pass a self-comparison of the real archived captures (against themselves and against their relocated paths) before the next A100 session. Reason: synthetic tests cannot show that the all-tensor non-finite rule is no stricter than the archive, whose frozen tier 1 limits require finite values only for listed keys, or that relocation works on the real `/ephemeral/porting` to NAS paths.
+- Specify non-tensor comparison: scalars and strings exact, floats bit for bit, `replay_source` the only field allowed to differ and only through provenance. Reason: captures hold confidence scalars and the replay path as well as tensors.
+- Add a completeness test: reject a capture present on only one side, except the declared D4 fp32 gap, which must be absent on both. Reason: pairwise comparison alone misses missing or extra captures.
+- Commit the helper and its tests to the repository outside `scripts/qualification` (for example `scripts/porting/`, tests under `tests/`) and record its commit with each comparison. Reason: home directories and the NAS are mutable, and the contract check covers only `scripts/qualification`, so this gives durable history without an amendment.
+- Note that `_host()` keeps device strides, so kernel-changing contrasts can store identical values in different layouts. Reason: it shows the stride-tolerant rule is needed in practice.
+
 ## Revision 107 (2026-10-16)
 
 Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation, helper implementation or GPU work is authorized.
