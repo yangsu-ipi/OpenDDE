@@ -1,6 +1,6 @@
 # Inline optimization porting plan
 
-Revision 98. Changes and reasons are recorded in `inline_optimizations_plan_changelog.md`.
+Revision 99. Changes and reasons are recorded in `inline_optimizations_plan_changelog.md`.
 
 Status (2026-10-15): stock checks and calibration measurements are recorded for both target GPUs. The sm_120 single-cycle tier 1 limits and full tier 2 contract are approved and frozen; sm_80 limits and its baseline still need their own audit and freeze. See [the A100 stock report](step0_results_sm80.md) and [protocol E6](qualification_protocol.md#e6-sm_80-freeze-and-calibration-evidence-follow-up). The A100 VM used on 2026-10-14 is no longer reachable; the next A100 session starts with E6's replacement-host acceptance test. No optimized candidate or held-out run has started. The port still needs the user's go-ahead.
 
@@ -445,7 +445,7 @@ For held-out qualification:
 
   The D9 failure is the whole-ensemble `ensemble_spread_ratio`, not the reported same-seed spread; its archived key and value (1.30097) were confirmed on 2026-10-15. Decide the per-GPU smoke-test timing rule before the contract structure (A100 continuity above): separate tag families alone do not avoid the ephemeral VM, because every amendment so far changed shared code.
 
-  The A100 VM was unreachable on 2026-10-15, after all outputs had been relayed. Protocol E6 records the resulting gaps (no kept A100 source manifests; no kept manifest of the intermediate `/data` copy) and the authorized record-keeping: hashes of the sm_120 source manifests, a destination manifest of the NAS A100 copy, the relay verification lines and a relocation map. Calibration and rehearsal captures remain supporting evidence even under a store described as non-qualification output; checksum-verified transfers establish copy integrity at transfer time, not protected retention. Before the first held-out draw the user decides whether protected retention of these captures is a prerequisite or an approved recorded gap (E6). Revision 98 authorizes only that record-keeping (read-only hashing and new record files); no move or deletion.
+  The A100 VM was unreachable on 2026-10-15, after all outputs had been relayed. Protocol E6 records the resulting gaps (no kept A100 source manifests; no kept manifest of the intermediate `/data` copy) and the authorized record-keeping: hashes of the sm_120 source manifests, a destination manifest of the NAS A100 copy, the relay verification lines and a relocation map. Calibration and rehearsal captures remain supporting evidence even under a store described as non-qualification output; checksum-verified transfers establish copy integrity at transfer time, not protected retention. The user approved a recorded gap for the first held-out draw (E6, 2026-10-15): its claim states that these captures are retained without protection, and they join the storage-admin request, which must protect and independently verify them before the second acceptance line. Revision 98 authorizes only that record-keeping (read-only hashing and new record files); no move or deletion.
 
 Record the absolute limits, the native bf16-versus-fp32 contrast, any common-random precision diagnostic, and the stock seed-to-seed variation. A small, medium and large size label alone is not enough to establish the numerical envelope.
 

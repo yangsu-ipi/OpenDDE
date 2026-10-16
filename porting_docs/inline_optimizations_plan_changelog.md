@@ -2,6 +2,12 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 99 (2026-10-15)
+
+Records a user decision. Qualification code, numeric limits and tags are unchanged; nothing else is authorized.
+
+- Protected retention of the supporting calibration and rehearsal captures (`opendde-porting/sm120-captures`, `opendde-a100`) is an approved recorded gap for the first held-out draw (option (b) of revision 98). The first draw's claim states the unprotected retention and the gaps in `storage_relocation_2026-10-16.json`; both stores join the storage-admin request and must have a protected, independently verified and restore-tested copy before the second acceptance line. Reason: the limits are frozen by hash and the captures only support their derivation, so the first draw need not wait for the storage admin, while the gap still closes on the same schedule as the archive procedure.
+
 ## Revision 98 (2026-10-15)
 
 Documentation and registry only. Qualification code, numeric limits and tags are unchanged; no porting, environment creation or GPU work is authorized. The only authorized storage work is the record-keeping in protocol E6 (read-only hashing and new record files; no move or deletion).
