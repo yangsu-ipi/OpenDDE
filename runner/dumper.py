@@ -16,7 +16,7 @@ from opendde.data.inference.input_validation import (
     validate_sample_name,
 )
 from opendde.data.utils import save_structure_cif
-from opendde.utils.file_io import save_json
+from opendde.utils.file_io import save_json, save_json_oneshot
 
 
 def get_clean_full_confidence(full_confidence_dict: dict) -> dict:
@@ -78,6 +78,8 @@ class DataDumper:
         base_dir (str): Base directory for saving dumped data.
         need_atom_confidence (bool): Whether to save detailed atom-level confidence data.
         sorted_by_ranking_score (bool): Whether to sort output files by ranking score.
+        json_oneshot (bool): Encode each confidence JSON once and write it in one
+            call (the ``json_oneshot`` exact optimization; identical bytes).
     """
 
     def __init__(
@@ -85,10 +87,12 @@ class DataDumper:
         base_dir: str,
         need_atom_confidence: bool = False,
         sorted_by_ranking_score: bool = True,
+        json_oneshot: bool = False,
     ) -> None:
         self.base_dir = base_dir
         self.need_atom_confidence = need_atom_confidence
         self.sorted_by_ranking_score = sorted_by_ranking_score
+        self.json_oneshot = json_oneshot
 
     def dump(
         self,
@@ -324,13 +328,15 @@ class DataDumper:
                 prediction_save_dir,
                 f"{sample_name}_summary_confidence_sample_{rank}.json",
             )
-            save_json(data["summary_confidence"][idx], output_fpath, indent=4)
+            (save_json_oneshot if self.json_oneshot else save_json)(
+                data["summary_confidence"][idx], output_fpath, indent=4
+            )
             if self.need_atom_confidence:
                 output_fpath = os.path.join(
                     prediction_save_dir,
                     f"{sample_name}_full_data_sample_{rank}.json",
                 )
-                save_json(
+                (save_json_oneshot if self.json_oneshot else save_json)(
                     get_clean_full_confidence(data["full_data"][idx]),
                     output_fpath,
                     indent=None,

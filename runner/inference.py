@@ -28,6 +28,7 @@ from opendde.config.optimization import (
     build_optimization_plan,
     explicit_environment,
     explicit_from_arg_str,
+    optimization_enabled,
     validate_optimization_mode,
 )
 from opendde.config.schema import OpenDDEConfig
@@ -1407,6 +1408,7 @@ class InferenceRunner(object):
             base_dir=self.dump_dir,
             need_atom_confidence=need_atom_confidence,
             sorted_by_ranking_score=sorted_by_ranking_score,
+            json_oneshot=optimization_enabled(self.configs, "json_oneshot"),
         )
 
     @torch.no_grad()

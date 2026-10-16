@@ -12,6 +12,7 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 
+from opendde.config.optimization import optimization_enabled
 from opendde.config.schema import OpenDDEConfig
 from opendde.data.tokenizer import STRUCTURAL_TOKEN_ROLES
 from opendde.distributed.foldcp.config import FoldCPConfig
@@ -36,6 +37,7 @@ from opendde.distributed.foldcp.trunk_init import (
 from opendde.model import sample_confidence
 from opendde.model.generator import (
     InferenceNoiseScheduler,
+    host_noise_schedule,
     sample_diffusion,
 )
 from opendde.model.modules.confidence import ConfidenceHead
@@ -267,6 +269,9 @@ class OpenDDE(nn.Module):
             **configs.model.relative_position_encoding
         )
         self.template_embedder = TemplateEmbedder(**configs.model.template_embedder)
+        self.template_embedder.dedup_identical_slots = optimization_enabled(
+            configs, "template_dedup"
+        )
         self.msa_module = MSAModule(
             **configs.model.msa_module,
             msa_configs=configs.data["msa"],
@@ -348,6 +353,9 @@ class OpenDDE(nn.Module):
                     structural_token_expansion_configs.pair_projection_mode
                 ),
                 pair_chunk_size=structural_token_expansion_configs.pair_chunk_size,
+            )
+            self.structural_token_expander.one_read_role_pairs = optimization_enabled(
+                configs, "structural_token_sync"
             )
             if self.enable_structural_token_refiner:
                 self.structural_token_refiner = PairformerStack(
@@ -1354,9 +1362,12 @@ class OpenDDE(nn.Module):
                 "guidance_configs": sample_diffusion_configs.get("guidance"),
             }
         )
-        return autocasting_disable_decorator(self.configs.skip_amp.sample_diffusion)(
-            sample_diffusion
-        )(**_configs, **kwargs)
+        with host_noise_schedule(
+            optimization_enabled(self.configs, "host_noise_schedule")
+        ):
+            return autocasting_disable_decorator(
+                self.configs.skip_amp.sample_diffusion
+            )(sample_diffusion)(**_configs, **kwargs)
 
     @staticmethod
     def _foldcp_is_non_output_rank() -> bool:

@@ -41,5 +41,11 @@ inference_configs: dict[str, Any] = {
     "explicit_options": ListValue([], dtype=str),
     # Per-optimization switches for ablation and debugging; an optimization
     # runs only under a mode that includes it and while its switch is true.
-    "optimization": {},
+    "optimization": {
+        "drop_bond_mask": True,
+        "template_dedup": True,
+        "json_oneshot": True,
+        "structural_token_sync": True,
+        "host_noise_schedule": True,
+    },
 }

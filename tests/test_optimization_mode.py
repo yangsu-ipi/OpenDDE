@@ -91,15 +91,48 @@ def test_plan_with_no_registered_optimizations_runs_stock(monkeypatch):
     assert "explicit options: dtype" in plan.summary()
 
 
-def test_published_decisions_drive_optimization_enabled(monkeypatch):
+def test_registered_exact_optimizations_run_only_outside_off():
+    configs = build_inference_config(fill_required_with_null=True)
+    configs.optimization_mode = "exact"
+    plan = opt.build_optimization_plan(configs, device=None)
+    assert plan.enabled("drop_bond_mask")
+    configs.optimization_mode = "off"
+    assert not opt.build_optimization_plan(configs, device=None).enabled(
+        "drop_bond_mask"
+    )
+    configs.optimization_mode = "exact"
+    configs.optimization = {"drop_bond_mask": False}
+    assert not opt.build_optimization_plan(configs, device=None).enabled(
+        "drop_bond_mask"
+    )
+
+
+def test_published_decisions_drive_optimization_enabled():
     from types import SimpleNamespace
 
-    monkeypatch.setattr(opt, "OPTIMIZATIONS", {"a": ("exact",)})
-    assert not opt.optimization_enabled(SimpleNamespace(), "a")
-    on = SimpleNamespace(optimization_decisions={"a": True})
-    assert opt.optimization_enabled(on, "a")
+    assert not opt.optimization_enabled(SimpleNamespace(), "drop_bond_mask")
+    on = SimpleNamespace(optimization_decisions={"drop_bond_mask": True})
+    assert opt.optimization_enabled(on, "drop_bond_mask")
     with pytest.raises(KeyError):
         opt.optimization_enabled(on, "not_registered")
+
+
+def test_feature_optimizations_drop_bond_mask_only_when_enabled():
+    from types import SimpleNamespace
+
+    from opendde.data.inference.infer_dataloader import apply_feature_optimizations
+
+    def features():
+        return {"bond_mask": torch.zeros(3, 3), "token_bonds": torch.zeros(2, 2)}
+
+    off = features()
+    apply_feature_optimizations(SimpleNamespace(), off)
+    assert set(off) == {"bond_mask", "token_bonds"}
+    on = features()
+    apply_feature_optimizations(
+        SimpleNamespace(optimization_decisions={"drop_bond_mask": True}), on
+    )
+    assert set(on) == {"token_bonds"}
 
 
 def test_plan_decisions_follow_mode_and_switches(monkeypatch):

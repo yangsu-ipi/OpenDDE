@@ -218,5 +218,22 @@ def save_json(data, output_fpath, indent=4):
             json.dump(data_json, f)
 
 
+def save_json_oneshot(data, output_fpath, indent=4):
+    """``save_json`` with the document encoded once and written in one call.
+
+    ``json.dump`` streams ``JSONEncoder.iterencode`` through many small writes;
+    ``json.dumps`` returns ``"".join(iterencode(...))`` for the same settings
+    (and uses the C encoder when ``indent`` is None), so the file bytes are
+    identical. Used by the ``json_oneshot`` exact optimization."""
+    data_json = data.copy()
+    data_json = map_values_to_list(data_json)
+    if indent is not None:
+        text = json.dumps(data_json, indent=indent)
+    else:
+        text = json.dumps(data_json)
+    with open(output_fpath, "w") as f:
+        f.write(text)
+
+
 def save_tensor(data, output_fpath):
     torch.save(to_device(data, device=None), output_fpath)

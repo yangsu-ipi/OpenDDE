@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2026 Aureka AI Research
+import contextlib
+import contextvars
+from collections.abc import Iterator
 from typing import Any, Callable, Optional
 
 import numpy as np
@@ -79,6 +82,23 @@ class InferenceNoiseScheduler:
         t_step_list[..., -1] = 0  # t_N = 0
 
         return t_step_list
+
+
+_HOST_NOISE_SCHEDULE: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "opendde_host_noise_schedule", default=False
+)
+
+
+@contextlib.contextmanager
+def host_noise_schedule(enabled: bool) -> Iterator[None]:
+    """Run ``sample_diffusion`` calls in this context with the
+    ``host_noise_schedule`` exact optimization on or off. A context variable,
+    not a parameter, so the sampler's signature is unchanged."""
+    token = _HOST_NOISE_SCHEDULE.set(bool(enabled))
+    try:
+        yield
+    finally:
+        _HOST_NOISE_SCHEDULE.reset(token)
 
 
 def sample_diffusion(
@@ -180,6 +200,11 @@ def sample_diffusion(
         tfg = TFGEngine(tfg_cfg, device=device, dtype=dtype)
 
     num_diffusion_steps = len(noise_schedule) - 1
+    # ``host_noise_schedule`` (exact optimization): one host copy of the
+    # schedule per call, so the per-step gamma decision reads no device value.
+    host_schedule = (
+        noise_schedule.detach().to("cpu") if _HOST_NOISE_SCHEDULE.get() else None
+    )
     if (
         rigid_mode == "on"
         and not epitope_guidance.active(input_feature_dict)
@@ -255,7 +280,12 @@ def sample_diffusion(
                 )
                 # Denoise with a predictor-corrector sampler
                 # 1. Add noise to move x_{c_tau_last} to x_{t_hat}
-                gamma = float(gamma0) if c_tau > gamma_min else 0
+                if host_schedule is None:
+                    gamma = float(gamma0) if c_tau > gamma_min else 0
+                else:
+                    # The same comparison, in the schedule's dtype, on its copy.
+                    c_tau_host = host_schedule[step_i + 1]
+                    gamma = float(gamma0) if c_tau_host > gamma_min else 0
                 prepared_t_hat = c_tau_last * (gamma + 1)
 
                 delta_noise_level = torch.sqrt(prepared_t_hat**2 - c_tau_last**2)

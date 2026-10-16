@@ -57,7 +57,25 @@ OVERLAPPING_ENVIRONMENT = ("LAYERNORM_TYPE", "OPENDDE_TRUNK_CACHE")
 # Optimizations available under each mode, registered as they are ported:
 # name -> the modes that may run it.
 EXACT_AND_ABOVE = ("exact", "fast", "big")
-OPTIMIZATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType({})
+OPTIMIZATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        # Drop the [N_atom, N_atom] int64 ``bond_mask`` feature, which no
+        # inference consumer reads, before the feature dict leaves the host.
+        "drop_bond_mask": EXACT_AND_ABOVE,
+        # Evaluate each class of bitwise-identical (padding) template slots
+        # once; the stock accumulation over all slots is kept.
+        "template_dedup": EXACT_AND_ABOVE,
+        # Encode each confidence JSON once (json.dumps) and write it in one
+        # call instead of streaming json.dump; the bytes are identical.
+        "json_oneshot": EXACT_AND_ABOVE,
+        # Structural-token role-pair projections: one host read per call
+        # instead of a torch.any read per role pair.
+        "structural_token_sync": EXACT_AND_ABOVE,
+        # Diffusion sampler: decide each step's gamma from one host copy of the
+        # noise schedule instead of reading a device element per step.
+        "host_noise_schedule": EXACT_AND_ABOVE,
+    }
+)
 
 
 class _Unset:

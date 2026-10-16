@@ -2,6 +2,7 @@
 # Copyright (c) 2026 Aureka AI Research
 # pylint: disable=C0114
 import os
+import weakref
 from functools import partial
 from typing import Any, Optional, Union
 
@@ -2131,6 +2132,72 @@ class TemplateEmbedder(nn.Module):
         self.layernorm_v = LayerNorm(self.c)
         self.relu = nn.ReLU()
         self.linear_no_bias_u = LinearNoBias(in_features=self.c, out_features=self.c_z)
+        # ``template_dedup`` (exact optimization): evaluate each class of
+        # bitwise-identical template slots once. Set by the model from the
+        # optimization plan; off by default.
+        self.dedup_identical_slots = False
+        self._slot_memo: Optional[tuple] = None
+
+    # The per-slot features ``single_template_forward`` reads.
+    SLOT_KEYS = (
+        "template_aatype",
+        "template_distogram",
+        "template_pseudo_beta_mask",
+        "template_unit_vector",
+        "template_backbone_frame_mask",
+    )
+
+    def _template_slot_classes(
+        self, input_feature_dict: dict[str, Any], num_templates: int
+    ) -> Optional[list[int]]:
+        """rep[t]: the first slot whose per-slot features all equal slot t's.
+
+        Decided on the device with one host read per item and memoised for the
+        later recycles on the feature tensors themselves (weak references) and
+        their in-place version counters. None if a slot feature is unreadable,
+        in which case the stock loop runs."""
+        tensors = []
+        for key in self.SLOT_KEYS:
+            value = input_feature_dict.get(key)
+            if (
+                not torch.is_tensor(value)
+                or value.dim() < 1
+                or value.shape[0] != num_templates
+            ):
+                return None
+            tensors.append(value)
+        memo = self._slot_memo
+        if memo is not None:
+            refs, versions, rep = memo
+            if len(rep) == num_templates and all(
+                ref() is value and value._version == version
+                for ref, value, version in zip(refs, tensors, versions)
+            ):
+                return rep
+        pairs = [(s, t) for t in range(num_templates) for s in range(t)]
+        same = {}
+        if pairs:
+            flags = torch.stack(
+                [
+                    torch.stack([(x[t] == x[s]).all() for x in tensors]).all()
+                    for s, t in pairs
+                ]
+            ).tolist()
+            same = dict(zip(pairs, flags))
+        rep: list[int] = []
+        for t in range(num_templates):
+            rep.append(
+                next(
+                    (s for s in range(t) if rep[s] == s and same[(s, t)]),
+                    t,
+                )
+            )
+        self._slot_memo = (
+            tuple(weakref.ref(x) for x in tensors),
+            tuple(x._version for x in tensors),
+            rep,
+        )
+        return rep
 
     def forward(
         self,
@@ -2173,19 +2240,53 @@ class TemplateEmbedder(nn.Module):
             pair_mask = z.new_ones(z.shape[:-1])
 
         z = self.layernorm_z(z)
+        rep = (
+            self._template_slot_classes(input_feature_dict, num_templates)
+            if self.dedup_identical_slots and not torch.is_grad_enabled()
+            else None
+        )
         u = 0
-        for template_id in range(num_templates):
-            u = u + self.single_template_forward(
-                template_id=template_id,
-                input_feature_dict=input_feature_dict,
-                z=z,
-                pair_mask=pair_mask,
-                multichain_mask=multichain_mask,
-                triangle_attention=triangle_attention,
-                triangle_multiplicative=triangle_multiplicative,
-                inplace_safe=inplace_safe,
-                chunk_size=chunk_size,
-            )
+        if rep is None:
+            for template_id in range(num_templates):
+                u = u + self.single_template_forward(
+                    template_id=template_id,
+                    input_feature_dict=input_feature_dict,
+                    z=z,
+                    pair_mask=pair_mask,
+                    multichain_mask=multichain_mask,
+                    triangle_attention=triangle_attention,
+                    triangle_multiplicative=triangle_multiplicative,
+                    inplace_safe=inplace_safe,
+                    chunk_size=chunk_size,
+                )
+        else:
+            # Each class's first slot is evaluated and kept only while a later
+            # slot of its class still needs it. The accumulation runs over every
+            # slot in the stock order with the stock addends, so ``u`` matches.
+            remaining = {r: rep.count(r) for r in set(rep)}
+            kept: dict[int, torch.Tensor] = {}
+            for template_id in range(num_templates):
+                r = rep[template_id]
+                v = kept.get(r)
+                if v is None:
+                    v = self.single_template_forward(
+                        template_id=r,
+                        input_feature_dict=input_feature_dict,
+                        z=z,
+                        pair_mask=pair_mask,
+                        multichain_mask=multichain_mask,
+                        triangle_attention=triangle_attention,
+                        triangle_multiplicative=triangle_multiplicative,
+                        inplace_safe=inplace_safe,
+                        chunk_size=chunk_size,
+                    )
+                remaining[r] -= 1
+                if remaining[r]:
+                    kept[r] = v
+                else:
+                    kept.pop(r, None)
+                u = u + v
+                del v
         u = u / (1e-7 + num_templates)
         u = self.linear_no_bias_u(self.relu(u))
         assert u.shape == (num_residues, num_residues, query_num_channels)

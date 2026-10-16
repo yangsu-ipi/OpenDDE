@@ -66,6 +66,10 @@ class StructuralTokenExpander(nn.Module):
                 f"'full', 'factorized', or 'none'; got {pair_projection_mode!r}"
             )
         self.pair_projection_mode = pair_projection_mode
+        # ``structural_token_sync`` (exact optimization): enumerate each role
+        # pair's rows with one host read per call instead of a torch.any read
+        # per role pair. Set by the model from the optimization plan.
+        self.one_read_role_pairs = False
 
         self.single_split_mlp = nn.Sequential(
             LayerNorm(c_s),
@@ -257,6 +261,40 @@ class StructuralTokenExpander(nn.Module):
             and torch.are_deterministic_algorithms_enabled()
         )
 
+    def _project_role_pairs_one_read(
+        self,
+        flat_z: torch.Tensor,
+        flat_delta: torch.Tensor,
+        role_i: torch.Tensor,
+        role_j: torch.Tensor,
+    ) -> torch.Tensor:
+        """The stock per-role-pair projection loop with one host read.
+
+        The rows' pair ids are counted on the device and read once; a stable
+        sort enumerates each pair's rows in ascending order, which is the order
+        the stock boolean mask selects them in. Each taken pair then runs the
+        same projection on the same rows and writes them back by index, and an
+        empty pair adds the stock dummy term, so the result is the stock one
+        bit for bit. Fills ``flat_delta`` (zeros) in place and returns the
+        dummy term."""
+        dummy_input = flat_z[..., :1, :]
+        dummy_use = flat_z.new_zeros(())
+        n_pairs = self.n_roles * self.n_roles
+        pair = role_i.to(torch.long) * self.n_roles + role_j.to(torch.long)
+        counts = torch.bincount(pair, minlength=n_pairs).tolist()
+        order = torch.sort(pair, stable=True).indices
+        start = 0
+        for proj_idx in range(n_pairs):
+            projection = self.pair_block_proj[proj_idx]
+            n = counts[proj_idx]
+            if n:
+                idx = order[start : start + n]
+                flat_delta[..., idx, :] = projection(flat_z[..., idx, :])
+            else:
+                dummy_use = dummy_use + projection(dummy_input).sum() * 0.0
+            start += n
+        return dummy_use
+
     def _pair_project_by_role_full(
         self, z: torch.Tensor, role: torch.Tensor
     ) -> torch.Tensor:
@@ -266,22 +304,27 @@ class StructuralTokenExpander(nn.Module):
         flat_delta = torch.zeros_like(flat_z)
         role_i = role[:, None].expand(n_struct, n_struct).reshape(-1)
         role_j = role[None, :].expand(n_struct, n_struct).reshape(-1)
-        dummy_input = flat_z[..., :1, :]
-        dummy_use = flat_z.new_zeros(())
+        if self.one_read_role_pairs:
+            dummy_use = self._project_role_pairs_one_read(
+                flat_z, flat_delta, role_i, role_j
+            )
+        else:
+            dummy_input = flat_z[..., :1, :]
+            dummy_use = flat_z.new_zeros(())
 
-        for role_i_value in range(self.n_roles):
-            for role_j_value in range(self.n_roles):
-                flat_mask = (role_i == role_i_value) & (role_j == role_j_value)
-                proj_idx = role_i_value * self.n_roles + role_j_value
-                projection = self.pair_block_proj[proj_idx]
-                if torch.any(flat_mask):
-                    flat_delta[..., flat_mask, :] = projection(
-                        flat_z[..., flat_mask, :]
-                    )
-                else:
-                    # Keep every role-pair projection in the autograd graph so
-                    # DDP static_graph does not see role-dependent unused params.
-                    dummy_use = dummy_use + projection(dummy_input).sum() * 0.0
+            for role_i_value in range(self.n_roles):
+                for role_j_value in range(self.n_roles):
+                    flat_mask = (role_i == role_i_value) & (role_j == role_j_value)
+                    proj_idx = role_i_value * self.n_roles + role_j_value
+                    projection = self.pair_block_proj[proj_idx]
+                    if torch.any(flat_mask):
+                        flat_delta[..., flat_mask, :] = projection(
+                            flat_z[..., flat_mask, :]
+                        )
+                    else:
+                        # Keep every role-pair projection in the autograd graph so
+                        # DDP static_graph does not see role-dependent unused params.
+                        dummy_use = dummy_use + projection(dummy_input).sum() * 0.0
         return (
             flat_delta.reshape(*batch_shape, n_struct, n_struct, self.c_z) + dummy_use
         )
@@ -300,20 +343,25 @@ class StructuralTokenExpander(nn.Module):
         row_role = role.index_select(dim=0, index=row_index)
         role_i = row_role[:, None].expand(chunk_len, n_struct).reshape(-1)
         role_j = role[None, :].expand(chunk_len, n_struct).reshape(-1)
-        dummy_input = flat_z[..., :1, :]
-        dummy_use = flat_z.new_zeros(())
+        if self.one_read_role_pairs:
+            dummy_use = self._project_role_pairs_one_read(
+                flat_z, flat_delta, role_i, role_j
+            )
+        else:
+            dummy_input = flat_z[..., :1, :]
+            dummy_use = flat_z.new_zeros(())
 
-        for role_i_value in range(self.n_roles):
-            for role_j_value in range(self.n_roles):
-                flat_mask = (role_i == role_i_value) & (role_j == role_j_value)
-                proj_idx = role_i_value * self.n_roles + role_j_value
-                projection = self.pair_block_proj[proj_idx]
-                if torch.any(flat_mask):
-                    flat_delta[..., flat_mask, :] = projection(
-                        flat_z[..., flat_mask, :]
-                    )
-                else:
-                    dummy_use = dummy_use + projection(dummy_input).sum() * 0.0
+            for role_i_value in range(self.n_roles):
+                for role_j_value in range(self.n_roles):
+                    flat_mask = (role_i == role_i_value) & (role_j == role_j_value)
+                    proj_idx = role_i_value * self.n_roles + role_j_value
+                    projection = self.pair_block_proj[proj_idx]
+                    if torch.any(flat_mask):
+                        flat_delta[..., flat_mask, :] = projection(
+                            flat_z[..., flat_mask, :]
+                        )
+                    else:
+                        dummy_use = dummy_use + projection(dummy_input).sum() * 0.0
         return (
             flat_delta.reshape(*batch_shape, chunk_len, n_struct, self.c_z) + dummy_use
         )
@@ -334,20 +382,25 @@ class StructuralTokenExpander(nn.Module):
         col_role = role.index_select(dim=0, index=col_index)
         role_i = row_role[:, None].expand(row_len, col_len).reshape(-1)
         role_j = col_role[None, :].expand(row_len, col_len).reshape(-1)
-        dummy_input = flat_z[..., :1, :]
-        dummy_use = flat_z.new_zeros(())
+        if self.one_read_role_pairs:
+            dummy_use = self._project_role_pairs_one_read(
+                flat_z, flat_delta, role_i, role_j
+            )
+        else:
+            dummy_input = flat_z[..., :1, :]
+            dummy_use = flat_z.new_zeros(())
 
-        for role_i_value in range(self.n_roles):
-            for role_j_value in range(self.n_roles):
-                flat_mask = (role_i == role_i_value) & (role_j == role_j_value)
-                proj_idx = role_i_value * self.n_roles + role_j_value
-                projection = self.pair_block_proj[proj_idx]
-                if torch.any(flat_mask):
-                    flat_delta[..., flat_mask, :] = projection(
-                        flat_z[..., flat_mask, :]
-                    )
-                else:
-                    dummy_use = dummy_use + projection(dummy_input).sum() * 0.0
+            for role_i_value in range(self.n_roles):
+                for role_j_value in range(self.n_roles):
+                    flat_mask = (role_i == role_i_value) & (role_j == role_j_value)
+                    proj_idx = role_i_value * self.n_roles + role_j_value
+                    projection = self.pair_block_proj[proj_idx]
+                    if torch.any(flat_mask):
+                        flat_delta[..., flat_mask, :] = projection(
+                            flat_z[..., flat_mask, :]
+                        )
+                    else:
+                        dummy_use = dummy_use + projection(dummy_input).sum() * 0.0
         return flat_delta.reshape(*batch_shape, row_len, col_len, self.c_z) + dummy_use
 
     def _pair_project_by_role(

@@ -13,6 +13,7 @@ import torch
 from biotite.structure import AtomArray
 from torch.utils.data import DataLoader, Dataset, Sampler
 
+from opendde.config.optimization import optimization_enabled
 from opendde.data.core import ccd
 from opendde.data.inference.input_validation import validate_inference_jobs
 from opendde.data.inference.json_to_feature import SampleDictToFeatures
@@ -150,6 +151,16 @@ def get_inference_dataloader(
     return dataloader
 
 
+def apply_feature_optimizations(configs: Any, features_dict: dict[str, Any]) -> None:
+    """Feature-dict changes of the optimization modes, in place.
+
+    ``drop_bond_mask``: remove the [N_atom, N_atom] int64 ``bond_mask``, which
+    no inference consumer reads (the model uses ``token_bonds``), before the
+    dict leaves the host."""
+    if optimization_enabled(configs, "drop_bond_mask"):
+        features_dict.pop("bond_mask", None)
+
+
 class InferenceDataset(Dataset):
     def __init__(
         self,
@@ -231,6 +242,7 @@ class InferenceDataset(Dataset):
             extract_features_for_tfg=need_geometry_features,
         )
         features_dict, atom_array, token_array = sample2feat.get_feature_dict()
+        apply_feature_optimizations(self.configs, features_dict)
         features_dict["distogram_rep_atom_mask"] = torch.Tensor(
             atom_array.distogram_rep_atom_mask
         ).long()
