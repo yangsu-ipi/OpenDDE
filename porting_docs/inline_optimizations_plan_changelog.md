@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 106 (2026-10-16)
+
+Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation, tool implementation or GPU work is authorized.
+
+- Simplify the validation baseline rule: always pair the `--deterministic false` contrast with the deterministic D1-D15 `off` run on the same host in the same session; the archived `off` is host-drift evidence only. Reason: the acceptance test requires that run in both branches, it equals the archive when reuse is accepted, and one rule leaves no branch to choose or mis-choose.
+- State that the exact tier 1 payload comparison needs a new tool, kept outside `scripts/qualification` with a synthetic test and a recorded source hash, and that it must exist before the next A100 session. Note that reference `off` captures carry no path field. Reason: no existing tool checks keys, dtypes and bitwise identity, and a tool under `scripts/qualification` would amend the contract.
+- Point the editable-install caveat to the run records' `fingerprint.commit` and `imports` paths. Reason: they already supply the source identity that `pip list --format=freeze` omits.
+
 ## Revision 105 (2026-10-16)
 
 Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation, transfer-comparison implementation or GPU work is authorized.
