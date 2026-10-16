@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 105 (2026-10-16)
+
+Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation, transfer-comparison implementation or GPU work is authorized.
+
+- Define exact tier 1 transfer by the numerical payloads of both reference `off` and contrast captures: matching recursive keys, shapes, dtypes and tensor bits, with replay-source identity checked separately through provenance. Preserve the capture files and the frozen verifier's raw-file hash checks. Reason: replay captures embed a source path, so a relocation can change file bytes without changing the tensors; tier 1 calibration depends on both sides of the comparison.
+- Predeclare the validation-baseline branches before the next A100 session: use archived `off` only after the replacement matches it, or the replacement's new deterministic `off` after fresh calibration. Record the reference before launching `--deterministic false` and retain the limits-and-audit-before-inspection rule. Reason: a new-host contrast against a different old-host baseline would combine the flag's effect with host drift.
+- Replace complete installed-state guarantees with the evidence actually retained: the expected conda package/build inventory, post-install distribution versions, source records and build logs. Keep the missing post-install conda snapshot explicit, without requiring a new environment investigation. Reason: `pip list --format=freeze` does not record editable-install information or certify file contents, and the input explicit list is not an observed final-state snapshot.
+
 ## Revision 104 (2026-10-16)
 
 Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged; nothing else is authorized.
