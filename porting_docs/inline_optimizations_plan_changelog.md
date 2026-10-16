@@ -2,6 +2,13 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 112 (2026-10-16)
+
+Documentation and an additive validation-record annotation only. Qualification code, numeric limits, tags and declared claims are unchanged; the helper is unchanged. No porting, environment creation or GPU work is authorized.
+
+- Annotate the validation record and E6 with the self-check's execution sources: the working directory `~/opendde-c6` (contract-6, clean) supplied the manifest and inputs, while `accept.py` and `compare_outputs.py` were imported from the uncommitted copy beside the helper, whose sources `diff -r` showed identical to contract-6. Record that regenerating the declaration from `~/opendde-c6` reproduced the retained one apart from its timestamp. Reason: the record attributed the whole run to the contract-6 checkout; the helper imports its sibling `scripts/qualification`.
+- List as pending the user's approval a helper change: reports record the SHA-256 of the imported `accept.py` and `compare_outputs.py` and the absolute manifest path, with the synthetic tests rerun, before the first transfer comparison on a replacement host. Reason: the helper's identity and `dirty` flag cover only its own file, so a run from a checkout at a later contract could use different frozen modules without the report showing it.
+
 ## Revision 111 (2026-10-16)
 
 Documentation and an additive validation-record annotation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation, helper changes or GPU work is authorized.

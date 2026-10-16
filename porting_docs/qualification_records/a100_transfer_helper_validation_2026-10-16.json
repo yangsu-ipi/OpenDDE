@@ -46,5 +46,12 @@
    "failures": 0
   },
   "scope": "Validates the retained NAS copy, the all-tensor non-finite rule against the archive (no archived capture holds a non-finite tensor), and path resolution on the real VM paths; it cannot recover the VM originals or close the recorded provenance gaps."
+ },
+ "execution_sources": {
+  "annotated": "2026-10-16 (revision 112)",
+  "working_directory": "~/opendde-c6 at qual-sm120-contract-6, clean: supplied the manifest (sha256 da61479120291a55dd75e462d8e498ca0ef0b4bf9866d0a659ba5acb3cb088ae) and the row input files",
+  "imported_modules": "accept.py and compare_outputs.py were imported from the scripts/qualification directory beside the helper, i.e. the uncommitted copy in ~/opendde-dev-checks/helper-src, not from ~/opendde-c6; before the self-check, diff -r showed that copy's scripts/qualification sources identical to ~/opendde-c6 (only bytecode caches differed)",
+  "declaration_reproduced": "2026-10-16: the declaration regenerated from ~/opendde-c6 with the same arguments is identical to the retained one apart from created_utc",
+  "scope": "Additive annotation; the original report is unchanged and no rerun was performed for it."
  }
 }
