@@ -1,6 +1,6 @@
 # Step 0 results (sm_80, A100)
 
-Stock step 0 on an A100 cloud VM (user go-ahead 2026-10-14). Stock code only: no candidate exists, and only development rows D1-D15, repository examples and development seeds 101 and 102 ran. No held-out input ran. Jobs ran through the gnode2-compat Slurm mock on the VM. The VM is ephemeral, so the setup recipe and job scripts are on gnode2 in `~/opendde-dev-checks/a100/` (`README.md` has the rebuild steps), and all outputs, logs and tier 1 captures are on `/mnt/compbio-data/yang.su/opendde-a100/2026-10-14/`, each directory verified against a sha256 manifest computed on the VM. Prediction artifacts are not committed.
+Stock step 0 on an A100 cloud VM (user go-ahead 2026-10-14). Stock code only: no candidate exists, and only development rows D1-D15, repository examples and development seeds 101 and 102 ran. No held-out input ran. Jobs ran through the gnode2-compat Slurm mock on the VM. The VM was unreachable (SSH refused) on 2026-10-15, after all outputs had been relayed; protocol E6 records the retention gaps and the replacement-host acceptance test. The VM was ephemeral, so the setup recipe and job scripts are on gnode2 in `~/opendde-dev-checks/a100/` (`README.md` has the rebuild steps), and all outputs, logs and tier 1 captures are on `/mnt/compbio-data/yang.su/opendde-a100/2026-10-14/`, each directory verified against a sha256 manifest computed on the VM. Prediction artifacts are not committed.
 
 ## Environment and source
 
@@ -91,11 +91,11 @@ All D1-D15 runs used `run_rows.py` with contract-6 provenance at seeds 101 and 1
 
 | Contrast | Jobs passing | Failing gates (value vs limit) |
 |---|---|---|
-| Torch triangle kernels | 12 of 16 | D3 and D13 `1a14_unconstrained` paired lDDT polymer/protein 0.9473 vs ≥0.95; D9 whole-ensemble spread ratio (`ensemble_spread_ratio`) 1.301 vs ≤1.25; D10 ensemble reference fnonnat median rise 0.0626 vs ≤0.06 |
+| Torch triangle kernels | 12 of 16 | D3 and D13 `1a14_unconstrained` paired lDDT polymer/protein 0.9473 vs ≥0.95; D9 whole-ensemble spread ratio (`ensemble_spread_ratio`) 1.301 vs ≤1.25 (archived key and value confirmed 2026-10-15); D10 ensemble reference fnonnat median rise 0.0626 vs ≤0.06 |
 | bf16 vs fp32 (D4 absent) | 12 of 15 | D3 and D13 `1a14_unconstrained` lDDT 0.9474 vs 0.95; D10 lDDT 0.9486 vs 0.95 and pair interface Fnat 0.673 vs ≥0.70 |
 | `fast_layernorm` | 14 of 16 | D3 and D13 `1a14_unconstrained` lDDT 0.9496 vs 0.95 |
 
-The D9 label above follows `tier2_gates.py`: `ensemble_spread_ratio` gates the ratio of median pairwise anchor RMSD across the whole ensemble. `spread_same_seed_*` is reported only; the separate same-seed duplicate gates still apply. Verify the archived measurement's gate key and value before using 1.301 to derive sm_80 limits; this documentation correction does not recompute it.
+The D9 label above follows `tier2_gates.py`: `ensemble_spread_ratio` gates the ratio of median pairwise anchor RMSD across the whole ensemble. `spread_same_seed_*` is reported only; the separate same-seed duplicate gates still apply. The archived evaluation confirms key `ensemble_spread_ratio` and value 1.30097 (`spread_cand` 0.6483 / `spread_off` 0.4983; same-seed spreads 0.637 and 0.492, report-only).
 
 D3 and D13's `1a14_unconstrained` job are the same job (one result, counted twice, as on sm_120). Every harmless contrast passed all 16 jobs on sm_120 under these limits. The failures are close to the limits; the `1a14_unconstrained` lDDT failure appears in all three contrasts, so the sm_80 stock contrast on that input is wider than sm_120's. The sm_80 limit audit (`limit_audit.py`, precision vs kernel) marks two groups where the kernel swap binds and fails the precision-only rederivation: flexible/epitope reference fnonnat median (kernel 0.0626 at D10, limit 0.06) and the low/stable spread ratio (kernel 0.263 at D9 against |log| limit 0.223). D4's precision values are missing from the audit.
 

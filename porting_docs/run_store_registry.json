@@ -30,7 +30,10 @@
    "path": "/ephemeral/porting",
    "host": "A100 cloud VM (sm_80)",
    "registered": "2026-10-14",
-   "note": "A100 stock step 0 and calibration (user go-ahead 2026-10-14): development rows D1-D15 and repository examples only, development seeds 101 and 102; outputs under runs/, job scripts under jobs/, logs under logs/. The VM is ephemeral; its outputs, logs and tier 1 captures are copied to /mnt/compbio-data/yang.su/opendde-a100/2026-10-14 on gnode2."
+   "note": "A100 stock step 0 and calibration (user go-ahead 2026-10-14): development rows D1-D15 and repository examples only, development seeds 101 and 102; outputs under runs/, job scripts under jobs/, logs under logs/. The VM is ephemeral; its outputs, logs and tier 1 captures are copied to /mnt/compbio-data/yang.su/opendde-a100/2026-10-14 on gnode2.",
+   "status": "retired",
+   "retired": "2026-10-15 (SSH refused after all outputs were relayed)",
+   "audit_copy": "/mnt/compbio-data/yang.su/opendde-a100/2026-10-14"
   },
   {
    "path": "/mnt/compbio-data/yang.su/opendde-a100",

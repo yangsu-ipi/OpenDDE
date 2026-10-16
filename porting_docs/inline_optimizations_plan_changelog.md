@@ -2,6 +2,19 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 98 (2026-10-15)
+
+Documentation and registry only. Qualification code, numeric limits and tags are unchanged; no porting, environment creation or GPU work is authorized. The only authorized storage work is the record-keeping in protocol E6 (read-only hashing and new record files; no move or deletion).
+
+- Record that the A100 VM became unreachable on 2026-10-15 after all outputs were relayed, and the resulting gaps: no kept A100 source manifests (the relays verified VM-side sha256 lists in a stream without keeping them), no kept manifest of the intermediate `/data/yang.su/opendde-a100` copy, and deleted sm_120 capture originals whose source manifests are kept. Authorize hashing the sm_120 manifests, a destination manifest of the NAS A100 copy, the relay verification lines and a relocation map. Reason: E6's "before retiring the VM" branch can no longer be followed, and the gaps must be explicit rather than implied.
+- Mark `/ephemeral/porting` retired in the run-store registry, with its audit copy on the NAS. Reason: `run_audit.py` reports any unreachable registered path as `store missing`; the registry status explains that gap without a qualification-code change.
+- Record the D9 check as done: `ensemble_spread_ratio` 1.30097 = 0.6483 / 0.4983 in the archived evaluation. Reason: revision 97 required the check before derivation; it was confirmed against the archive.
+- Withdraw the recommendation of GPU-scoped tag families and put the per-GPU smoke-test timing rule first (a GPU may not rehearse or draw under a tag until its D1 smoke test passed at that tag, recorded in the receipt). Reason: all five amendments changed shared code, which re-tags and smoke-tests both GPUs under either design, so separate families alone do not avoid reprovisioning the ephemeral VM; the timing rule does, under either design.
+- Predeclare `--deterministic false` as the sm_80 validation contrast, held uninspected until the proposed sm_80 limits and audit are written. Reason: all three A100 contrasts have been inspected, so without a fresh contrast the sm_80 limits would have no independent harmless validation.
+- Define a replacement-A100 acceptance test: frozen asset digests, matching pip freeze, and stock `off` for at least D1, D4 and D5 byte-identical to the archived sm_80 artifacts, else repeat the sm_80 calibration on that host. Reason: the next session runs on a new VM, and "existing results do not validate a new host" needed a criterion.
+- Add the decision whether protected retention of the calibration captures blocks the first held-out draw or is an approved recorded gap (recommended: recorded gap for the first draw, captures added to the storage-admin request). Reason: revision 97 made the storage-admin procedure an implicit prerequisite for the first sm_120 draw.
+- Correct E6's registry description: the intermediate relay is mentioned in a note, not registered. Note the VM's unavailability in the A100 report. Reason: accuracy.
+
 ## Revision 97 (2026-10-15)
 
 Documentation only. Qualification code, numeric limits and tags are unchanged; no porting, environment creation, GPU work or storage operation is authorized.
