@@ -31,6 +31,7 @@ from opendde.config.optimization import (
     validate_optimization_mode,
 )
 from opendde.config.schema import OpenDDEConfig
+from opendde.model import trunk_cache
 from opendde.data.core import ccd
 from opendde.data.inference.input_validation import (
     validate_inference_jobs,
@@ -1352,9 +1353,18 @@ class InferenceRunner(object):
         self.print(
             f"Loading from {checkpoint_path}, strict: {self.configs.load_strict}"
         )
-        checkpoint = torch.load(
-            checkpoint_path, map_location=self.device, weights_only=False
-        )
+        # With the trunk disk cache on, hash the exact bytes that are loaded so
+        # cached trunk results are bound to these weights. The default path
+        # never hashes the checkpoint.
+        checkpoint_sha256 = None
+        if trunk_cache.cache_enabled():
+            checkpoint, checkpoint_sha256 = trunk_cache.read_checkpoint(
+                checkpoint_path, self.device
+            )
+        else:
+            checkpoint = torch.load(
+                checkpoint_path, map_location=self.device, weights_only=False
+            )
 
         sample_key = list(checkpoint["model"].keys())[0]
         self.print(f"Sampled key: {sample_key}")
@@ -1365,6 +1375,13 @@ class InferenceRunner(object):
         self.model.load_state_dict(
             state_dict=checkpoint["model"],
             strict=self.configs.load_strict,
+        )
+        # Rebind (or clear) the cache identity on every load: only a strict
+        # load of hashed bytes gives the model a verified identity.
+        self.model.trunk_cache_identity = (
+            trunk_cache.ModelIdentity.capture(self.model, checkpoint_sha256)
+            if checkpoint_sha256 is not None and self.configs.load_strict
+            else None
         )
         self.model.eval()
         self.print("Finish loading checkpoint.")

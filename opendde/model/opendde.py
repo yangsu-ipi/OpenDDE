@@ -1863,8 +1863,11 @@ class OpenDDE(nn.Module):
     def _trunk_with_cache(self, input_feature_dict, N_cycle, inplace_safe, chunk_size):
         """get_pairformer_output with an optional on-disk cache of its result (OPENDDE_TRUNK_CACHE=<dir>, OPENDDE_TRUNK_CACHE_MODE=r|w|rw).
 
-        The trunk does not read any guidance feature (user_*), so the cache key is the hash of every other input feature plus N_cycle,
-        taken BEFORE the trunk runs. The trunk also adds a few entries to the feature dict (d_lm, v_lm, pad_info, ...); they are stored and restored too."""
+        The trunk does not read any guidance feature (user_*), so the key hashes every other input feature plus N_cycle, taken BEFORE
+        the trunk runs, together with the loaded checkpoint's digest, the trunk configuration, precision, kernels and LayerNorm type,
+        the optimization decisions, the GPU and the software versions (opendde.model.trunk_cache). The cache is bypassed unless the
+        runner bound a verified checkpoint identity to this model and its tensors are unchanged since. The trunk also adds a few
+        entries to the feature dict (d_lm, v_lm, pad_info, ...); they are stored and restored too."""
         cache_dir = os.environ.get("OPENDDE_TRUNK_CACHE")
         # Several model seeds run the trunk once each under different random state, so they must not share one cached result.
         if (
@@ -1880,34 +1883,34 @@ class OpenDDE(nn.Module):
             )
         import hashlib
 
+        from opendde.model import trunk_cache
+
         mode = os.environ.get("OPENDDE_TRUNK_CACHE_MODE", "rw")
         if mode not in ("r", "w", "rw"):
             raise ValueError("OPENDDE_TRUNK_CACHE_MODE must be r, w or rw")
-        h = hashlib.sha256()
-        h.update(("cycle=%d;" % N_cycle).encode())
-        for k in sorted(input_feature_dict.keys()):
-            v = input_feature_dict[k]
-            if (
-                k.startswith("user_")
-                or k in _TFG_ONLY_FEATURES
-                or not torch.is_tensor(v)
-            ):
-                continue
-            h.update(k.encode())
-            h.update(str(tuple(v.shape)).encode())
-            h.update(str(v.dtype).encode())
-            h.update(
-                v.detach()
-                .cpu()
-                .contiguous()
-                .reshape(-1)
-                .view(torch.uint8)
-                .numpy()
-                .tobytes()
-                if v.numel()
-                else b""
+        identity = getattr(self, "trunk_cache_identity", None)
+        bypass = (
+            "the model has no verified checkpoint identity"
+            if identity is None
+            else identity.mismatch(self)
+        )
+        if bypass is not None:
+            logger.warning("TRUNK_CACHE bypassed: %s", bypass)
+            return self.get_pairformer_output(
+                input_feature_dict=input_feature_dict,
+                N_cycle=N_cycle,
+                inplace_safe=inplace_safe,
+                chunk_size=chunk_size,
             )
-        key = h.hexdigest()[:32]
+        dev = input_feature_dict["residue_index"].device
+        decisions = dict(getattr(self.configs, "optimization_decisions", None) or {})
+        context = trunk_cache.cache_context(
+            self.configs, dev, identity.checkpoint_sha256, decisions
+        )
+        context_digest = trunk_cache.context_digest(context)
+        key = trunk_cache.cache_key(
+            input_feature_dict, N_cycle, context, skip_features=_TFG_ONLY_FEATURES
+        )
         if os.environ.get("OPENDDE_TRUNK_CACHE_DEBUG") == "1":
             dbg = {}
             for k in sorted(input_feature_dict.keys()):
@@ -1932,7 +1935,6 @@ class OpenDDE(nn.Module):
             if os.environ.get("OPENDDE_TRUNK_ONLY") == "1":
                 raise RuntimeError("TRUNK_ONLY: stopped after the cache key")
         path = os.path.join(cache_dir, key + ".pt")
-        dev = input_feature_dict["residue_index"].device
 
         def _to(x, device):
             if torch.is_tensor(x):
@@ -1947,6 +1949,11 @@ class OpenDDE(nn.Module):
             t0 = time.time()
             try:
                 blob = torch.load(path, map_location="cpu", weights_only=False)
+                if (
+                    blob.get("format") != trunk_cache.FORMAT_VERSION
+                    or blob.get("context_digest") != context_digest
+                ):
+                    raise ValueError("cache entry has another format or context")
                 s_inputs, s, z = _to(blob["out"], dev)
                 restored = {k: _to(v, dev) for k, v in blob["new_keys"].items()}
             except (
@@ -1976,7 +1983,16 @@ class OpenDDE(nn.Module):
                     for k in input_feature_dict
                     if k not in keys_before
                 }
-                torch.save({"out": _to(tuple(out), "cpu"), "new_keys": new_keys}, tmp)
+                torch.save(
+                    {
+                        "format": trunk_cache.FORMAT_VERSION,
+                        "context_digest": context_digest,
+                        "context": context,
+                        "out": _to(tuple(out), "cpu"),
+                        "new_keys": new_keys,
+                    },
+                    tmp,
+                )
                 os.replace(tmp, path)
             except Exception as exc:  # the trunk result is already in hand: a full disk must not discard it
                 logger.warning("TRUNK_CACHE not saved key=%s (%r)", key, exc)

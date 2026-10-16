@@ -1,23 +1,37 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2026 Aureka AI Research
-from types import SimpleNamespace
-
 import pytest
 import torch
 
-from opendde.model import opendde
+from opendde.config.inference import build_inference_config
+from opendde.model import opendde, trunk_cache
+
+CONFIGS = build_inference_config(fill_required_with_null=True)
+
+
+class _Model(torch.nn.Module):
+    """A stand-in model with a verified checkpoint identity, as the runner
+    binds after a strict load of hashed checkpoint bytes."""
+
+    def __init__(self, calls):
+        super().__init__()
+        self.weight = torch.nn.Parameter(torch.ones(2))
+        self.register_buffer("stat", torch.zeros(1))
+        self.calls = calls
+        self.configs = CONFIGS
+        self.trunk_cache_identity = trunk_cache.ModelIdentity.capture(self, "c" * 64)
+
+    def get_pairformer_output(self, input_feature_dict, **_kwargs):
+        self.calls.append(1)
+        input_feature_dict["d_lm"] = torch.full((2,), float(len(self.calls)))
+        return torch.ones(1), torch.ones(2), torch.ones(3)
+
+    def _maybe_foldcp_mesh(self):
+        return None
 
 
 def _module(calls):
-    def get_pairformer_output(input_feature_dict, **_kwargs):
-        calls.append(1)
-        input_feature_dict["d_lm"] = torch.full((2,), float(len(calls)))
-        return torch.ones(1), torch.ones(2), torch.ones(3)
-
-    return SimpleNamespace(
-        get_pairformer_output=get_pairformer_output,
-        _maybe_foldcp_mesh=lambda: None,
-    )
+    return _Model(calls)
 
 
 def _features(**extra):

@@ -87,11 +87,20 @@ runs. The first skip of a run is logged once.
 
 - `OPENDDE_TRUNK_CACHE=<dir>` with `OPENDDE_TRUNK_CACHE_MODE=r|w|rw` (default
   `rw`) stores the Pairformer trunk output on disk. The key is a hash of every
-  input feature that is not a guidance feature, plus the number of recycles, so
-  inputs that differ only in their `constraint` reuse one trunk. It is bypassed
-  under Fold-CP and when several model seeds run (`N_model_seed > 1`). A cache
-  file that cannot be read or written is skipped with a warning. Cache files
-  are Python pickles: use a directory you trust.
+  input feature that is not a guidance feature and the number of recycles, so
+  inputs that differ only in their `constraint` reuse one trunk, together with
+  the loaded checkpoint's content digest, the trunk configuration, precision,
+  TF32, deterministic setting, triangle kernels and `LAYERNORM_TYPE`, the
+  optimization mode's decisions, the GPU model and the torch, CUDA, Triton,
+  cuEquivariance and OpenDDE versions. With the cache on, the checkpoint is
+  hashed once as it is loaded (about 2.6 GB of extra host memory while
+  loading). The cache is used only for a model the runner loaded strictly from
+  hashed bytes, and is bypassed with a warning if the model's parameters or
+  buffers have changed or been replaced since; writes through `.data` cannot be
+  detected. It is also bypassed under Fold-CP and when several model seeds run
+  (`N_model_seed > 1`). A cache file that cannot be read or written, or that
+  was written in another format or context, is skipped with a warning. Cache
+  files are Python pickles: use a directory you trust.
 
 ## Not covered
 
