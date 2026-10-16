@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 104 (2026-10-16)
+
+Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged; nothing else is authorized.
+
+- Define the transfer criterion for contrasts rerun on a replacement host: byte-identical prediction artifacts, and tier 1 captures where present, against the archived runs on the NAS; otherwise the new measurements are fresh calibration data and go through the per-gate audit again. State that the rerun costs about as much as a full recalibration. Reason: revision 103 required a comparison without a pass criterion, and the protocol has no tolerance for approximate agreement.
+- Narrow the original environment's historical gap: pip changes only Python packages, whose final state `a100-freeze.txt` records; non-Python conda packages could change only through conda, which ran no package operation after creation, so the explicit list is their final state. What is missing is one observed post-install `conda list --explicit`. Reason: the gap was stated more broadly than the evidence supports.
+- Name the archived build record of the original (`logs/setup-env.log`, `logs/opendde-env-sanity-40.log` under the destination manifest) and require the replacement's build settings to be compared with it. Reason: the original's compilers, flags and arch list are already archived.
+
 ## Revision 103 (2026-10-16)
 
 Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation or GPU work is authorized.
