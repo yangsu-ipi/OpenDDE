@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 103 (2026-10-16)
+
+Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation or GPU work is authorized.
+
+- Narrow replacement-host calibration reuse when the driver or GPU variant changes: identify the contrasts supporting each proposed limit, rerun their applicable recipes, or obtain an explicit user-approved reduced-assurance waiver naming the affected gates. Keep a full recalibration mandatory if `off` differs, but not for a driver change alone. Reason: matching bf16/auto/torch-LayerNorm `off` predictions does not check the fp32, torch-kernel or fast-LayerNorm paths that supplied the calibration. Transfer checks do not turn already inspected contrasts into independent validation.
+- Treat the archived conda explicit list as the initial rebuild recipe, not a post-install snapshot, and identify `a100-freeze.txt` as the installed package/version record produced by `pip list --format=freeze`. Require post-install conda and pip inventories and relevant build settings on the replacement; retain the original's missing final conda snapshot as a historical gap. Reason: the setup script installs packages with pip after conda creation. The revision 102 review verified both archived hashes in the home and NAS copies, but matching those files does not establish the original final installed state.
+- Replace the plan's stale closing three-row A100 reuse summary with all D1-D15, seeds 101 and 102 under the calibration recipe, and point it to E6's environment and contrast checks. Reason: D1/D4/D5 are initial smoke tests only; the weaker summary contradicted the full-row gate.
+
 ## Revision 102 (2026-10-15)
 
 Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged; nothing else is authorized.
