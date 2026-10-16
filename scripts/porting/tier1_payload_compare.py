@@ -44,7 +44,11 @@ in that side's ``cap_off``, and the tier 1 run records must name the same
 capture and replay directories. A contrast capture passes only if its
 reference capture passes. Prediction artifacts must be byte-identical. Every
 compared file's SHA-256 is reported; a file-hash difference with matching
-payloads is a serialization-only difference, not numerical drift.
+payloads is a serialization-only difference, not numerical drift. Both the
+declaration and the report record the SHA-256 and resolved path of the frozen
+``accept.py`` and ``compare_outputs.py`` the helper imported, and the
+declaration's manifest with its absolute path; the report also records the
+helper's own hash and commit.
 
 Exit status 0 means every check passed; 1 means at least one failed.
 """
@@ -154,7 +158,12 @@ def declare(
         "description": "Expected tier 1 capture and prediction-artifact inventory "
         "(protocol E6), declared from the frozen manifest, never from files on disk.",
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "manifest": {"path": str(manifest_path), "sha256": sha256_file(manifest_path)},
+        "manifest": {
+            "path": str(manifest_path),
+            "absolute": str(manifest_path.resolve()),
+            "sha256": sha256_file(manifest_path),
+        },
+        "frozen_modules": frozen_modules(),
         "rows": rows,
         "seeds": seeds,
         "contrasts": contrasts,
@@ -336,6 +345,18 @@ def found_artifacts(root: Path, run: str) -> set[str]:
 # ---------------------------------------------------------------- compare
 
 
+def frozen_modules() -> dict[str, dict[str, str]]:
+    """The frozen qualification modules this helper imported, with hashes.
+
+    They come from the ``scripts/qualification`` beside the helper, so a run
+    from a checkout at another contract would use that checkout's versions."""
+    out = {}
+    for module in (accept, compare_outputs):
+        path = Path(module.__file__).resolve()
+        out[path.name] = {"path": str(path), "sha256": sha256_file(path)}
+    return out
+
+
 def helper_identity() -> dict[str, Any]:
     me = Path(__file__).resolve()
 
@@ -512,6 +533,8 @@ def main() -> int:
     report["roots"] = {"a": str(args.a), "b": str(args.b)}
     report["relocations"] = {"a": args.relocate_a, "b": args.relocate_b}
     report["helper"] = helper_identity()
+    report["frozen_modules"] = frozen_modules()
+    report["manifest"] = inventory.get("manifest")
     report["created_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     args.out.write_text(json.dumps(report, indent=1) + "\n")
     print(json.dumps({"ok": report["ok"], **report["summary"]}, indent=1))

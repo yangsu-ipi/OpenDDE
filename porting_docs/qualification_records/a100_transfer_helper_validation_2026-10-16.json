@@ -53,5 +53,22 @@
   "imported_modules": "accept.py and compare_outputs.py were imported from the scripts/qualification directory beside the helper, i.e. the uncommitted copy in ~/opendde-dev-checks/helper-src, not from ~/opendde-c6; before the self-check, diff -r showed that copy's scripts/qualification sources identical to ~/opendde-c6 (only bytecode caches differed)",
   "declaration_reproduced": "2026-10-16: the declaration regenerated from ~/opendde-c6 with the same arguments is identical to the retained one apart from created_utc",
   "scope": "Additive annotation; the original report is unchanged and no rerun was performed for it."
- }
+ },
+ "revisions": [
+  {
+   "date": "2026-10-16",
+   "change": "Declarations and reports record the resolved path and SHA-256 of the imported frozen accept.py and compare_outputs.py; declarations record the manifest's absolute path; reports copy the declaration's manifest record (user go-ahead, revision 112's pending change). Comparison logic unchanged.",
+   "helper": {
+    "path": "scripts/porting/tier1_payload_compare.py",
+    "sha256": "8ae8df50964fa3f1f0becc3547ad66aa44cdbc90905cfa5c9a55f89747185029"
+   },
+   "tests": {
+    "path": "tests/test_tier1_payload_compare.py",
+    "sha256": "950c2ef1548c704e8b7d40e80ab9786bc0ee6dd803c70d08687c4773d4830e8c",
+    "result": "31 passed (gnode2 job 52133, CPU, opendde-dev), run from an uncommitted copy whose scripts/qualification sources diff -r showed identical to qual-sm120-contract-6"
+   },
+   "self_check": "Not rerun: the change adds identity metadata only; the self-check above (helper 62dc1a84...) stays valid as recorded.",
+   "commit": "the commit that adds this entry; its helper and test bytes match the hashes above"
+  }
+ ]
 }

@@ -2,6 +2,12 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 113 (2026-10-16)
+
+Records the helper identity change the user approved; qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation or GPU work is authorized.
+
+- `scripts/porting/tier1_payload_compare.py` now records, in declarations and reports, the resolved path and SHA-256 of the frozen `accept.py` and `compare_outputs.py` it imports, and the manifest's absolute path; the comparison logic is unchanged. 31 synthetic tests passed (gnode2 job 52133); the validation record's `revisions` entry has the new helper and test hashes. The completed self-check stays valid. Before a transfer comparison, confirm the recorded module hashes match the active contract tag. Reason: the helper's own identity did not cover the frozen modules that define its expected sets.
+
 ## Revision 112 (2026-10-16)
 
 Documentation and an additive validation-record annotation only. Qualification code, numeric limits, tags and declared claims are unchanged; the helper is unchanged. No porting, environment creation or GPU work is authorized.

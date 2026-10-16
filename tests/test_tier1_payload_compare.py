@@ -159,6 +159,17 @@ def _fails(report, text):
 # ------------------------------------------------------------- declare
 
 
+def test_declaration_records_manifest_and_frozen_modules(world):
+    _, manifest = world
+    inv = _inv(manifest)
+    assert inv["manifest"]["absolute"] == str(manifest.resolve())
+    assert inv["manifest"]["sha256"] == tpc.sha256_file(manifest)
+    assert set(inv["frozen_modules"]) == {"accept.py", "compare_outputs.py"}
+    assert inv["frozen_modules"]["accept.py"]["sha256"] == tpc.sha256_file(
+        Path(accept.__file__)
+    )
+
+
 def test_declare_counts_and_independence_from_disk(world):
     _, manifest = world
     inv = _inv(manifest, contrasts=("k", "fp32"), exclude=[("R2", "fp32")], full=True)
@@ -480,6 +491,16 @@ def test_command_line_exit_status(world):
     report = json.loads((tmp / "r.json").read_text())
     assert report["helper"]["sha256"] == tpc.sha256_file(script)
     assert report["inventory"]["sha256"] == tpc.sha256_file(inv)
+    qual = ROOT / "scripts" / "qualification"
+    for name in ("accept.py", "compare_outputs.py"):
+        entry = report["frozen_modules"][name]
+        assert Path(entry["path"]) == (qual / name).resolve()
+        assert entry["sha256"] == tpc.sha256_file(qual / name)
+    declared = json.loads(inv.read_text())
+    assert declared["frozen_modules"] == report["frozen_modules"]
+    assert report["manifest"] == declared["manifest"]
+    assert Path(declared["manifest"]["absolute"]) == manifest.resolve()
+    assert declared["manifest"]["sha256"] == tpc.sha256_file(manifest)
     (b / "cap_k" / "R1" / "a" / "seed_101" / "tier1.pt").unlink()
     bad = run(
         "compare",
