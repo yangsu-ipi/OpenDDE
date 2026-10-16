@@ -1,0 +1,328 @@
+{
+ "description": "Revision 98 record-keeping (protocol E6): relocation map and verification record for the moved sm_120 tier 1 captures and the A100 VM outputs. Taken 2026-10-16 01:35-01:47 UTC by gnode2 job 51786 (read-only on the NAS). Establishes the copies' content at that time, not protected retention.",
+ "sm120_captures": {
+  "moved": "2026-10-14 (copy and verify job 50979; re-verify, delete and symlink job 51014, user-approved)",
+  "recheck_2026-10-16": "all 11 copies match their source manifests and file counts; the home and NAS copies of the 11 manifests are identical",
+  "entries": [
+   {
+    "original": "/data/yang.su/opendde-standin/runs/cap_cand",
+    "copy": "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/opendde-standin/runs/cap_cand",
+    "files": 32,
+    "source_manifest": {
+     "name": "opendde-standin_runs_cap_cand.sha256",
+     "sha256": "84fdb7ed8cfe8793ee57c5bbc49a273c48281eeb39c05bdb59f68d7557dd62f9",
+     "kept_at": [
+      "~/opendde-dev-checks/storage/manifests/opendde-standin_runs_cap_cand.sha256",
+      "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/MANIFESTS/opendde-standin_runs_cap_cand.sha256"
+     ]
+    },
+    "original_status": "deleted 2026-10-14 with the user's approval (job 51014); a symlink to the copy stands at the original path"
+   },
+   {
+    "original": "/data/yang.su/opendde-standin/runs/cap_off",
+    "copy": "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/opendde-standin/runs/cap_off",
+    "files": 32,
+    "source_manifest": {
+     "name": "opendde-standin_runs_cap_off.sha256",
+     "sha256": "a092cc85de4a55708d92abf8f631c4e0aeea4b2a818b3c15d83f75d5049b5bd1",
+     "kept_at": [
+      "~/opendde-dev-checks/storage/manifests/opendde-standin_runs_cap_off.sha256",
+      "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/MANIFESTS/opendde-standin_runs_cap_off.sha256"
+     ]
+    },
+    "original_status": "deleted 2026-10-14 with the user's approval (job 51014); a symlink to the copy stands at the original path"
+   },
+   {
+    "original": "/data/yang.su/opendde-step0/tier1c1/cap_fp32",
+    "copy": "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/opendde-step0/tier1c1/cap_fp32",
+    "files": 16,
+    "source_manifest": {
+     "name": "opendde-step0_tier1c1_cap_fp32.sha256",
+     "sha256": "74c7ff5226ea9f68e68beacd75fd18f522cc40f53bfe56c605f4df83d85eeabe",
+     "kept_at": [
+      "~/opendde-dev-checks/storage/manifests/opendde-step0_tier1c1_cap_fp32.sha256",
+      "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/MANIFESTS/opendde-step0_tier1c1_cap_fp32.sha256"
+     ]
+    },
+    "original_status": "deleted 2026-10-14 with the user's approval (job 51014); a symlink to the copy stands at the original path"
+   },
+   {
+    "original": "/data/yang.su/opendde-step0/tier1c1/cap_k",
+    "copy": "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/opendde-step0/tier1c1/cap_k",
+    "files": 16,
+    "source_manifest": {
+     "name": "opendde-step0_tier1c1_cap_k.sha256",
+     "sha256": "bd964fd081548cf22f0588d3acf6a699100c1d2fef2bba66807448afc1a2f1d0",
+     "kept_at": [
+      "~/opendde-dev-checks/storage/manifests/opendde-step0_tier1c1_cap_k.sha256",
+      "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/MANIFESTS/opendde-step0_tier1c1_cap_k.sha256"
+     ]
+    },
+    "original_status": "deleted 2026-10-14 with the user's approval (job 51014); a symlink to the copy stands at the original path"
+   },
+   {
+    "original": "/data/yang.su/opendde-step0/tier1c1/cap_off",
+    "copy": "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/opendde-step0/tier1c1/cap_off",
+    "files": 16,
+    "source_manifest": {
+     "name": "opendde-step0_tier1c1_cap_off.sha256",
+     "sha256": "91c9b44cf6e8c4ebd44dded1adfcfb250d1e2c0af5f87d457aa1331cf35b60e6",
+     "kept_at": [
+      "~/opendde-dev-checks/storage/manifests/opendde-step0_tier1c1_cap_off.sha256",
+      "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/MANIFESTS/opendde-step0_tier1c1_cap_off.sha256"
+     ]
+    },
+    "original_status": "deleted 2026-10-14 with the user's approval (job 51014); a symlink to the copy stands at the original path"
+   },
+   {
+    "original": "/data/yang.su/opendde-step0/tier1/cap_fp32",
+    "copy": "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/opendde-step0/tier1/cap_fp32",
+    "files": 28,
+    "source_manifest": {
+     "name": "opendde-step0_tier1_cap_fp32.sha256",
+     "sha256": "f06d4b78612f4e82b258c29550c8b6afc85810f071084e1bc52b4bae876b26bb",
+     "kept_at": [
+      "~/opendde-dev-checks/storage/manifests/opendde-step0_tier1_cap_fp32.sha256",
+      "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/MANIFESTS/opendde-step0_tier1_cap_fp32.sha256"
+     ]
+    },
+    "original_status": "deleted 2026-10-14 with the user's approval (job 51014); a symlink to the copy stands at the original path"
+   },
+   {
+    "original": "/data/yang.su/opendde-step0/tier1/cap_k",
+    "copy": "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/opendde-step0/tier1/cap_k",
+    "files": 28,
+    "source_manifest": {
+     "name": "opendde-step0_tier1_cap_k.sha256",
+     "sha256": "16dbb758fb2898fb3e5d5cfc82f4dcbd90f45cedb0fc28cbf4e806bc99fedc9a",
+     "kept_at": [
+      "~/opendde-dev-checks/storage/manifests/opendde-step0_tier1_cap_k.sha256",
+      "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/MANIFESTS/opendde-step0_tier1_cap_k.sha256"
+     ]
+    },
+    "original_status": "deleted 2026-10-14 with the user's approval (job 51014); a symlink to the copy stands at the original path"
+   },
+   {
+    "original": "/data/yang.su/opendde-step0/tier1/cap_off",
+    "copy": "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/opendde-step0/tier1/cap_off",
+    "files": 28,
+    "source_manifest": {
+     "name": "opendde-step0_tier1_cap_off.sha256",
+     "sha256": "43e28660ed3e8c6cb2fee185ddfd1aec25785781a995cfa090045e19ed52206e",
+     "kept_at": [
+      "~/opendde-dev-checks/storage/manifests/opendde-step0_tier1_cap_off.sha256",
+      "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/MANIFESTS/opendde-step0_tier1_cap_off.sha256"
+     ]
+    },
+    "original_status": "deleted 2026-10-14 with the user's approval (job 51014); a symlink to the copy stands at the original path"
+   },
+   {
+    "original": "/data/yang.su/opendde-step0/zn/c1/cap_fp32",
+    "copy": "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/opendde-step0/zn/c1/cap_fp32",
+    "files": 4,
+    "source_manifest": {
+     "name": "opendde-step0_zn_c1_cap_fp32.sha256",
+     "sha256": "4904c8cff06f3148b45519d56294ce3db049a718cad6b7a11144667b568bc1ac",
+     "kept_at": [
+      "~/opendde-dev-checks/storage/manifests/opendde-step0_zn_c1_cap_fp32.sha256",
+      "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/MANIFESTS/opendde-step0_zn_c1_cap_fp32.sha256"
+     ]
+    },
+    "original_status": "deleted 2026-10-14 with the user's approval (job 51014); a symlink to the copy stands at the original path"
+   },
+   {
+    "original": "/data/yang.su/opendde-step0/zn/c1/cap_k",
+    "copy": "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/opendde-step0/zn/c1/cap_k",
+    "files": 4,
+    "source_manifest": {
+     "name": "opendde-step0_zn_c1_cap_k.sha256",
+     "sha256": "3616f52807372ce1841dd6d0ac7d04bffddbf9d96e869116eb3d0cade1b9833b",
+     "kept_at": [
+      "~/opendde-dev-checks/storage/manifests/opendde-step0_zn_c1_cap_k.sha256",
+      "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/MANIFESTS/opendde-step0_zn_c1_cap_k.sha256"
+     ]
+    },
+    "original_status": "deleted 2026-10-14 with the user's approval (job 51014); a symlink to the copy stands at the original path"
+   },
+   {
+    "original": "/data/yang.su/opendde-step0/zn/c1/cap_off",
+    "copy": "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/opendde-step0/zn/c1/cap_off",
+    "files": 4,
+    "source_manifest": {
+     "name": "opendde-step0_zn_c1_cap_off.sha256",
+     "sha256": "58720dbadbe9e2dca4f14973bf31f9743f6723997655698fad8915f452f464f0",
+     "kept_at": [
+      "~/opendde-dev-checks/storage/manifests/opendde-step0_zn_c1_cap_off.sha256",
+      "/mnt/compbio-data/yang.su/opendde-porting/sm120-captures/MANIFESTS/opendde-step0_zn_c1_cap_off.sha256"
+     ]
+    },
+    "original_status": "deleted 2026-10-14 with the user's approval (job 51014); a symlink to the copy stands at the original path"
+   }
+  ]
+ },
+ "a100_outputs": {
+  "source": "/ephemeral/porting on the A100 VM (unreachable since 2026-10-15; registry status retired)",
+  "copy": "/mnt/compbio-data/yang.su/opendde-a100/2026-10-14",
+  "destination_manifest": {
+   "path": "~/opendde-dev-checks/storage/opendde-a100-2026-10-14.sha256",
+   "sha256": "ab3242f21b7d244d7e7c16c82610413a1ca2f91f6f621cb38c84304d38f22e78",
+   "files": 6517,
+   "bytes": 76601052463
+  },
+  "files_per_directory": {
+   "logs": 17,
+   "jobs": 11,
+   "runs/smoke-41": 68,
+   "runs/step0/cpu-42": 7,
+   "runs/step0/ab-43": 195,
+   "runs/step0/profile-50": 107,
+   "runs/step0/foldcp-51": 20,
+   "runs/step0/lndiag-53": 3,
+   "runs/cal/off": 532,
+   "runs/cal/repeat": 517,
+   "runs/cal/k": 532,
+   "runs/cal/fp32": 503,
+   "runs/cal/ln": 532,
+   "runs/cal/t1_off": 133,
+   "runs/cal/t1_k": 133,
+   "runs/cal/t1_fp32": 128,
+   "runs/cal/cap_off": 32,
+   "runs/cal/cap_k": 32,
+   "runs/cal/cap_fp32": 30,
+   "runs/cal/fp32_torch": 5,
+   "runs/cal/analysis": 151,
+   "runs/cal/controls": 2820
+  },
+  "not_from_the_vm": {
+   "README.md": "copied from ~/opendde-dev-checks/a100/README.md",
+   "RESULTS.md": "copy of porting_docs/step0_results_sm80.md (refreshed after edits)",
+   "env/": "copied from ~/opendde-dev-checks/a100/env (7 files)"
+  },
+  "relays": [
+   {
+    "paths": [
+     "logs",
+     "runs/step0/ab-43",
+     "runs/step0/cpu-42",
+     "runs/smoke-41"
+    ],
+    "when": "2026-10-14 about 17:15 UTC",
+    "to": "/data/yang.su/opendde-a100/2026-10-14 (tar over ssh)",
+    "verified_against_vm": false,
+    "then": "moved to the NAS the same day; all 278 files verified by sha256 against the /data copy before it was removed; that manifest was written to /tmp and not kept",
+    "note": "logs were later re-relayed from the VM with verification (below); ab-43, cpu-42 and smoke-41 were never checked against the VM"
+   },
+   {
+    "paths": [
+     "runs/cal/off"
+    ],
+    "when": "2026-10-14 18:07:18 UTC",
+    "line": "relayed and verified off: runs/cal/off",
+    "to": "/mnt/compbio-data/yang.su/opendde-a100/2026-10-14",
+    "verified_against_vm": true,
+    "method": "tar | zstd over ssh via the laptop; then the VM's sha256 list of the same paths piped into sha256sum -c on gnode2 (the list itself was not kept)"
+   },
+   {
+    "paths": [
+     "runs/cal/repeat"
+    ],
+    "when": "2026-10-14 19:28:59 UTC",
+    "line": "relayed and verified repeat: runs/cal/repeat",
+    "to": "/mnt/compbio-data/yang.su/opendde-a100/2026-10-14",
+    "verified_against_vm": true,
+    "method": "tar | zstd over ssh via the laptop; then the VM's sha256 list of the same paths piped into sha256sum -c on gnode2 (the list itself was not kept)"
+   },
+   {
+    "paths": [
+     "runs/cal/fp32"
+    ],
+    "when": "2026-10-14 19:29:24 UTC",
+    "line": "relayed and verified fp32: runs/cal/fp32",
+    "to": "/mnt/compbio-data/yang.su/opendde-a100/2026-10-14",
+    "verified_against_vm": true,
+    "method": "tar | zstd over ssh via the laptop; then the VM's sha256 list of the same paths piped into sha256sum -c on gnode2 (the list itself was not kept)"
+   },
+   {
+    "paths": [
+     "runs/cal/ln"
+    ],
+    "when": "2026-10-14 20:54:42 UTC",
+    "line": "relayed and verified ln: runs/cal/ln",
+    "to": "/mnt/compbio-data/yang.su/opendde-a100/2026-10-14",
+    "verified_against_vm": true,
+    "method": "tar | zstd over ssh via the laptop; then the VM's sha256 list of the same paths piped into sha256sum -c on gnode2 (the list itself was not kept)"
+   },
+   {
+    "paths": [
+     "runs/cal/k"
+    ],
+    "when": "2026-10-14 21:43:32 UTC",
+    "line": "relayed and verified k: runs/cal/k",
+    "to": "/mnt/compbio-data/yang.su/opendde-a100/2026-10-14",
+    "verified_against_vm": true,
+    "method": "tar | zstd over ssh via the laptop; then the VM's sha256 list of the same paths piped into sha256sum -c on gnode2 (the list itself was not kept)"
+   },
+   {
+    "paths": [
+     "runs/cal/t1_off",
+     "runs/cal/t1_k",
+     "runs/cal/t1_fp32",
+     "runs/cal/cap_off",
+     "runs/cal/cap_k",
+     "runs/cal/cap_fp32"
+    ],
+    "when": "2026-10-15 03:22:13 UTC",
+    "line": "relayed and verified tier1: runs/cal/t1_off runs/cal/t1_k runs/cal/t1_fp32 runs/cal/cap_off runs/cal/cap_k runs/cal/cap_fp32",
+    "note": "a first attempt at 2026-10-15 ~01:48 UTC failed during a network outage on the relay host and was not counted",
+    "to": "/mnt/compbio-data/yang.su/opendde-a100/2026-10-14",
+    "verified_against_vm": true,
+    "method": "tar | zstd over ssh via the laptop; then the VM's sha256 list of the same paths piped into sha256sum -c on gnode2 (the list itself was not kept)"
+   },
+   {
+    "paths": [
+     "runs/step0/profile-50",
+     "runs/step0/foldcp-51",
+     "runs/step0/lndiag-53",
+     "logs",
+     "jobs"
+    ],
+    "when": "2026-10-15, after job 53 ended (time not recorded)",
+    "line": "verified",
+    "to": "/mnt/compbio-data/yang.su/opendde-a100/2026-10-14",
+    "verified_against_vm": true,
+    "method": "tar | zstd over ssh via the laptop; then the VM's sha256 list of the same paths piped into sha256sum -c on gnode2 (the list itself was not kept)"
+   },
+   {
+    "paths": [
+     "runs/cal/fp32_torch",
+     "logs/a100-cal-d4fp32t-55.log",
+     "jobs/cal.sbatch"
+    ],
+    "when": "2026-10-15, after job 55 ended at 03:32 UTC (time not recorded)",
+    "line": "verified",
+    "to": "/mnt/compbio-data/yang.su/opendde-a100/2026-10-14",
+    "verified_against_vm": true,
+    "method": "tar | zstd over ssh via the laptop; then the VM's sha256 list of the same paths piped into sha256sum -c on gnode2 (the list itself was not kept)"
+   },
+   {
+    "paths": [
+     "runs/cal/analysis",
+     "runs/cal/controls",
+     "logs",
+     "jobs"
+    ],
+    "when": "2026-10-15, after job 54 ended at 04:34 UTC (time not recorded)",
+    "line": "verified",
+    "to": "/mnt/compbio-data/yang.su/opendde-a100/2026-10-14",
+    "verified_against_vm": true,
+    "method": "tar | zstd over ssh via the laptop; then the VM's sha256 list of the same paths piped into sha256sum -c on gnode2 (the list itself was not kept)"
+   }
+  ],
+  "gaps": [
+   "No A100 source manifest was kept: verification lists were streamed into sha256sum -c and discarded.",
+   "The 278-file manifest of the intermediate /data/yang.su/opendde-a100 copy was not kept.",
+   "runs/step0/ab-43, runs/step0/cpu-42 and runs/smoke-41 were copied VM->/data without a checksum against the VM; only the /data->NAS move was verified.",
+   "The VM originals cannot be re-verified (VM unreachable). No retention exception was approved for these gaps."
+  ]
+ }
+}
