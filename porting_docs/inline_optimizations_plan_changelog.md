@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 111 (2026-10-16)
+
+Documentation and an additive validation-record annotation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation, helper changes or GPU work is authorized.
+
+- Mark the transfer helper and its prerequisite checks complete in the plan and protocol E6, with links to the retained validation record, declaration and report. Keep the comparison and test requirements as the procedure for future transfer work. Reason: the helper now exists and its 30 synthetic tests and real-archive self-check (94 captures, 2,172 prediction artifacts) passed; the documents still described implementation as pending.
+- Link the tested helper and test hashes to commit `7c5369c622ae545666efd4b5d857edf7f9ab11d7` in the validation record, preserving the original report and its execution-time `commit: null`. Reason: the checks ran from an uncommitted copy whose bytes now match the committed files; a retrospective linkage records that fact without rewriting history or requiring a rerun only for metadata.
+- Keep replacement-host acceptance and the remaining A100 audit, validation, approval, freeze and qualification-route amendment pending. Reason: archive self-comparison establishes neither replacement-host equivalence nor the contents of unavailable VM originals. No further contract redesign is needed before sm_120 development, which still requires the user's go-ahead.
+
 ## Revision 110 (2026-10-16)
 
 Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation, helper implementation or GPU work is authorized.

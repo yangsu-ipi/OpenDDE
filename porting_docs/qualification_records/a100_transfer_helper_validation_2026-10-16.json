@@ -4,6 +4,12 @@
   "path": "scripts/porting/tier1_payload_compare.py",
   "sha256": "62dc1a845b80540f1c9fb6645f64ea7b5d997c37cc8caf5fe8a4a78947361aba"
  },
+ "committed_source": {
+  "commit": "7c5369c622ae545666efd4b5d857edf7f9ab11d7",
+  "verified_date": "2026-10-16",
+  "verification": "The helper and test SHA-256 values recorded here match their file bytes at this commit.",
+  "scope": "Retrospective hash-to-commit linkage, not an execution-time Git identity. The jobs ran from an uncommitted copy; the original self-check report and its helper.commit null are unchanged. No rerun was performed for this annotation."
+ },
  "tests": {
   "path": "tests/test_tier1_payload_compare.py",
   "sha256": "edd7e868ff8e46fb0c46378fc7ba2af89cd9956f683bf049bd5ce2e40667fb2e",
