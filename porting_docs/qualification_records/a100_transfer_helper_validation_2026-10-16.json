@@ -1,0 +1,44 @@
+{
+ "description": "Validation of the protocol E6 tier 1 transfer helper before the next A100 session: synthetic tests and the real-archive self-check. Both ran on gnode2 from an uncommitted copy of the working tree whose helper and test hashes are recorded here; the commit that adds these files contains the same bytes.",
+ "helper": {
+  "path": "scripts/porting/tier1_payload_compare.py",
+  "sha256": "62dc1a845b80540f1c9fb6645f64ea7b5d997c37cc8caf5fe8a4a78947361aba"
+ },
+ "tests": {
+  "path": "tests/test_tier1_payload_compare.py",
+  "sha256": "edd7e868ff8e46fb0c46378fc7ba2af89cd9956f683bf049bd5ce2e40667fb2e",
+  "result": "30 passed (gnode2 job 52101, CPU, opendde-dev; pytest basetemp on /data, removed afterwards)",
+  "covers": [
+   "equal payloads with different strides pass with differing file hashes",
+   "one-bit, missing/added/nested key, shape and dtype changes fail",
+   "NaN, +inf and -inf fail even when identical on both sides",
+   "floats compared bit for bit, strings exactly",
+   "valid replay_source relocation passes; unrelocated path, wrong reference with matching payload, wrong run-record replay dir fail",
+   "a contrast fails when its reference fails; role structure enforced",
+   "missing on one side, same missing on both, two empty roots, same unexpected capture or artifact on both sides fail",
+   "D4-style exclusion allows only the excluded contrast; its reference off stays required",
+   "declaration refuses held-out rows and is never rewritten; command-line exit status"
+  ]
+ },
+ "self_check": {
+  "job": "gnode2 job 52103 (2026-10-16 14:28-14:35 UTC), run from ~/opendde-c6 at qual-sm120-contract-6 (clean)",
+  "root": "/mnt/compbio-data/yang.su/opendde-a100/2026-10-14/runs/cal (compared with itself)",
+  "relocation": "/ephemeral/porting/runs/cal -> the NAS root, for replay captures and run records",
+  "inventory": "a100_transfer_selfcheck_inventory_2026-10-16.json (D1-D15, contrasts k and fp32, D4:fp32 excluded, full runs plus ln)",
+  "report": "a100_transfer_selfcheck_report_2026-10-16.json",
+  "result": {
+   "ok": true,
+   "captures_expected": 94,
+   "captures_passed": 94,
+   "captures_by_role": {
+    "off": 32,
+    "k": 32,
+    "fp32": 30
+   },
+   "artifacts_expected": 2172,
+   "artifacts_differing": 0,
+   "failures": 0
+  },
+  "scope": "Validates the retained NAS copy, the all-tensor non-finite rule against the archive (no archived capture holds a non-finite tensor), and path resolution on the real VM paths; it cannot recover the VM originals or close the recorded provenance gaps."
+ }
+}
