@@ -2,6 +2,13 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 107 (2026-10-16)
+
+Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation, helper implementation or GPU work is authorized.
+
+- Apply exact logical-payload identity to both reference and replay captures without requiring equal serialized-file hashes. Keep raw-file hashes for integrity and explain serialization-only differences through the payload and provenance checks. Reason: the revision 106 review's local CPU check produced equal tensor values, shapes and dtypes but different `torch.save` bytes when strides differed; the absence of a replay-source path does not guarantee file-byte equality.
+- Specify the transfer helper's synthetic tests: equal logical payloads with different storage layouts, one-bit changes, key/shape/dtype changes, non-finite tensors, valid replay-source relocation and a wrong reference even with matching tensors. Retain the helper source and tests with their hashes and passing results alongside transfer evidence. Reason: these cases test the actual identity and provenance rules, and a source hash alone cannot reconstruct a lost helper. The helper remains outside `scripts/qualification` and must pass before the next A100 session; implementing it still needs separate approval.
+
 ## Revision 106 (2026-10-16)
 
 Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation, tool implementation or GPU work is authorized.
