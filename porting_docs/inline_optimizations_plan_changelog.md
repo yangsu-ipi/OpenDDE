@@ -2,6 +2,12 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 100 (2026-10-15)
+
+Records a user declaration. Qualification code, numeric limits and tags are unchanged; development porting still needs its own go-ahead.
+
+- Declare the mode/GPU claims and retry allowance: full `fast` claims on sm_120 (first) and sm_80 (after the sm_80 freeze and a passing replacement A100); `exact` development-validated on both GPUs; `big` not claimed until the `fast` capacity measurements; at most two failed draws per claim (at most six draws, 144 of 799 seeds). Adding a claim or exceeding the allowance needs a new declaration before the next draw. Reason: the plan requires the declaration before development porting, so claims and retries cannot be chosen after held-out results are seen; it reserves at most 6 of the 33 worst-case draws.
+
 ## Revision 99 (2026-10-15)
 
 Records a user decision. Qualification code, numeric limits and tags are unchanged; nothing else is authorized.
