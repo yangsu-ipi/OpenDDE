@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 109 (2026-10-16)
+
+Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation, helper implementation or GPU work is authorized.
+
+- Require both capture inventories, including those used by the real-archive self-check, to equal a nonempty expected set declared from frozen inputs, development seeds and the selected calibration recipes. Test missing captures on both sides, empty roots and identical unexpected additions. Reason: agreement between discovered file sets cannot establish completeness; both may omit the same evidence or include the same unrelated files. The helper can follow `accept.py`'s expected-set pattern without changing the frozen verifier.
+- Limit the D4 exception to its absent fp32 contrast captures; keep its reference `off` and other applicable contrast captures mandatory, and test both cases. Reason: the missing precision contrast does not waive D4 coverage elsewhere.
+- State that the archive self-check validates the retained NAS copy and path resolution, not the original VM contents, and that failure requires review before helper readiness or calibration reuse. Reason: the original VM is unavailable, so self-comparison cannot repair the historical provenance gaps; an unexpected failure must not silently relax the comparison rule.
+
 ## Revision 108 (2026-10-16)
 
 Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation, helper implementation or GPU work is authorized.
