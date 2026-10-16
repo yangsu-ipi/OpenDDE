@@ -77,9 +77,9 @@ Targeted `fast_layernorm` checks (`layernorm_stream_diag.py --out`, job 53), pre
 
 `protein_200`: manifest check and fault-injection self-test pass; two traced runs match; traced and untraced artifacts are byte-identical. D1-D15 `off` traces: manifest and self-test pass on all 15 rows. Draw identity, comparing with `off`: torch triangle kernels (`raw` hashes) and `fast_layernorm` (`raw`) match on all 15 rows; fp32 (`cmp` hashes, after casting to the comparison dtype) matches on all 14 rows that ran. The sm_80 stock contrasts therefore share random inputs with `off`, as on sm_120.
 
-## D4 fp32 does not fit on an 80 GB A100
+## Tested D4 fp32 recipes do not fit on an 80 GB A100
 
-Stock D4 (7wux, 1,218 tokens) with `--dtype fp32` ran out of device memory, in the full run (job 47) and in the tier 1 replay (job 49): in the trunk, cuEquivariance's fused triangle-multiplication kernel asked for 7.6 GiB with 74.5 GiB allocated. That kernel processes the whole pair tensor and ignores OpenDDE's chunk settings; reserved-but-unallocated memory was 0.4 GiB, so allocator settings would not help. A rerun with torch triangle kernels (user's option 2, job 55, to be compared with the bf16 torch-kernel run) passed the trunk and then ran out of memory in structural token expansion (triangle-attention chunk loop, 15.1 GiB requested), the stage that is also the bf16 peak (43.6 GiB). **D4 therefore has no fp32 contrast on sm_80** (option 1, the fallback agreed when the user chose option 2 on 2026-10-15). The other 14 rows have one. Stock bf16 fits every row, including D4. Bearing on the plan: this is an A100 memory boundary at H10's size (1,218 tokens) for any fp32 path, relevant to the per-GPU recipe question and the `big` decision. An untried route, a forced smaller triangle-attention chunk, would change the run beyond precision and was not run.
+Stock D4 (7wux, 1,218 tokens) with `--dtype fp32` ran out of device memory, in the full run (job 47) and in the tier 1 replay (job 49): in the trunk, cuEquivariance's fused triangle-multiplication kernel asked for 7.6 GiB with 74.5 GiB allocated. That kernel processes the whole pair tensor and ignores OpenDDE's chunk settings; reserved-but-unallocated memory was 0.4 GiB, so allocator settings would not help. A rerun with torch triangle kernels (user's option 2, job 55, to be compared with the bf16 torch-kernel run) passed the trunk and then ran out of memory in structural token expansion (triangle-attention chunk loop, 15.1 GiB requested), the stage that is also the bf16 peak (43.6 GiB). **D4 therefore has no fp32 contrast on sm_80** (option 1, the fallback agreed when the user chose option 2 on 2026-10-15). The other 14 rows have one. Stock bf16 fits every row, including D4. These failures establish a memory limit for the tested cuEquivariance and torch fp32 recipes at D4/H10's size (1,218 tokens); they do not establish that every fp32 implementation would fail. A forced smaller triangle-attention chunk was not tried and would change more than precision. Keep the missing D4 fp32 contrast explicit in the sm_80 audit. These failures alone do not trigger `big`: stock bf16 fits, and that decision still depends on intended `fast` peaks and the agreed memory margin.
 
 ## Calibration against the frozen sm_120 limits
 
@@ -91,9 +91,11 @@ All D1-D15 runs used `run_rows.py` with contract-6 provenance at seeds 101 and 1
 
 | Contrast | Jobs passing | Failing gates (value vs limit) |
 |---|---|---|
-| Torch triangle kernels | 12 of 16 | D3 and D13 `1a14_unconstrained` paired lDDT polymer/protein 0.9473 vs ≥0.95; D9 within-seed spread ratio 1.301 vs ≤1.25; D10 ensemble reference fnonnat median rise 0.0626 vs ≤0.06 |
+| Torch triangle kernels | 12 of 16 | D3 and D13 `1a14_unconstrained` paired lDDT polymer/protein 0.9473 vs ≥0.95; D9 whole-ensemble spread ratio (`ensemble_spread_ratio`) 1.301 vs ≤1.25; D10 ensemble reference fnonnat median rise 0.0626 vs ≤0.06 |
 | bf16 vs fp32 (D4 absent) | 12 of 15 | D3 and D13 `1a14_unconstrained` lDDT 0.9474 vs 0.95; D10 lDDT 0.9486 vs 0.95 and pair interface Fnat 0.673 vs ≥0.70 |
 | `fast_layernorm` | 14 of 16 | D3 and D13 `1a14_unconstrained` lDDT 0.9496 vs 0.95 |
+
+The D9 label above follows `tier2_gates.py`: `ensemble_spread_ratio` gates the ratio of median pairwise anchor RMSD across the whole ensemble. `spread_same_seed_*` is reported only; the separate same-seed duplicate gates still apply. Verify the archived measurement's gate key and value before using 1.301 to derive sm_80 limits; this documentation correction does not recompute it.
 
 D3 and D13's `1a14_unconstrained` job are the same job (one result, counted twice, as on sm_120). Every harmless contrast passed all 16 jobs on sm_120 under these limits. The failures are close to the limits; the `1a14_unconstrained` lDDT failure appears in all three contrasts, so the sm_80 stock contrast on that input is wider than sm_120's. The sm_80 limit audit (`limit_audit.py`, precision vs kernel) marks two groups where the kernel swap binds and fails the precision-only rederivation: flexible/epitope reference fnonnat median (kernel 0.0626 at D10, limit 0.06) and the low/stable spread ratio (kernel 0.263 at D9 against |log| limit 0.223). D4's precision values are missing from the audit.
 
@@ -116,10 +118,10 @@ The half-size partial-collapse sizes came from sm_80 `off` (half the closest sam
 
 ## What this means for the sm_80 contract
 
-- Reproducibility, the trace manifest, D5 templates and the tier 1 margins carry over to sm_80 unchanged.
+- The sm_80 checks support stock reproducibility, trace-manifest coverage, matching D5 template digests and tier 1 margins under the tested stack. They do not establish byte-identical predictions across GPUs.
 - The sm_120 tier 2 limits cannot be reused as they stand: three harmless sm_80 contrasts fail them, mainly paired lDDT on `1a14_unconstrained`, plus near-limit D9/D10 gates. sm_80 needs its own calibrated limits (the plan already requires an sm_80 freeze), and its own `baseline_off.json`.
-- D4 has no fp32 contrast on 80 GB; the sm_80 limit derivation must use the kernel and `fast_layernorm` contrasts for D4 or declare the gap.
-- These are calibration measurements only; choosing sm_80 limits, the contract structure (shared family or GPU-scoped) and the sm_80 freeze are user decisions.
+- D4 has no fp32 contrast under the tested recipes on 80 GB. Its kernel and `fast_layernorm` results provide narrower coverage; any limit supported only by those contrasts must declare the precision gap and its reduced assurance (protocol E6).
+- These are calibration measurements only; choosing sm_80 limits, the contract structure (shared family or GPU-scoped) and the sm_80 freeze are user decisions. Protocol E6 requires a per-gate derivation record and negative-control reevaluation under the proposed sm_80 limits, before tuning.
 
 ## Outputs
 

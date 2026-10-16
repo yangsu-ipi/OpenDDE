@@ -2,6 +2,16 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 97 (2026-10-15)
+
+Documentation only. Qualification code, numeric limits and tags are unchanged; no porting, environment creation, GPU work or storage operation is authorized.
+
+- Reconcile current status around contract-6: branch ancestry and matching files, 251 tests and the 89-check D1 smoke test, and the 201-999 pool (799 seeds, 33 worst-case 24-seed draws). Mark contract-5 results and the amendment design as history, and link the completed A100 stock report. Reason: stale contract-5 instructions and the four-draw budget contradicted the released contract, while A100 stock measurement completion does not mean its limits are frozen.
+- Correct D9's metric label to whole-ensemble `ensemble_spread_ratio`, with an archived-key/value check before sm_80 derivation. Reason: the implementation gates the whole-ensemble statistic and reports same-seed spread separately; limits must be tied to the metric actually measured.
+- Add protocol E6's per-gate sm_80 audit, calibration/validation roles, negative-control reevaluation and explicit D4 precision gap. Recommend GPU-scoped limits, baselines and asset references with shared provenance and seed history, pending the architecture choice and transition tests. Reason: harmless A100 contrasts fail sm_120 limits, all three have already been inspected, and the current verifier cannot select an A100 baseline or limits; coupling GPU-private changes would also require access to the ephemeral VM.
+- Require retention records for the already moved A100 outputs and sm_120 captures: original status, relocation map, manifest hashes and protected-copy verification, with prior exceptions and gaps recorded if originals are gone. Reason: supporting captures retain their evidentiary role regardless of their store's label, and a transfer checksum does not prove continued protection.
+- Narrow the A100 D4 conclusion to the two tested fp32 recipes and record that bf16 fits the tested 80 GB card. Keep `big` conditional on intended `fast` peaks and an agreed margin; 40 GB A100 capacity remains untested. Reason: the observed OOMs neither establish that every fp32 path fails nor justify memory offload for a recipe that already fits.
+
 ## Revision 96 (2026-10-14)
 
 Records the contract-6 release. The numeric limits are unchanged, no held-out input ran, and porting has not started.
