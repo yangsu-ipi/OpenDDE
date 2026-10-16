@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 110 (2026-10-16)
+
+Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation, helper implementation or GPU work is authorized.
+
+- Apply the declared expected-set rule to prediction artifacts as well as tier 1 captures, deriving the artifact set from frozen inputs, development seeds and sample count as `expected_artifacts()` does. Reason: transfer also requires byte-identical prediction artifacts, and comparing discovered artifact files has the same blind spot as comparing discovered captures.
+- Split the two declarations: the real-archive self-check uses the full archived calibration capture set (`off`, torch-kernel and fp32 tier 1, 32, 32 and 30 captures, D4 fp32 excluded), independent of the per-gate audit; the transfer comparison uses the audit's selected recipes, a subset of it. Reason: the self-check must pass before the next A100 session, when the audit may not yet exist.
+- List the shared reference `off` captures once and each contrast's captures separately. Reason: both contrasts replay from the same `cap_off`; keying the reference once makes clear that D4's reference capture is required as the reference.
+
 ## Revision 109 (2026-10-16)
 
 Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation, helper implementation or GPU work is authorized.
