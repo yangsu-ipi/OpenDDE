@@ -14,7 +14,7 @@ resolved tree: it gives static types to the ~170 consumption sites
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 InferenceDtype = Literal["bf16", "fp32"]
 INFERENCE_DTYPE_CHOICES: tuple[InferenceDtype, ...] = ("bf16", "fp32")
@@ -360,3 +360,8 @@ class OpenDDEConfig(BaseConfig):
     foldcp_size_cp: int
     foldcp_devices: str
     foldcp_metrics_jsonl: str
+    optimization_mode: Literal["off", "exact", "fast", "big"] = "off"
+    explicit_options: list[str] = Field(default_factory=list)
+    optimization: dict[str, bool] = Field(default_factory=dict)
+    # The runner adds ``optimization_decisions`` (its plan's on/off choices) at
+    # run time; it is not a user setting and has no default here.

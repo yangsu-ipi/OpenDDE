@@ -8,9 +8,10 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
-from typing import Callable, List, Literal, Optional, TypeVar, Union, cast
+from typing import Callable, List, Literal, Optional, Sequence, TypeVar, Union, cast
 
 import click
+from click.core import ParameterSource
 import torch.distributed as dist
 import tqdm
 from Bio import SeqIO
@@ -22,6 +23,14 @@ from opendde.config.inference import (
     validate_triangle_kernels,
 )
 from opendde.config.model_registry import DEFAULT_MODEL_NAME, model_configs
+from opendde.config.optimization import (
+    OPTIMIZATION_MODES,
+    OVERLAPPING_OPTION_DEFAULTS,
+    UNSET,
+    explicit_environment,
+    resolve_overlapping_options,
+    validate_optimization_mode,
+)
 from opendde.config.schema import (
     INFERENCE_DEVICE_CHOICES,
     INFERENCE_DTYPE_CHOICES,
@@ -368,15 +377,15 @@ def get_default_runner(
     n_cycle: int = 10,
     n_step: int = 200,
     n_sample: int = 5,
-    dtype: InferenceDtype = "bf16",
+    dtype: InferenceDtype = UNSET,
     model_name: str = DEFAULT_MODEL_NAME,
     load_checkpoint_path: str = "",
     use_msa: bool = True,
-    trimul_kernel="auto",
-    triatt_kernel="auto",
-    enable_cache=True,
-    enable_fusion=True,
-    enable_tf32=False,
+    trimul_kernel=UNSET,
+    triatt_kernel=UNSET,
+    enable_cache=UNSET,
+    enable_fusion=UNSET,
+    enable_tf32=UNSET,
     deterministic: bool = False,
     use_template: bool = False,
     use_rna_msa: bool = False,
@@ -389,6 +398,8 @@ def get_default_runner(
     foldcp_devices: str = "",
     foldcp_metrics_jsonl: str = "",
     *,
+    optimization_mode: str = "off",
+    explicit_options: Optional[Sequence[str]] = None,
     device: InferenceDevice = "auto",
 ) -> InferenceRunner:
     """
@@ -420,10 +431,34 @@ def get_default_runner(
         foldcp_size_cp (int): Number of context-parallel ranks.
         foldcp_devices (str): Optional visible device list recorded in metrics.
         foldcp_metrics_jsonl (str): Optional JSONL path for benchmark records.
+        optimization_mode (str): 'off' (default) or 'exact'; see
+            opendde.config.optimization. Rejected under Fold-CP.
+        explicit_options (Optional[Sequence[str]]): Names of the overlapping
+            options (dtype, enable_tf32, trimul_kernel, triatt_kernel,
+            enable_cache, enable_fusion) the user supplied explicitly. When
+            None, an option counts as explicit if the caller passed it; an
+            explicit option takes precedence over any optimization.
 
     Returns:
         InferenceRunner: An instance of InferenceRunner.
     """
+    options, explicit = resolve_overlapping_options(
+        {
+            "dtype": dtype,
+            "enable_tf32": enable_tf32,
+            "trimul_kernel": trimul_kernel,
+            "triatt_kernel": triatt_kernel,
+            "enable_cache": enable_cache,
+            "enable_fusion": enable_fusion,
+        },
+        explicit_options,
+    )
+    dtype = options["dtype"]
+    enable_tf32 = options["enable_tf32"]
+    trimul_kernel = options["trimul_kernel"]
+    triatt_kernel = options["triatt_kernel"]
+    enable_cache = options["enable_cache"]
+    enable_fusion = options["enable_fusion"]
     if dtype not in INFERENCE_DTYPE_CHOICES:
         raise ValueError(
             f"dtype must be one of {INFERENCE_DTYPE_CHOICES}; got {dtype!r}."
@@ -452,6 +487,7 @@ def get_default_runner(
         devices=foldcp_devices,
         metrics_jsonl=foldcp_metrics_jsonl,
     )
+    validate_optimization_mode(optimization_mode, foldcp_enabled=foldcp_config.enabled)
     # Merge model-specific overrides into the raw config BEFORE parsing, so that
     # GlobalConfigValue references (e.g. submodule c_z) resolve against the
     # model's top-level values. This mirrors runner.inference.run(); doing the
@@ -485,6 +521,8 @@ def get_default_runner(
     configs.use_rna_msa = use_rna_msa
     configs.need_atom_confidence = need_atom_confidence
     configs.sample_diffusion.guidance["enable"] = use_tfg_guidance
+    configs.optimization_mode = optimization_mode
+    configs.explicit_options = explicit + explicit_environment()
     # Runtime assignment intentionally stays mutable for legacy callers, so
     # rebuild the typed view once before any filesystem, process-group, or model
     # initialization. This gives the Python API the same boundary as Click.
@@ -529,14 +567,14 @@ def inference_jsons(
     n_cycle: int = 10,
     n_step: int = 200,
     n_sample: int = 5,
-    dtype: InferenceDtype = "bf16",
+    dtype: InferenceDtype = UNSET,
     model_name: str = DEFAULT_MODEL_NAME,
     load_checkpoint_path: str = "",
-    trimul_kernel: str = "auto",
-    triatt_kernel: str = "auto",
-    enable_cache: bool = True,
-    enable_fusion: bool = True,
-    enable_tf32: bool = False,
+    trimul_kernel: str = UNSET,
+    triatt_kernel: str = UNSET,
+    enable_cache: bool = UNSET,
+    enable_fusion: bool = UNSET,
+    enable_tf32: bool = UNSET,
     deterministic: bool = False,
     use_template: bool = False,
     use_rna_msa: bool = False,
@@ -560,6 +598,8 @@ def inference_jsons(
     foldcp_devices: str = "",
     foldcp_metrics_jsonl: str = "",
     *,
+    optimization_mode: str = "off",
+    explicit_options: Optional[Sequence[str]] = None,
     device: InferenceDevice = "auto",
 ) -> None:
     """
@@ -603,6 +643,8 @@ def inference_jsons(
         foldcp_size_cp (int): Number of context-parallel ranks.
         foldcp_devices (str): Optional visible device list recorded in metrics.
         foldcp_metrics_jsonl (str): Optional JSONL path for benchmark records.
+        optimization_mode (str): 'off' (default) or 'exact'.
+        explicit_options (Optional[Sequence[str]]): See get_default_runner.
     """
     infer_errors = {}
     # Reject missing/malformed inputs and cross-file output collisions before
@@ -638,6 +680,8 @@ def inference_jsons(
         foldcp_size_cp=foldcp_size_cp,
         foldcp_devices=foldcp_devices,
         foldcp_metrics_jsonl=foldcp_metrics_jsonl,
+        optimization_mode=optimization_mode,
+        explicit_options=explicit_options,
     )
     try:
         world_control_group = getattr(runner, "foldcp_world_control_group", None)
@@ -780,6 +824,14 @@ def inference_jsons(
     type=bool,
     default=False,
     help="Enable deterministic PyTorch algorithms for reproducible inference.",
+)
+@click.option(
+    "--optimization_mode",
+    type=click.Choice(OPTIMIZATION_MODES, case_sensitive=False),
+    default="off",
+    help="Optimization mode: 'off' (unmodified OpenDDE) or 'exact' (only "
+    "changes byte-identical to 'off' under --deterministic true). 'fast' and "
+    "'big' are not available in this release. Not supported with Fold-CP.",
 )
 @click.option(
     "--use_template",
@@ -951,6 +1003,7 @@ def predict(
     foldcp_size_cp: int = 1,
     foldcp_devices: str = "",
     foldcp_metrics_jsonl: str = "",
+    optimization_mode: str = "off",
 ) -> None:
     """
     Run predictions with OpenDDE using various input formats.
@@ -996,8 +1049,18 @@ def predict(
         foldcp_size_cp (int): Number of context-parallel ranks.
         foldcp_devices (str): Optional visible device list recorded in metrics.
         foldcp_metrics_jsonl (str): Optional JSONL path for benchmark records.
+        optimization_mode (str): Optimization mode ('off' or 'exact').
     """
     init_logging()
+    # Record which overlapping options were supplied, not just their values:
+    # an explicit --triatt_kernel auto keeps the stock selection.
+    ctx = click.get_current_context()
+    explicit_options = [
+        name
+        for name in OVERLAPPING_OPTION_DEFAULTS
+        if ctx.get_parameter_source(name)
+        not in (ParameterSource.DEFAULT, ParameterSource.DEFAULT_MAP)
+    ]
     logger.info(f"Run infer with input={input}, out_dir={out_dir}, sample={sample}")
     if use_default_params:
         if model_name in SUPPORTED_MODELS:
@@ -1093,6 +1156,8 @@ def predict(
         foldcp_size_cp=foldcp_size_cp,
         foldcp_devices=foldcp_devices,
         foldcp_metrics_jsonl=foldcp_metrics_jsonl,
+        optimization_mode=optimization_mode.lower(),
+        explicit_options=explicit_options,
     )
 
 

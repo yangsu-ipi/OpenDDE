@@ -24,6 +24,12 @@ from opendde.config.inference import (
     apply_runtime_compatibility,
     build_inference_config,
 )
+from opendde.config.optimization import (
+    build_optimization_plan,
+    explicit_environment,
+    explicit_from_arg_str,
+    validate_optimization_mode,
+)
 from opendde.config.schema import OpenDDEConfig
 from opendde.data.core import ccd
 from opendde.data.inference.input_validation import (
@@ -998,6 +1004,13 @@ class InferenceRunner(object):
             self.configs.foldcp_devices = self.foldcp_config.devices
             self.configs.foldcp_metrics_jsonl = self.foldcp_config.metrics_jsonl
             self.configs.foldcp = self.foldcp_config.to_dict()
+            # Before any model construction: reject unavailable modes and any
+            # mode other than "off" under Fold-CP, whichever entry point built
+            # this configuration.
+            validate_optimization_mode(
+                getattr(self.configs, "optimization_mode", "off"),
+                foldcp_enabled=self.foldcp_config.enabled,
+            )
             _apply_determinism_runtime(self.configs.deterministic)
             self.init_env()
             metric_rank = _distributed_rank()
@@ -1157,6 +1170,13 @@ class InferenceRunner(object):
             world_control_group=self.foldcp_world_control_group,
         )
         self.configs = compatible_configs[0]
+        self.optimization_plan = build_optimization_plan(self.configs, self.device)
+        # The data pipeline and the model see only the configuration.
+        self.configs.optimization_decisions = {
+            name: decision.enabled
+            for name, decision in self.optimization_plan.decisions.items()
+        }
+        logging.info(self.optimization_plan.summary())
         if self.device.type == "mps":
             logging.info(
                 "Apple MPS backend selected; dtype=%s, triangle kernels: "
@@ -1925,6 +1945,8 @@ def run() -> None:
         arg_str=arg_str,
         fill_required_with_null=True,
     )
+    # Dotted overrides of overlapping options are explicit choices.
+    configs.explicit_options = explicit_from_arg_str(arg_str) + explicit_environment()
     model_name = configs.model_name
     logger.info(
         f"Using params for model {model_name}: "

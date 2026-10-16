@@ -34,4 +34,12 @@ inference_configs: dict[str, Any] = {
     "foldcp_size_cp": 1,
     "foldcp_devices": "",
     "foldcp_metrics_jsonl": "",
+    # Optimization mode (opendde.config.optimization): "off" runs unmodified
+    # OpenDDE. The entry points record which overlapping options the user
+    # supplied explicitly; those take precedence over any optimization.
+    "optimization_mode": "off",
+    "explicit_options": ListValue([], dtype=str),
+    # Per-optimization switches for ablation and debugging; an optimization
+    # runs only under a mode that includes it and while its switch is true.
+    "optimization": {},
 }
