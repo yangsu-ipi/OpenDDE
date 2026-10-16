@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 101 (2026-10-15)
+
+Documentation and registry descriptions only. Qualification code, numeric limits, tags and declared mode/GPU claims are unchanged. No porting, GPU work, environment creation or storage operation is authorized.
+
+- Add a per-gate strength check for the predeclared `--deterministic false` validation contrast. Record effective settings, observed execution changes and prediction differences; retain reduced-assurance labels for no-op or weak contrasts. Reason: disabling deterministic enforcement permits different algorithms but does not guarantee a numerical perturbation; an uninspected contrast can still provide little validation.
+- Require archived calibration environment snapshots and stock `off` agreement on all D1-D15 before reusing the full A100 calibration on a replacement host. Keep D1/D4/D5 as initial smoke tests only. Reason: three rows cannot establish agreement on the RNA, guidance and other untested paths, and gnode2's live environment may change after calibration.
+- Correct the A100 report, registry and protocol's transfer-verification wording using the relocation record: `ab-43`, `cpu-42` and `smoke-41` were never checksum-checked against the VM, and the intermediate-copy manifest was not kept. Reason: a verified later move or protected current copy cannot recover missing historical source attestation. The approved first-draw unprotected-retention exception remains unchanged.
+- Express the allowance as at most three consumed draws per declared claim, six in all, including abandoned draws whose seeds are spent. Distinguish receipt-only abandonment before a draw, and preserve E5's narrow same-draw disk-recovery exception. Reason: counting only failed verdicts would leave abandoned draws outside the stated six-draw, 144-seed cap.
+
 ## Revision 100 (2026-10-15)
 
 Records a user declaration. Qualification code, numeric limits and tags are unchanged; development porting still needs its own go-ahead.

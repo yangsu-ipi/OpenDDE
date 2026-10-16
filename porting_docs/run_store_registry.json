@@ -38,7 +38,7 @@
   {
    "path": "/mnt/compbio-data/yang.su/opendde-a100",
    "registered": "2026-10-14",
-   "note": "Copies of the A100 VM runs (/ephemeral/porting on the VM, which is ephemeral), with logs and tier 1 captures, verified against sha256 manifests computed on the VM; setup recipe and job scripts in ~/opendde-dev-checks/a100 (README.md). First relayed to /data/yang.su/opendde-a100 and moved here with checksum verification the same day (user decision 2026-10-14)."
+   "note": "Copies of the A100 VM runs, logs and tier 1 captures; verification coverage and relocation map are in porting_docs/qualification_records/storage_relocation_2026-10-16.json. Most relays were checked against streamed VM-side sha256 lists, which were not kept. runs/step0/ab-43, runs/step0/cpu-42 and runs/smoke-41 were never checksum-checked against the VM; only their intermediate /data-to-NAS move was verified, and that manifest was not kept. The VM is retired and these historical provenance gaps remain unresolved. Setup recipe and job scripts are in ~/opendde-dev-checks/a100 (README.md); the initial /data-to-NAS move was user-approved on 2026-10-14."
   },
   {
    "path": "/mnt/compbio-data/yang.su/opendde-porting",
