@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from opendde.model import step_invariant
 from opendde.model.triangular.layers import LayerNorm, trunc_normal_init_
 from opendde.model.utils import (
     chunk_layer,
@@ -103,6 +104,11 @@ class AdaptiveLayerNorm(nn.Module):
         c_s (int, optional):  hidden dim [for single embedding]. Defaults to 384.
     """
 
+    # True where s is the same during one sampler call (the atom transformer's
+    # conditioning): its scale and shift may then come from the step-invariant
+    # memo (dit_hoist).
+    step_invariant_s = False
+
     def __init__(self, c_a: int = 768, c_s: int = 384) -> None:
         super(AdaptiveLayerNorm, self).__init__()
         self.layernorm_a = LayerNorm(c_a, create_scale=False, create_offset=False)
@@ -125,9 +131,20 @@ class AdaptiveLayerNorm(nn.Module):
                 [..., N_token, c_a]
         """
         a = self.layernorm_a(a)
-        s = self.layernorm_s(s)
-        a = torch.sigmoid(self.linear_s(s)) * a + self.linear_nobias_s(s)
+        memo = step_invariant.active("dit_hoist") if self.step_invariant_s else None
+        if memo is None:
+            s = self.layernorm_s(s)
+            a = torch.sigmoid(self.linear_s(s)) * a + self.linear_nobias_s(s)
+        else:
+            scale, shift = memo.get(
+                self, "scale_shift", (s,), lambda: self._scale_and_shift(s)
+            )
+            a = scale * a + shift
         return a
+
+    def _scale_and_shift(self, s: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        s = self.layernorm_s(s)
+        return torch.sigmoid(self.linear_s(s)), self.linear_nobias_s(s)
 
 
 class BiasInitLinear(Linear):

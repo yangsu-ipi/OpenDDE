@@ -74,6 +74,14 @@ OPTIMIZATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
         # Diffusion sampler: decide each step's gamma from one host copy of the
         # noise schedule instead of reading a device element per step.
         "host_noise_schedule": EXACT_AND_ABOVE,
+        # Diffusion denoiser: compute its step-invariant conditioning tensors
+        # (pair biases, adaptive-LayerNorm terms, gates, atom conditioning)
+        # once per sampler call (opendde.model.step_invariant).
+        "dit_hoist": EXACT_AND_ABOVE,
+        # Diffusion denoiser: prepare the token transformer's pair input
+        # (normalize, permute, contiguous copy) once per sampler call; it is
+        # reused only while its source is the same tensor, as under dit_hoist.
+        "zprep_hoist": EXACT_AND_ABOVE,
     }
 )
 

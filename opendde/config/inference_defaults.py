@@ -47,5 +47,7 @@ inference_configs: dict[str, Any] = {
         "json_oneshot": True,
         "structural_token_sync": True,
         "host_noise_schedule": True,
+        "dit_hoist": True,
+        "zprep_hoist": True,
     },
 }

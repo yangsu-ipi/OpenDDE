@@ -16,6 +16,7 @@ from opendde.distributed.foldcp.launch import (
     foldcp_pair_row_slab_linear_with_source_launch_policy,
 )
 from opendde.distributed.foldcp.msa_pair_weighted import collect_msa_pair_row_slab
+from opendde.model import step_invariant
 from opendde.distributed.foldcp.pair_sharding import (
     FoldCPPairShardSpec,
     gather_pair_tensor,
@@ -1096,13 +1097,28 @@ class DiffusionConditioning(nn.Module):
         else:
             # Pair conditioning
             if inplace_safe:
-                pair_z_clone = pair_z.clone()
-                pair_z = pair_z_clone
+                memo = step_invariant.active("dit_hoist")
+                if memo is None:
+                    pair_z_clone = pair_z.clone()
+                    pair_z = pair_z_clone
+                else:
+                    pair_z = memo.get(self, "pair_z", (pair_z,), pair_z.clone)
         # Single conditioning
-        single_s = torch.cat(
-            tensors=[s_trunk, s_inputs], dim=-1
-        )  # [..., N_tokens, c_s + c_s_inputs]
-        single_s = self.linear_no_bias_s(self.layernorm_s(single_s))
+        memo = step_invariant.active("dit_hoist")
+        if memo is None:
+            single_s = torch.cat(
+                tensors=[s_trunk, s_inputs], dim=-1
+            )  # [..., N_tokens, c_s + c_s_inputs]
+            single_s = self.linear_no_bias_s(self.layernorm_s(single_s))
+        else:
+            single_s = memo.get(
+                self,
+                "single_s",
+                (s_trunk, s_inputs),
+                lambda: self.linear_no_bias_s(
+                    self.layernorm_s(torch.cat(tensors=[s_trunk, s_inputs], dim=-1))
+                ),
+            )
         noise_ratio = (t_hat_noise_level / self.sigma_data).clamp(min=1e-10)
         noise_n = self.fourier_embedding(
             t_hat_noise_level=torch.log(input=noise_ratio) / 4
@@ -1508,8 +1524,19 @@ class DiffusionModule(nn.Module):
             else:
                 a_token = a_token + self.linear_no_bias_s(self.layernorm_s(s_single))
             if enable_efficient_fusion:
-                z = self.normalize(z_pair.to(dtype=torch.float32))
-                z = permute_final_dims(z, [2, 0, 1]).contiguous()
+                memo = step_invariant.active("zprep_hoist")
+                if memo is None:
+                    z = self.normalize(z_pair.to(dtype=torch.float32))
+                    z = permute_final_dims(z, [2, 0, 1]).contiguous()
+                else:
+                    z = memo.get(
+                        self,
+                        "token_pair_input",
+                        (z_pair,),
+                        lambda: permute_final_dims(
+                            self.normalize(z_pair.to(dtype=torch.float32)), [2, 0, 1]
+                        ).contiguous(),
+                    )
             else:
                 z = z_pair.to(dtype=torch.float32)
             a_token = self.diffusion_transformer(

@@ -25,6 +25,7 @@ from opendde.distributed.foldcp.atom_window import (
     window_block_range,
 )
 from opendde.distributed.foldcp.pair_sharding import FoldCPPairShardSpec
+from opendde.model import step_invariant
 from opendde.model.modules.primitives import (
     AdaptiveLayerNorm,
     Attention,
@@ -361,6 +362,11 @@ class AttentionPairBias(nn.Module):
         cross_attention_mode (bool, optional): If cross_attention_model = True, the adaptive layernorm will be applied
             to query and key/value seperately. Defaults to False.
     """
+
+    # True where s is the same during one sampler call (the atom transformer's
+    # conditioning): the output gate may then come from the step-invariant
+    # memo (dit_hoist).
+    step_invariant_s = False
 
     def __init__(
         self,
@@ -1106,14 +1112,29 @@ class AttentionPairBias(nn.Module):
         assert n_keys == z.size(-2)
         assert len(z.shape) == len(q.shape) + 2
 
-        # Multi-head attention bias
-        bias = self.linear_nobias_z(
-            self.layernorm_z(z)
-        )  # [..., n_blocks, n_queries, n_keys, n_heads]
-        bias = permute_final_dims(
-            bias, [3, 0, 1, 2]
-        )  # [..., n_heads, n_blocks, n_queries, n_keys]
-        bias = self._align_bias_to_query(bias, q, n_pair_dims=3)
+        memo = step_invariant.active("dit_hoist")
+        if memo is None:
+            # Multi-head attention bias
+            bias = self.linear_nobias_z(
+                self.layernorm_z(z)
+            )  # [..., n_blocks, n_queries, n_keys, n_heads]
+            bias = permute_final_dims(
+                bias, [3, 0, 1, 2]
+            )  # [..., n_heads, n_blocks, n_queries, n_keys]
+            bias = self._align_bias_to_query(bias, q, n_pair_dims=3)
+        else:
+            bias = memo.get(
+                self,
+                "local_pair_bias",
+                (z, q.dim()),
+                lambda: self._align_bias_to_query(
+                    permute_final_dims(
+                        self.linear_nobias_z(self.layernorm_z(z)), [3, 0, 1, 2]
+                    ),
+                    q,
+                    n_pair_dims=3,
+                ),
+            )
 
         # Line 11: Multi-head attention with attention bias & gating (and optionally local attention)
         q = self.attention(
@@ -1315,7 +1336,50 @@ class AttentionPairBias(nn.Module):
                 row_chunk_size=row_chunk_size,
             )
 
-        # Multi-head attention bias
+        memo = step_invariant.active("dit_hoist")
+        if memo is None:
+            # Multi-head attention bias
+            if enable_efficient_fusion:
+                layernorm_z_weight = cast(torch.Tensor, self.layernorm_z.weight)
+                weight = (self.linear_nobias_z.weight * layernorm_z_weight[None, :])[
+                    :, :, None, None
+                ]
+                bias = F.conv2d(z, weight)
+            else:
+                bias = self.linear_nobias_z(self.layernorm_z(z))
+                bias = permute_final_dims(
+                    bias, [2, 0, 1]
+                )  # [..., n_heads, N_token, N_token]
+            if extra_attn_bias is not None:
+                while len(extra_attn_bias.shape) < len(bias.shape) - 1:
+                    extra_attn_bias = extra_attn_bias.unsqueeze(dim=0)
+                if len(extra_attn_bias.shape) == len(bias.shape) - 1:
+                    extra_attn_bias = extra_attn_bias.unsqueeze(dim=-3)
+                bias = bias + extra_attn_bias.to(dtype=bias.dtype, device=bias.device)
+            bias = self._align_bias_to_query(bias, q, n_pair_dims=2)
+        else:
+            bias = memo.get(
+                self,
+                "pair_bias",
+                (z, extra_attn_bias, enable_efficient_fusion, q.dim()),
+                lambda: self._standard_pair_bias(
+                    q, z, extra_attn_bias, enable_efficient_fusion
+                ),
+            )
+
+        # Line 11: Multi-head attention with attention bias & gating (and optionally local attention)
+        q = self.attention(q_x=q, kv_x=kv, attn_bias=bias, inplace_safe=inplace_safe)
+
+        return q
+
+    def _standard_pair_bias(
+        self,
+        q: torch.Tensor,
+        z: torch.Tensor,
+        extra_attn_bias: Optional[torch.Tensor],
+        enable_efficient_fusion: bool,
+    ) -> torch.Tensor:
+        """The pair bias of standard_multihead_attention, as computed there."""
         if enable_efficient_fusion:
             layernorm_z_weight = cast(torch.Tensor, self.layernorm_z.weight)
             weight = (self.linear_nobias_z.weight * layernorm_z_weight[None, :])[
@@ -1324,21 +1388,14 @@ class AttentionPairBias(nn.Module):
             bias = F.conv2d(z, weight)
         else:
             bias = self.linear_nobias_z(self.layernorm_z(z))
-            bias = permute_final_dims(
-                bias, [2, 0, 1]
-            )  # [..., n_heads, N_token, N_token]
+            bias = permute_final_dims(bias, [2, 0, 1])
         if extra_attn_bias is not None:
             while len(extra_attn_bias.shape) < len(bias.shape) - 1:
                 extra_attn_bias = extra_attn_bias.unsqueeze(dim=0)
             if len(extra_attn_bias.shape) == len(bias.shape) - 1:
                 extra_attn_bias = extra_attn_bias.unsqueeze(dim=-3)
             bias = bias + extra_attn_bias.to(dtype=bias.dtype, device=bias.device)
-        bias = self._align_bias_to_query(bias, q, n_pair_dims=2)
-
-        # Line 11: Multi-head attention with attention bias & gating (and optionally local attention)
-        q = self.attention(q_x=q, kv_x=kv, attn_bias=bias, inplace_safe=inplace_safe)
-
-        return q
+        return self._align_bias_to_query(bias, q, n_pair_dims=2)
 
     def forward(
         self,
@@ -1390,10 +1447,23 @@ class AttentionPairBias(nn.Module):
 
         # Output projection (from adaLN-Zero [27])
         if self.has_s:
-            if inplace_safe:
-                a *= torch.sigmoid(self.linear_a_last(s))
+            memo = step_invariant.active("dit_hoist") if self.step_invariant_s else None
+            if memo is None:
+                if inplace_safe:
+                    a *= torch.sigmoid(self.linear_a_last(s))
+                else:
+                    a = torch.sigmoid(self.linear_a_last(s)) * a
             else:
-                a = torch.sigmoid(self.linear_a_last(s)) * a
+                gate = memo.get(
+                    self,
+                    "output_gate",
+                    (s,),
+                    lambda: torch.sigmoid(self.linear_a_last(s)),
+                )
+                if inplace_safe:
+                    a *= gate
+                else:
+                    a = gate * a
 
         return a
 
@@ -2182,6 +2252,15 @@ class AtomTransformer(nn.Module):
             cross_attention_mode=True,
             blocks_per_ckpt=blocks_per_ckpt,
         )
+        # In the diffusion module the conditioning c is the same at every
+        # sampler step. The memo checks its inputs, so the flag only selects
+        # where a memo entry is worth keeping.
+        for module in self.diffusion_transformer.modules():
+            if isinstance(
+                module,
+                (AdaptiveLayerNorm, AttentionPairBias, ConditionedTransitionBlock),
+            ):
+                module.step_invariant_s = True
 
     def forward(
         self,
@@ -2250,6 +2329,11 @@ class ConditionedTransitionBlock(nn.Module):
         biasinit (float, optional): bias initialization value. Defaults to -2.0.
     """
 
+    # True where s is the same during one sampler call (the atom transformer's
+    # conditioning): the output gate may then come from the step-invariant
+    # memo (dit_hoist).
+    step_invariant_s = False
+
     def __init__(self, c_a: int, c_s: int, n: int = 2, biasinit: float = -2.0) -> None:
         super(ConditionedTransitionBlock, self).__init__()
         self.c_a = c_a
@@ -2281,8 +2365,15 @@ class ConditionedTransitionBlock(nn.Module):
         """
         a = self.adaln(a, s)
         b = F.silu((self.linear_nobias_a1(a))) * self.linear_nobias_a2(a)
-        # Output projection (from adaLN-Zero [27])
-        a = torch.sigmoid(self.linear_s(s)) * self.linear_nobias_b(b)
+        memo = step_invariant.active("dit_hoist") if self.step_invariant_s else None
+        if memo is None:
+            # Output projection (from adaLN-Zero [27])
+            a = torch.sigmoid(self.linear_s(s)) * self.linear_nobias_b(b)
+        else:
+            gate = memo.get(
+                self, "output_gate", (s,), lambda: torch.sigmoid(self.linear_s(s))
+            )
+            a = gate * self.linear_nobias_b(b)
         return a
 
 
@@ -3439,6 +3530,34 @@ class AtomAttentionEncoder(nn.Module):
             assert s is not None
             assert z is not None
 
+        memo = step_invariant.active("dit_hoist")
+        if (
+            memo is not None
+            and r_l is not None
+            and p_lm is not None
+            and c_l is not None
+        ):
+            # The sampler's cached atom features and the trunk single: the
+            # conditioned c_l and p_lm below are the same at every step.
+            c_l, p_lm = memo.get(
+                self,
+                "atom_conditioning",
+                (p_lm, c_l, s, atom_to_token_idx, inplace_safe),
+                lambda: self._diffusion_atom_conditioning(
+                    p_lm, c_l, s, atom_to_token_idx, inplace_safe
+                ),
+            )
+            n_token = s.size(-2)
+            q_l = c_l + self.linear_no_bias_r(r_l)  # [..., N_sample, N_atom, c_atom]
+            q_l = self.atom_transformer(q_l, c_l, p_lm, chunk_size=chunk_size)
+            a = aggregate_atom_to_token(
+                x_atom=F.relu(self.linear_no_bias_q(q_l)),
+                atom_to_token_idx=atom_to_token_idx,
+                n_token=n_token,
+                reduce="mean",
+            )
+            return a, q_l, c_l, p_lm
+
         if p_lm is None or c_l is None:
             p_lm, c_l = self.prepare_cache(
                 ref_pos=ref_pos,
@@ -3511,6 +3630,39 @@ class AtomAttentionEncoder(nn.Module):
             reduce="mean",
         )  # [..., (N_sample), N_token, c_token]
         return a, q_l, c_l, p_lm
+
+    def _diffusion_atom_conditioning(
+        self,
+        p_lm: torch.Tensor,
+        c_l: torch.Tensor,
+        s: torch.Tensor,
+        atom_to_token_idx: torch.Tensor,
+        inplace_safe: bool,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """forward's c_l and p_lm from cached p_lm and c_l, as computed there."""
+        if inplace_safe:
+            p_lm = p_lm.clone()
+            c_l = c_l.clone()
+        c_l = c_l.unsqueeze(dim=-3) + broadcast_token_to_atom(
+            x_token=self.linear_no_bias_s(self.layernorm_s(s)),
+            atom_to_token_idx=atom_to_token_idx,
+        )
+        c_l_q, c_l_k, _ = rearrange_qk_to_dense_trunk(
+            q=c_l,
+            k=c_l,
+            dim_q=-2,
+            dim_k=-2,
+            n_queries=self.n_queries,
+            n_keys=self.n_keys,
+            compute_mask=False,
+        )
+        p_lm = self._add_atom_single_context_and_mlp(
+            p_lm=p_lm,
+            c_l_q=c_l_q,
+            c_l_k=c_l_k,
+            inplace_safe=inplace_safe,
+        )
+        return c_l, p_lm
 
     def forward_foldcp_window(
         self,

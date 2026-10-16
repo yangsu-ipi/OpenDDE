@@ -59,6 +59,7 @@ from opendde.model.shape_complementarity import (
     get_shape_comp_atom_mask,
 )
 from opendde.model.modules.structural_tokens import StructuralTokenExpander
+from opendde.model.step_invariant import MEMO_OPTIMIZATIONS, step_invariant_memo
 from opendde.model.triangular.layers import LayerNorm
 from opendde.model.utils import simple_merge_dict_list
 from opendde.utils import instrumentation
@@ -1362,8 +1363,15 @@ class OpenDDE(nn.Module):
                 "guidance_configs": sample_diffusion_configs.get("guidance"),
             }
         )
-        with host_noise_schedule(
-            optimization_enabled(self.configs, "host_noise_schedule")
+        with (
+            host_noise_schedule(
+                optimization_enabled(self.configs, "host_noise_schedule")
+            ),
+            step_invariant_memo(
+                name
+                for name in MEMO_OPTIMIZATIONS
+                if optimization_enabled(self.configs, name)
+            ),
         ):
             return autocasting_disable_decorator(
                 self.configs.skip_amp.sample_diffusion
