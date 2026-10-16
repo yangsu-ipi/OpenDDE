@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 102 (2026-10-15)
+
+Documentation only. Qualification code, numeric limits, tags and declared claims are unchanged; nothing else is authorized.
+
+- Name the archived A100 environment snapshots and record their hashes: the conda explicit list the environment was created from (no post-install `conda list --explicit` was taken; an explicit list installs exact builds) and the installed pip freeze, both in `~/opendde-dev-checks/a100/env/` and under the NAS destination manifest. Record the replacement's driver and review a change rather than fail it. Reason: revision 101 referred to an A100 explicit list that does not exist as such, and home copies can change.
+- Require an 80 GB A100 for the replacement host, preferably the calibrated A100 80GB PCIe, and state the time cost of the full `off` check and of recalibration. Reason: stock bf16 D4 peaks at 43.6 GiB, so a 40 GB card cannot pass the D1-D15 test, and H10 is the same size.
+- Record that `--deterministic false` changes all 15 `protein_200` artifacts at seed 101 on both GPUs (existing step 0 runs, A100 job 43 and sm_120 job 48612). Reason: the contrast is not a no-op on D1; per-gate strength remains unknown and the predeclared measurement stays uninspected.
+- State that the draw cap is an operator count: `accept.py` does not count draws per claim, so the operator or the planned line checker attributes each logged draw to a claim by GPU and the mode in `candidate_args`, including abandoned draws whose seeds are spent. Reason: the six-draw cap is otherwise unenforced.
+
 ## Revision 101 (2026-10-15)
 
 Documentation and registry descriptions only. Qualification code, numeric limits, tags and declared mode/GPU claims are unchanged. No porting, GPU work, environment creation or storage operation is authorized.
