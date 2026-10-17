@@ -1,5 +1,84 @@
 {
  "description": "Held-out log (qualification_protocol.md, reserved held-out pool and E5). Each receipt records a passing dev-rehearsal (accept.py --receipt): id, gpu, candidate, route, code_commit, candidate_args, evidence_sha256 (the development evidence digest), verdict_sha256, status and exit_code. Commit a receipt, as a change to this file only, before the draw that names it, and make the rehearsed development outputs read-only; the final acceptance reuses that evidence unchanged. Each draw records id, gpu, candidate, code_commit (the candidate's code revision), candidate_args (its declared arguments beyond the stock command), receipt (the id of its earlier rehearsal receipt), seeds (two per held-out row) and zn_extra. A receipt is named by at most one draw, and a candidate (code_commit and ordered candidate_args) is drawn at most once. Commit a draw, as a change to this file only, before running off or the candidate on any held-out row; append H3's extra Zn seeds one at a time, each committed before its run. Never edit or remove an entry: the acceptance command requires the file's Git history to be append-only. Seeds are drawn from 201-999 (widened from 201-299 in qual-sm120-contract-6) and are single-use across every draw.",
- "receipts": [],
- "draws": []
+ "receipts": [
+  {
+   "id": "fast-25267ec",
+   "gpu": "sm_120",
+   "candidate": "fast-k2b",
+   "route": "dev-rehearsal",
+   "contract_tag": "qual-sm120-contract-6",
+   "code_commit": "25267ec49a720355c91c6f08c452397b3fa4407e",
+   "candidate_args": [
+    "--optimization_mode",
+    "fast"
+   ],
+   "evidence_sha256": "ced7fde847d5621a554acdceec3e9821b1a41008fc77bb64f52db094633b0a77",
+   "verdict_sha256": "778afa0929bece63a8b7869cd38440b529a7e77b762cc7193d321d8fafbbd1b4",
+   "status": "rehearsal passed (not an acceptance)",
+   "exit_code": 4,
+   "gate_sha256": "9c43bb171424f833457fcf5e4448bb7522393bea851e04eaefd6f80e1ddf36ca",
+   "gate_commit": "e69506e055634dbb23ce828050a3f83391330395",
+   "gate_approved_tag": "qual-sm120-contract-6"
+  }
+ ],
+ "draws": [
+  {
+   "id": "sm120-fast-1",
+   "gpu": "sm_120",
+   "candidate": "fast-k2b",
+   "code_commit": "25267ec49a720355c91c6f08c452397b3fa4407e",
+   "candidate_args": [
+    "--optimization_mode",
+    "fast"
+   ],
+   "receipt": "fast-25267ec",
+   "seeds": {
+    "H1": [
+     201,
+     202
+    ],
+    "H2": [
+     203,
+     204
+    ],
+    "H3": [
+     205,
+     206
+    ],
+    "H4": [
+     207,
+     208
+    ],
+    "H5": [
+     209,
+     210
+    ],
+    "H6": [
+     211,
+     212
+    ],
+    "H7": [
+     213,
+     214
+    ],
+    "H8": [
+     215,
+     216
+    ],
+    "H9": [
+     217,
+     218
+    ],
+    "H10": [
+     219,
+     220
+    ]
+   },
+   "zn_extra": {
+    "H3": [
+     221
+    ]
+   }
+  }
+ ]
 }
