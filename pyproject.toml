@@ -9,7 +9,7 @@ description = "Open-Source Drug Design Engine"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 license = "Apache-2.0"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "NOTICE"]
 authors = [
   { name = "Aureka AI Research", email = "ai@aureka.com" },
 ]

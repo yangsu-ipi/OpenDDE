@@ -1,0 +1,20 @@
+OpenDDE
+Copyright (c) 2026 Aureka AI Research
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Optimized kernels
+-----------------
+The files under opendde/model/optimized/ are adapted from the OpenDDE
+optimization kit, Copyright 2026 Anthropic, PBC, licensed under the Apache
+License, Version 2.0.
+
+Portions of opendde/model/optimized/trimul.py restate the arithmetic of the
+pair-stack modules of Protenix (https://github.com/bytedance/Protenix),
+Copyright 2024 ByteDance and/or its affiliates, licensed under the Apache
+License, Version 2.0. No Protenix source file is included.
+
+opendde/model/optimized/transition.py follows the arithmetic of OpenDDE's
+own Transition module, itself derived from Protenix (Apache License 2.0).
+
+These kernels call, and do not include, NVIDIA cuEquivariance (NVIDIA's
+licence, as installed), PyTorch (BSD-3-Clause) and Triton (MIT).

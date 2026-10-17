@@ -52,7 +52,7 @@ from opendde.model.modules.pairformer import (
     PairformerStack,
     TemplateEmbedder,
 )
-from opendde.model.modules.primitives import LinearNoBias
+from opendde.model.modules.primitives import LinearNoBias, Transition
 from opendde.model.shape_complementarity import (
     build_shape_comp_pred_outputs,
     compute_shape_complementarity_fields,
@@ -61,6 +61,7 @@ from opendde.model.shape_complementarity import (
 from opendde.model.modules.structural_tokens import StructuralTokenExpander
 from opendde.model.step_invariant import MEMO_OPTIMIZATIONS, step_invariant_memo
 from opendde.model.triangular.layers import LayerNorm
+from opendde.model.triangular.triangular import TriangleMultiplicativeUpdate
 from opendde.model.utils import simple_merge_dict_list
 from opendde.utils import instrumentation
 from opendde.utils.logger import get_logger
@@ -374,6 +375,15 @@ class OpenDDE(nn.Module):
         # Zero init the recycling layer
         nn.init.zeros_(self.linear_no_bias_z_cycle.weight)
         nn.init.zeros_(self.linear_no_bias_s.weight)
+
+        # Bit-identical kernels, each used only where dispatch.ROWS lists it.
+        use_trimul = optimization_enabled(configs, "trimul_triton")
+        use_transition = optimization_enabled(configs, "transition_triton")
+        for module in self.modules():
+            if isinstance(module, TriangleMultiplicativeUpdate):
+                module.use_triton_kernel = use_trimul
+            elif isinstance(module, Transition):
+                module.use_triton_kernel = use_transition
 
     @staticmethod
     def _maybe_foldcp_mesh() -> Optional[FoldCPProcessMesh]:

@@ -172,6 +172,10 @@ class TriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
             Whether this is an outgoing update. Defaults to True.
     """
 
+    # Serve measured cuEquivariance calls with the Triton gated projections of
+    # opendde.model.optimized.trimul, which give the same bits (trimul_triton).
+    use_triton_kernel = False
+
     def __init__(self, c_z: int, c_hidden: int, _outgoing: bool = True) -> None:
         super(TriangleMultiplicativeUpdate, self).__init__(
             c_z=c_z, c_hidden=c_hidden, _outgoing=_outgoing
@@ -486,6 +490,21 @@ class TriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
             and self.c_z == self.c_hidden
         )
         _input_inplace_safe = inplace_safe is True
+
+        if use_cuequivariance and self.use_triton_kernel:
+            from opendde.model.optimized import trimul as optimized_trimul
+
+            if optimized_trimul.eligible(self, z, mask):
+                out = optimized_trimul.dispatch.guarded(
+                    optimized_trimul.SITE,
+                    optimized_trimul.forward,
+                    self,
+                    z,
+                    mask,
+                    residual=_input_inplace_safe and _add_with_inplace,
+                )
+                if out is not None:
+                    return out
 
         # cuEquivariance requires the hidden dimension to equal c_z. Unsupported
         # shapes and non-CUDA devices use the PyTorch implementation instead.

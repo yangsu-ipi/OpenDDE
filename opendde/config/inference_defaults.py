@@ -49,5 +49,7 @@ inference_configs: dict[str, Any] = {
         "host_noise_schedule": True,
         "dit_hoist": True,
         "zprep_hoist": True,
+        "trimul_triton": True,
+        "transition_triton": True,
     },
 }

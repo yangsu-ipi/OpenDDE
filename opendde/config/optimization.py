@@ -82,6 +82,13 @@ OPTIMIZATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
         # (normalize, permute, contiguous copy) once per sampler call; it is
         # reused only while its source is the same tensor, as under dit_hoist.
         "zprep_hoist": EXACT_AND_ABOVE,
+        # Triangle multiplication: Triton gated projections around the stock
+        # cuEquivariance LayerNorms and cuBLAS contraction, bit-identical to
+        # it on the rows of opendde.model.optimized.dispatch.
+        "trimul_triton": EXACT_AND_ABOVE,
+        # Pair transition: one fused SiLU-multiply kernel between the stock
+        # GEMMs, bit-identical on the rows of opendde.model.optimized.dispatch.
+        "transition_triton": EXACT_AND_ABOVE,
     }
 )
 

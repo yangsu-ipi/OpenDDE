@@ -182,6 +182,11 @@ class Transition(nn.Module):
         n (int): factor by which c_in is multiplied to obtain hidden dimension.
     """
 
+    # Serve measured calls with the fused SiLU-multiply of
+    # opendde.model.optimized.transition, which gives the same bits
+    # (transition_triton).
+    use_triton_kernel = False
+
     def __init__(self, c_in: int, n: int) -> None:
         super(Transition, self).__init__()
         self.n = n
@@ -207,6 +212,19 @@ class Transition(nn.Module):
             torch.Tensor: the output tensor as the same shape of x
                 [..., c]
         """
+        if self.use_triton_kernel:
+            from opendde.model.optimized import transition as optimized_transition
+
+            if optimized_transition.eligible(self, x):
+                out = optimized_transition.dispatch.guarded(
+                    optimized_transition.SITE,
+                    optimized_transition.forward,
+                    self,
+                    x,
+                    _TRANSITION_FLAT_CHUNK_ROWS,
+                )
+                if out is not None:
+                    return out
         other_dims = x.shape[:-1]
         dim_size = x.shape[-1]
         size = x.shape[-2]
