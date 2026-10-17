@@ -829,9 +829,10 @@ def inference_jsons(
     "--optimization_mode",
     type=click.Choice(OPTIMIZATION_MODES, case_sensitive=False),
     default="off",
-    help="Optimization mode: 'off' (unmodified OpenDDE) or 'exact' (only "
-    "changes byte-identical to 'off' under --deterministic true). 'fast' and "
-    "'big' are not available in this release. Not supported with Fold-CP.",
+    help="Optimization mode: 'off' (unmodified OpenDDE), 'exact' (only "
+    "changes byte-identical to 'off' under --deterministic true) or 'fast' "
+    "('exact' plus kernels that differ from 'off' in rounding only). 'big' is "
+    "not available in this release. Not supported with Fold-CP.",
 )
 @click.option(
     "--use_template",

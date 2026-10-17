@@ -51,5 +51,6 @@ inference_configs: dict[str, Any] = {
         "zprep_hoist": True,
         "trimul_triton": True,
         "transition_triton": True,
+        "triattn_k2b": True,
     },
 }

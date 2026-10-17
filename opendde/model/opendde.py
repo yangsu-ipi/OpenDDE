@@ -61,7 +61,10 @@ from opendde.model.shape_complementarity import (
 from opendde.model.modules.structural_tokens import StructuralTokenExpander
 from opendde.model.step_invariant import MEMO_OPTIMIZATIONS, step_invariant_memo
 from opendde.model.triangular.layers import LayerNorm
-from opendde.model.triangular.triangular import TriangleMultiplicativeUpdate
+from opendde.model.triangular.triangular import (
+    TriangleAttention,
+    TriangleMultiplicativeUpdate,
+)
 from opendde.model.utils import simple_merge_dict_list
 from opendde.utils import instrumentation
 from opendde.utils.logger import get_logger
@@ -379,11 +382,14 @@ class OpenDDE(nn.Module):
         # Bit-identical kernels, each used only where dispatch.ROWS lists it.
         use_trimul = optimization_enabled(configs, "trimul_triton")
         use_transition = optimization_enabled(configs, "transition_triton")
+        use_triattn = optimization_enabled(configs, "triattn_k2b")
         for module in self.modules():
             if isinstance(module, TriangleMultiplicativeUpdate):
                 module.use_triton_kernel = use_trimul
             elif isinstance(module, Transition):
                 module.use_triton_kernel = use_transition
+            elif isinstance(module, TriangleAttention):
+                module.mha.use_triton_kernel = use_triattn
 
     @staticmethod
     def _maybe_foldcp_mesh() -> Optional[FoldCPProcessMesh]:

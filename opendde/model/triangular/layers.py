@@ -344,6 +344,10 @@ class Attention(nn.Module):
             Whether the output should be gated using query data
     """
 
+    # Serve measured cuEquivariance triangle-attention calls with the flash
+    # kernel of opendde.model.optimized.triattn (triattn_k2b, fast only).
+    use_triton_kernel = False
+
     def __init__(
         self,
         c_q: int,
@@ -461,7 +465,14 @@ class Attention(nn.Module):
         )
         q, k, v = self._prep_qkv(q_x, kv_x, apply_scale=not use_cuequivariance)
 
-        if use_cuequivariance:
+        o = None
+        if use_cuequivariance and self.use_triton_kernel:
+            from opendde.model.optimized import triattn as optimized_triattn
+
+            o = optimized_triattn.serve(q, k, v, biases, self.c_hidden)
+        if o is not None:
+            o = o.transpose(-2, -3)
+        elif use_cuequivariance:
             # Notes:
             #     (1) Context is saved for backward pass. You don't need to save it manually.
             #     (2) Kernel precision (fp32, bf16, fp16) is based on input dtypes. For tf32,

@@ -34,6 +34,9 @@ class Row:
 ROWS: dict[str, tuple[Row, ...]] = {
     "trimul_triton": (Row((12, 0), "2.7.", "3.3.1", "0.10.0"),),
     "transition_triton": (Row((12, 0), "2.7.", "3.3.1"),),
+    # Not bitwise: error against fp32 as stock's (fast only; tile sweep on
+    # RTX PRO 6000 Blackwell, 2026-10-17).
+    "triattn_k2b": (Row((12, 0), "2.7.", "3.3.1"),),
 }
 
 _DISABLED: dict[str, str] = {}

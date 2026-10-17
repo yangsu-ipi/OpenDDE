@@ -178,3 +178,56 @@ def test_transition_is_bitwise_the_stock_op(n, dtype):
     assert fast.dtype == stock.dtype and fast.shape == stock.shape
     assert torch.equal(fast, stock)
     assert torch.equal(fast, again)
+
+
+def _pad_mask(n):
+    mask = torch.ones(n, n, device="cuda")
+    keep = n - max(1, n // 15)
+    mask[keep:, :] = 0  # fully masked rows: stock averages v there
+    mask[:, keep:] = 0
+    return mask
+
+
+def _rel(x, ref):
+    return ((x.float() - ref.float()).norm() / ref.float().norm()).item()
+
+
+@pytest.mark.parametrize(
+    "n, chunk", [(128, None), (300, None), (517, None), (1001, None), (1218, 512)]
+)
+@pytest.mark.parametrize("mask_kind", ["ones", "pad"])
+def test_triattn_matches_stock_accuracy_and_repeats(n, chunk, mask_kind):
+    if not _gpu_row("triattn_k2b"):
+        pytest.skip("no measured triattn_k2b row on this machine")
+    from opendde.model.triangular.triangular import TriangleAttention
+
+    module = _randomized(TriangleAttention(c_in=384, c_hidden=32, no_heads=12)).cuda()
+    g = torch.Generator(device="cuda").manual_seed(n)
+    z = torch.randn(n, n, 384, device="cuda", generator=g).to(torch.bfloat16)
+    mask = _pad_mask(n) if mask_kind == "pad" else torch.ones(n, n, device="cuda")
+
+    def call(kernel="cuequivariance"):
+        return module(z, mask=mask, triangle_attention=kernel, chunk_size=chunk)
+
+    stock, fast, again = _stock_and_triton(module.mha, call)
+    with torch.no_grad():
+        ref = module(z.float(), mask=mask, triangle_attention="torch", chunk_size=32)
+    assert fast.dtype == stock.dtype and fast.shape == stock.shape
+    assert torch.isfinite(fast).all()
+    assert torch.equal(fast, again)
+    assert not torch.equal(fast, stock)  # the kernel did run
+    assert _rel(fast, ref) <= 1.05 * _rel(stock, ref)
+    assert (fast.float() - ref).abs().max() <= 1.5 * (stock.float() - ref).abs().max()
+
+
+def test_triattn_small_calls_run_the_stock_kernel():
+    if not _gpu_row("triattn_k2b"):
+        pytest.skip("no measured triattn_k2b row on this machine")
+    from opendde.model.triangular.triangular import TriangleAttention
+
+    module = _randomized(TriangleAttention(c_in=384, c_hidden=32, no_heads=12)).cuda()
+    z = torch.randn(100, 100, 384, device="cuda").to(torch.bfloat16)
+    stock, fast, _ = _stock_and_triton(
+        module.mha, lambda: module(z, triangle_attention="cuequivariance")
+    )
+    assert torch.equal(fast, stock)

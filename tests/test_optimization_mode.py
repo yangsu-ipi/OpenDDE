@@ -54,12 +54,12 @@ def test_dotted_overrides_and_environment_count_as_explicit():
 # ------------------------------------------------------------- validation
 
 
-@pytest.mark.parametrize("mode", ["off", "exact"])
+@pytest.mark.parametrize("mode", ["off", "exact", "fast"])
 def test_available_modes_pass(mode):
     assert opt.validate_optimization_mode(mode, foldcp_enabled=False) == mode
 
 
-@pytest.mark.parametrize("mode", ["fast", "big"])
+@pytest.mark.parametrize("mode", ["big"])
 def test_unavailable_modes_are_rejected(mode):
     with pytest.raises(ValueError, match="not available in this release"):
         opt.validate_optimization_mode(mode, foldcp_enabled=False)
@@ -155,6 +155,33 @@ def test_plan_decisions_follow_mode_and_switches(monkeypatch):
     assert not any(off.enabled(n) for n in "abc")
 
 
+def test_explicit_kernel_options_keep_the_stock_kernels():
+    configs = build_inference_config(fill_required_with_null=True)
+    configs.optimization_mode = "fast"
+    plan = opt.build_optimization_plan(configs, device=None)
+    assert plan.enabled("triattn_k2b") and plan.enabled("trimul_triton")
+    configs.explicit_options = ["triatt_kernel", "dtype"]
+    plan = opt.build_optimization_plan(configs, device=None)
+    assert not plan.enabled("triattn_k2b")
+    assert plan.decisions["triattn_k2b"].reason == "explicit triatt_kernel"
+    assert plan.enabled("trimul_triton") and plan.enabled("transition_triton")
+    configs.explicit_options = ["trimul_kernel"]
+    plan = opt.build_optimization_plan(configs, device=None)
+    assert not plan.enabled("trimul_triton") and plan.enabled("triattn_k2b")
+
+
+def test_fast_runs_exact_plus_the_fast_only_kernels():
+    configs = build_inference_config(fill_required_with_null=True)
+    configs.optimization_mode = "exact"
+    exact = opt.build_optimization_plan(configs, device=None)
+    configs.optimization_mode = "fast"
+    fast = opt.build_optimization_plan(configs, device=None)
+    assert not exact.enabled("triattn_k2b") and fast.enabled("triattn_k2b")
+    for name in opt.OPTIMIZATIONS:
+        if exact.enabled(name):
+            assert fast.enabled(name), name
+
+
 def test_config_defaults():
     configs = build_inference_config(fill_required_with_null=True)
     assert configs.optimization_mode == "off"
@@ -221,7 +248,7 @@ def test_runner_rejects_an_unavailable_mode_before_initialization(monkeypatch):
 
     monkeypatch.setattr(inference.InferenceRunner, "init_env", no_init)
     configs = build_inference_config(fill_required_with_null=True)
-    configs.optimization_mode = "fast"
+    configs.optimization_mode = "big"
     with pytest.raises(ValueError, match="not available in this release"):
         inference.InferenceRunner(configs)
 

@@ -7,7 +7,10 @@
 - ``off``: unmodified OpenDDE behavior (the default).
 - ``exact``: byte-identical prediction artifacts to ``off`` under the
   deterministic recipe; only changes proven identical may run.
-- ``fast`` and ``big``: reserved; not available in this release.
+- ``fast``: everything in ``exact`` plus kernels whose results differ from
+  ``off`` in rounding only, each measured against an fp32 reference on the
+  GPUs where it may run.
+- ``big``: reserved; not available in this release.
 
 Options a user supplies explicitly take precedence over any optimization that
 would otherwise choose them (for example an explicit ``--triatt_kernel auto``
@@ -24,7 +27,7 @@ from types import MappingProxyType
 from typing import Any, Optional
 
 OPTIMIZATION_MODES = ("off", "exact", "fast", "big")
-AVAILABLE_OPTIMIZATION_MODES = ("off", "exact")
+AVAILABLE_OPTIMIZATION_MODES = ("off", "exact", "fast")
 
 # Runtime options an optimization could otherwise choose, by the name used in
 # ``get_default_runner``/``inference_jsons`` and on the ``pred`` command line,
@@ -57,6 +60,7 @@ OVERLAPPING_ENVIRONMENT = ("LAYERNORM_TYPE", "OPENDDE_TRUNK_CACHE")
 # Optimizations available under each mode, registered as they are ported:
 # name -> the modes that may run it.
 EXACT_AND_ABOVE = ("exact", "fast", "big")
+FAST_AND_ABOVE = ("fast", "big")
 OPTIMIZATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
     {
         # Drop the [N_atom, N_atom] int64 ``bond_mask`` feature, which no
@@ -89,6 +93,18 @@ OPTIMIZATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
         # Pair transition: one fused SiLU-multiply kernel between the stock
         # GEMMs, bit-identical on the rows of opendde.model.optimized.dispatch.
         "transition_triton": EXACT_AND_ABOVE,
+        # Triangle attention: the flash triangle-attention Triton kernel in
+        # place of cuEquivariance's (rounding differs; error against fp32 as
+        # stock's) on the rows of opendde.model.optimized.dispatch.
+        "triattn_k2b": FAST_AND_ABOVE,
+    }
+)
+# The overlapping options whose kernel choice an optimization replaces: an
+# explicit choice of any of them keeps the stock kernels.
+OPTIMIZATION_OVERLAPS: Mapping[str, tuple[str, ...]] = MappingProxyType(
+    {
+        "trimul_triton": ("trimul_kernel",),
+        "triattn_k2b": ("triatt_kernel",),
     }
 )
 
@@ -259,6 +275,7 @@ def build_optimization_plan(configs: Any, device: Any) -> OptimizationPlan:
             # Unqueryable device: record no capability, so no optimization
             # that depends on one can be selected for it.
             name = f"cuda (capability unavailable: {exc})"
+    explicit = tuple(getattr(configs, "explicit_options", None) or ())
     switches = getattr(configs, "optimization", None) or {}
     if not isinstance(switches, Mapping):
         switches = dict(switches)
@@ -268,12 +285,16 @@ def build_optimization_plan(configs: Any, device: Any) -> OptimizationPlan:
             decisions[opt] = Decision(False, f"not part of mode {mode}")
         elif switches.get(opt) is False:
             decisions[opt] = Decision(False, f"optimization.{opt}=false")
+        elif overlap := [
+            o for o in OPTIMIZATION_OVERLAPS.get(opt, ()) if o in explicit
+        ]:
+            decisions[opt] = Decision(False, f"explicit {', '.join(overlap)}")
         else:
             decisions[opt] = Decision(True, f"mode {mode}")
     return OptimizationPlan(
         mode=mode,
         capability=capability,
         device_name=name,
-        explicit=tuple(getattr(configs, "explicit_options", None) or ()),
+        explicit=explicit,
         decisions=MappingProxyType(decisions),
     )
