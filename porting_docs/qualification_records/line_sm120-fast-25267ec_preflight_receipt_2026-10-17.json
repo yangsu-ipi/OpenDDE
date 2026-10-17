@@ -1,0 +1,572 @@
+{
+ "line": "accept/sm120-fast-25267ec",
+ "receipt": "fast-25267ec",
+ "candidate": {
+  "code_commit": "25267ec49a720355c91c6f08c452397b3fa4407e",
+  "candidate_args": [
+   "--optimization_mode",
+   "fast"
+  ]
+ },
+ "measured_at": "2026-10-17T14:26:25+0000",
+ "purpose": "pre-receipt disk preflight of the held-out block (protocol E5 disk headroom): frozen held-out token counts (signature inventory) and conservative heavy-atom counts against measured development comparators, per-role and per-class bounds from the rehearsal's measured bytes, and both headroom measurements",
+ "method": {
+  "held_out_atoms": "upper bound from the input JSONs: standard heavy atoms per residue and nucleotide (with phosphate), +1 terminal atom per chain, every non-hydrogen CCD atom of each ligand (leaving atoms included), 1 per ion; no OpenDDE inference or preprocessing of any held-out input",
+  "identity": "a held-out row whose entity list and covalent bonds equal its comparator's (restraint fields ignored; restraints add no tokens or atoms) has the comparator's own counts (H7 and D8, H10 and D4)",
+  "comparator_counts": "tokens from z_trunk and atoms from x_pred_coords of the comparator's own tier 1 off capture (seed 101)",
+  "bound": "factor 1.5 x the comparator's measured bytes for the same role and output class; H10 uses D4, its identical input",
+  "factor_justification": "every held-out row is at most its comparator in tokens and heavy atoms (dominated, below); the factor covers role-to-role and seed variation (measured below) and file-schema variation; candidate captures keep stock dtypes (cand_dtypes), so no dtype allowance beyond the factor is needed",
+  "h3_extra_zn": "4 extra seeds x (off + candidate) predictions and run files per seed of D8, times the factor",
+  "floor_and_margin": "remaining estimate = max(sum of bounds, 36 GB floor); margin = max(20 GB, 25% of the estimate)"
+ },
+ "comparators": {
+  "D4": {
+   "tokens": 1218,
+   "atoms": 9142,
+   "dtypes": {
+    "s_inputs": "torch.float32",
+    "s_trunk": "torch.bfloat16",
+    "z_trunk": "torch.bfloat16"
+   },
+   "capture": "/data/yang.su/opendde-accept-sm120/rehearsal-1/runs/cap_off/D4/7wux/seed_101/tier1.pt"
+  },
+  "D6": {
+   "tokens": 86,
+   "atoms": 1836,
+   "dtypes": {
+    "s_inputs": "torch.float32",
+    "s_trunk": "torch.bfloat16",
+    "z_trunk": "torch.bfloat16"
+   },
+   "capture": "/data/yang.su/opendde-accept-sm120/rehearsal-1/runs/cap_off/D6/9gmw_2/seed_101/tier1.pt"
+  },
+  "D8": {
+   "tokens": 732,
+   "atoms": 5640,
+   "dtypes": {
+    "s_inputs": "torch.float32",
+    "s_trunk": "torch.bfloat16",
+    "z_trunk": "torch.bfloat16"
+   },
+   "capture": "/data/yang.su/opendde-accept-sm120/rehearsal-1/runs/cap_off/D8/9lh2_unconstrained/seed_101/tier1.pt"
+  }
+ },
+ "cand_capture_dtypes": {
+  "D4": {
+   "s_inputs": "torch.float32",
+   "s_trunk": "torch.bfloat16",
+   "z_trunk": "torch.bfloat16"
+  },
+  "D6": {
+   "s_inputs": "torch.float32",
+   "s_trunk": "torch.bfloat16",
+   "z_trunk": "torch.bfloat16"
+  },
+  "D8": {
+   "s_inputs": "torch.float32",
+   "s_trunk": "torch.bfloat16",
+   "z_trunk": "torch.bfloat16"
+  }
+ },
+ "held_out": {
+  "H1": {
+   "tokens": 693,
+   "atoms_upper": 5370,
+   "basis": [
+    "1 x proteinChain 5370"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H2": {
+   "tokens": 600,
+   "atoms_upper": 5222,
+   "basis": [
+    "2 x proteinChain 1908",
+    "2 x dnaSequence 389",
+    "2 x dnaSequence 291",
+    "2 x ligand 23"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H3": {
+   "tokens": 710,
+   "atoms_upper": 5456,
+   "basis": [
+    "1 x proteinChain 1690",
+    "1 x proteinChain 1667",
+    "1 x proteinChain 2078",
+    "3 x ligand 7"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H4": {
+   "tokens": 650,
+   "atoms_upper": 5013,
+   "basis": [
+    "1 x proteinChain 3260",
+    "1 x proteinChain 818",
+    "1 x proteinChain 935"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H5": {
+   "tokens": 710,
+   "atoms_upper": 5456,
+   "basis": [
+    "1 x proteinChain 1690",
+    "1 x proteinChain 1667",
+    "1 x proteinChain 2078",
+    "3 x ligand 7"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H6": {
+   "tokens": 650,
+   "atoms_upper": 5013,
+   "basis": [
+    "1 x proteinChain 3260",
+    "1 x proteinChain 818",
+    "1 x proteinChain 935"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H7": {
+   "tokens": 732,
+   "atoms_upper": 5642,
+   "basis": [
+    "2 x proteinChain 1734",
+    "2 x proteinChain 1072",
+    "2 x ligand 15"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": true,
+   "dominated": true
+  },
+  "H8": {
+   "tokens": 28,
+   "atoms_upper": 576,
+   "basis": [
+    "1 x dnaSequence 289",
+    "1 x dnaSequence 287"
+   ],
+   "comparator": "D6",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H9": {
+   "tokens": 30,
+   "atoms_upper": 638,
+   "basis": [
+    "1 x rnaSequence 638"
+   ],
+   "comparator": "D6",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H10": {
+   "tokens": 1218,
+   "atoms_upper": 9160,
+   "basis": [
+    "2 x proteinChain 1791",
+    "2 x proteinChain 2756",
+    "1 x ligand 11",
+    "2 x ligand 17",
+    "3 x ligand 7"
+   ],
+   "comparator": "D4",
+   "identical_entities_to_comparator": true,
+   "dominated": true
+  }
+ },
+ "measured_development_bytes": {
+  "D1": {
+   "off.prediction": 23070511,
+   "off.other": 2429193,
+   "cand.prediction": 23097100,
+   "cand.other": 2430625,
+   "repeat.prediction": 23097100,
+   "repeat.other": 19084,
+   "tier1_off.capture": 114408384,
+   "tier1_off.other": 4685405,
+   "tier1_cand.capture": 114368074,
+   "tier1_cand.other": 4690662
+  },
+  "D2": {
+   "off.prediction": 29615919,
+   "off.other": 2326619,
+   "cand.prediction": 29613013,
+   "cand.other": 2328057,
+   "repeat.prediction": 29613013,
+   "repeat.other": 19013,
+   "tier1_off.capture": 171407296,
+   "tier1_off.other": 5957892,
+   "tier1_cand.capture": 171346378,
+   "tier1_cand.other": 5951370
+  },
+  "D3": {
+   "off.prediction": 170728342,
+   "off.other": 2411338,
+   "cand.prediction": 170820207,
+   "cand.other": 2412943,
+   "repeat.prediction": 170820207,
+   "repeat.other": 17879,
+   "tier1_off.capture": 1059973824,
+   "tier1_off.other": 34048745,
+   "tier1_cand.capture": 1059858378,
+   "tier1_cand.other": 34056256
+  },
+  "D4": {
+   "off.prediction": 661385038,
+   "off.other": 2328272,
+   "cand.prediction": 661396419,
+   "cand.other": 2330345,
+   "repeat.prediction": 661396419,
+   "repeat.other": 20725,
+   "tier1_off.capture": 4187879744,
+   "tier1_off.other": 132198275,
+   "tier1_cand.capture": 4187659978,
+   "tier1_cand.other": 132181627
+  },
+  "D5": {
+   "off.prediction": 196639369,
+   "off.other": 2333151,
+   "cand.prediction": 196643212,
+   "cand.other": 2334774,
+   "repeat.prediction": 196643212,
+   "repeat.other": 23395,
+   "tier1_off.capture": 1173130432,
+   "tier1_off.other": 47792581,
+   "tier1_cand.capture": 1173025226,
+   "tier1_cand.other": 47801785
+  },
+  "D6": {
+   "off.prediction": 5529704,
+   "off.other": 2335543,
+   "cand.prediction": 5535123,
+   "cand.other": 2337405,
+   "repeat.prediction": 5535123,
+   "repeat.other": 16570,
+   "tier1_off.capture": 22083648,
+   "tier1_off.other": 1117983,
+   "tier1_cand.capture": 22039370,
+   "tier1_cand.other": 1123470
+  },
+  "D7": {
+   "off.prediction": 888603,
+   "off.other": 2375011,
+   "cand.prediction": 888603,
+   "cand.other": 2376961,
+   "repeat.prediction": 888603,
+   "repeat.other": 15914,
+   "tier1_off.capture": 1969984,
+   "tier1_off.other": 188045,
+   "tier1_cand.capture": 1957962,
+   "tier1_cand.other": 190023
+  },
+  "D8": {
+   "off.prediction": 241938293,
+   "off.other": 2412210,
+   "cand.prediction": 241865957,
+   "cand.other": 2413817,
+   "repeat.prediction": 241865957,
+   "repeat.other": 19887,
+   "tier1_off.capture": 1515123264,
+   "tier1_off.other": 48616189,
+   "tier1_cand.capture": 1514987594,
+   "tier1_cand.other": 48617454
+  },
+  "D9": {
+   "off.prediction": 170818669,
+   "off.other": 3291002,
+   "cand.prediction": 170799932,
+   "cand.other": 3292749,
+   "repeat.prediction": 170799932,
+   "repeat.other": 137197,
+   "tier1_off.capture": 1059973824,
+   "tier1_off.other": 34084564,
+   "tier1_cand.capture": 1059858378,
+   "tier1_cand.other": 34084848
+  },
+  "D10": {
+   "off.prediction": 170800508,
+   "off.other": 3232216,
+   "cand.prediction": 170858994,
+   "cand.other": 3233810,
+   "repeat.prediction": 170858994,
+   "repeat.other": 86334,
+   "tier1_off.capture": 1059973824,
+   "tier1_off.other": 34073626,
+   "tier1_cand.capture": 1059858378,
+   "tier1_cand.other": 34075748
+  },
+  "D11": {
+   "off.prediction": 170912104,
+   "off.other": 3175275,
+   "cand.prediction": 170896994,
+   "cand.other": 3176858,
+   "repeat.prediction": 170896994,
+   "repeat.other": 21271,
+   "tier1_off.capture": 1059973824,
+   "tier1_off.other": 34041579,
+   "tier1_cand.capture": 1059858378,
+   "tier1_cand.other": 34059899
+  },
+  "D12": {
+   "off.prediction": 170906427,
+   "off.other": 3175309,
+   "cand.prediction": 170907053,
+   "cand.other": 3177136,
+   "repeat.prediction": 170907053,
+   "repeat.other": 21512,
+   "tier1_off.capture": 1059973824,
+   "tier1_off.other": 34053293,
+   "tier1_cand.capture": 1059858378,
+   "tier1_cand.other": 34048618
+  },
+  "D13": {
+   "off.prediction": 200346162,
+   "off.other": 4725841,
+   "cand.prediction": 200435121,
+   "cand.other": 4727695,
+   "repeat.prediction": 200435121,
+   "repeat.other": 27322,
+   "tier1_off.capture": 1231381120,
+   "tier1_off.other": 40000007,
+   "tier1_cand.capture": 1231204756,
+   "tier1_cand.other": 39999785
+  },
+  "D14": {
+   "off.prediction": 101476846,
+   "off.other": 2328985,
+   "cand.prediction": 101474003,
+   "cand.other": 2330595,
+   "repeat.prediction": 101474003,
+   "repeat.other": 20326,
+   "tier1_off.capture": 623391168,
+   "tier1_off.other": 20346866,
+   "tier1_cand.capture": 623305290,
+   "tier1_cand.other": 20351087
+  },
+  "D15": {
+   "off.prediction": 90654877,
+   "off.other": 2324765,
+   "cand.prediction": 90655847,
+   "cand.other": 2326365,
+   "repeat.prediction": 90655847,
+   "repeat.other": 16715,
+   "tier1_off.capture": 556420544,
+   "tier1_off.other": 18157058,
+   "tier1_cand.capture": 556338250,
+   "tier1_cand.other": 18167812
+  }
+ },
+ "role_variation": {
+  "D1": {
+   "prediction_max_over_min": 1.0011525102326515,
+   "capture_cand_over_off": 0.999647665681564
+  },
+  "D2": {
+   "prediction_max_over_min": 1.000098132533829,
+   "capture_cand_over_off": 0.9996446008926014
+  },
+  "D3": {
+   "prediction_max_over_min": 1.0005380770346848,
+   "capture_cand_over_off": 0.9998910859896857
+  },
+  "D4": {
+   "prediction_max_over_min": 1.0000172078280367,
+   "capture_cand_over_off": 0.9999475233260184
+  },
+  "D5": {
+   "prediction_max_over_min": 1.0000195433906218,
+   "capture_cand_over_off": 0.9999103202873865
+  },
+  "D6": {
+   "prediction_max_over_min": 1.0009799801219017,
+   "capture_cand_over_off": 0.9979949870601089
+  },
+  "D7": {
+   "prediction_max_over_min": 1.0,
+   "capture_cand_over_off": 0.9938974123647705
+  },
+  "D8": {
+   "prediction_max_over_min": 1.000299074747423,
+   "capture_cand_over_off": 0.9999104561303865
+  },
+  "D9": {
+   "prediction_max_over_min": 1.0001097014488274,
+   "capture_cand_over_off": 0.9998910859896857
+  },
+  "D10": {
+   "prediction_max_over_min": 1.0003424228691404,
+   "capture_cand_over_off": 0.9998910859896857
+  },
+  "D11": {
+   "prediction_max_over_min": 1.0000884158325218,
+   "capture_cand_over_off": 0.9998910859896857
+  },
+  "D12": {
+   "prediction_max_over_min": 1.0000036628230489,
+   "capture_cand_over_off": 0.9998910859896857
+  },
+  "D13": {
+   "prediction_max_over_min": 1.0004440264745376,
+   "capture_cand_over_off": 0.9998567754555145
+  },
+  "D14": {
+   "prediction_max_over_min": 1.0000280170281644,
+   "capture_cand_over_off": 0.9998622405892026
+  },
+  "D15": {
+   "prediction_max_over_min": 1.0000106999207554,
+   "capture_cand_over_off": 0.9998521010755491
+  }
+ },
+ "bounds_bytes": {
+  "H1": {
+   "cand.other": 3620725,
+   "cand.prediction": 362798935,
+   "off.other": 3618315,
+   "off.prediction": 362907439,
+   "repeat.other": 29830,
+   "repeat.prediction": 362798935,
+   "tier1_cand.capture": 2272481391,
+   "tier1_cand.other": 72926181,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72924283
+  },
+  "H2": {
+   "cand.other": 3620725,
+   "cand.prediction": 362798935,
+   "off.other": 3618315,
+   "off.prediction": 362907439,
+   "repeat.other": 29830,
+   "repeat.prediction": 362798935,
+   "tier1_cand.capture": 2272481391,
+   "tier1_cand.other": 72926181,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72924283
+  },
+  "H3": {
+   "cand.other": 3620725,
+   "cand.prediction": 362798935,
+   "off.other": 3618315,
+   "off.prediction": 362907439,
+   "repeat.other": 29830,
+   "repeat.prediction": 362798935,
+   "tier1_cand.capture": 2272481391,
+   "tier1_cand.other": 72926181,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72924283
+  },
+  "H4": {
+   "cand.other": 3620725,
+   "cand.prediction": 362798935,
+   "off.other": 3618315,
+   "off.prediction": 362907439,
+   "repeat.other": 29830,
+   "repeat.prediction": 362798935,
+   "tier1_cand.capture": 2272481391,
+   "tier1_cand.other": 72926181,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72924283
+  },
+  "H5": {
+   "cand.other": 3620725,
+   "cand.prediction": 362798935,
+   "off.other": 3618315,
+   "off.prediction": 362907439,
+   "repeat.other": 29830,
+   "repeat.prediction": 362798935,
+   "tier1_cand.capture": 2272481391,
+   "tier1_cand.other": 72926181,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72924283
+  },
+  "H6": {
+   "cand.other": 3620725,
+   "cand.prediction": 362798935,
+   "off.other": 3618315,
+   "off.prediction": 362907439,
+   "repeat.other": 29830,
+   "repeat.prediction": 362798935,
+   "tier1_cand.capture": 2272481391,
+   "tier1_cand.other": 72926181,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72924283
+  },
+  "H7": {
+   "cand.other": 3620725,
+   "cand.prediction": 362798935,
+   "off.other": 3618315,
+   "off.prediction": 362907439,
+   "repeat.other": 29830,
+   "repeat.prediction": 362798935,
+   "tier1_cand.capture": 2272481391,
+   "tier1_cand.other": 72926181,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72924283
+  },
+  "H8": {
+   "cand.other": 3506107,
+   "cand.prediction": 8302684,
+   "off.other": 3503314,
+   "off.prediction": 8294556,
+   "repeat.other": 24855,
+   "repeat.prediction": 8302684,
+   "tier1_cand.capture": 33059055,
+   "tier1_cand.other": 1685205,
+   "tier1_off.capture": 33125472,
+   "tier1_off.other": 1676974
+  },
+  "H9": {
+   "cand.other": 3506107,
+   "cand.prediction": 8302684,
+   "off.other": 3503314,
+   "off.prediction": 8294556,
+   "repeat.other": 24855,
+   "repeat.prediction": 8302684,
+   "tier1_cand.capture": 33059055,
+   "tier1_cand.other": 1685205,
+   "tier1_off.capture": 33125472,
+   "tier1_off.other": 1676974
+  },
+  "H10": {
+   "cand.other": 3495517,
+   "cand.prediction": 992094628,
+   "off.other": 3492408,
+   "off.prediction": 992077557,
+   "repeat.other": 31087,
+   "repeat.prediction": 992094628,
+   "tier1_cand.capture": 6281489967,
+   "tier1_cand.other": 198272440,
+   "tier1_off.capture": 6281819616,
+   "tier1_off.other": 198297412
+  }
+ },
+ "h3_extra_zn_bound_bytes": 1465890831,
+ "sum_of_bounds_bytes": 58119554413,
+ "remaining_estimate_bytes": 58119554413,
+ "margin_bytes": 20000000000,
+ "required_bytes": 78119554413,
+ "headroom": {
+  "filesystem_available_bytes": 269785767936,
+  "quota_used_bytes": 277704339456,
+  "quota_soft_bytes": 612032839680,
+  "quota_headroom_bytes": 334328500224,
+  "bytes_held_for_line": 40897951779
+ },
+ "pass": true
+}

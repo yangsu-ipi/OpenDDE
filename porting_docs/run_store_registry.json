@@ -44,6 +44,16 @@
    "path": "/mnt/compbio-data/yang.su/opendde-porting",
    "registered": "2026-10-14",
    "note": "Bulk porting outputs that are not qualification evidence (user decision 2026-10-14; README.md there). sm120-captures/ holds copies of the sm_120 tier 1 capture directories from opendde-step0 and opendde-standin under the same relative paths, with source sha256 manifests in sm120-captures/MANIFESTS."
+  },
+  {
+   "path": "/home/yang.su/opendde-accept",
+   "registered": "2026-10-17",
+   "note": "Dedicated sm_120 acceptance checkout (decision 2026-10-11), a clone of the approved fork created 2026-10-17 at the first fast candidate's code commit 25267ec; runs and measurements write outside it. Searched for ad hoc output directories before use."
+  },
+  {
+   "path": "/data/yang.su/opendde-accept-sm120",
+   "registered": "2026-10-17",
+   "note": "First fast candidate (25267ec, --optimization_mode fast): the paired D1/D9 candidate smoke test (smoke/) and the D1-D15 development evidence and rehearsal record (rehearsal-1/). Development rows and development seeds 101 and 102 only."
   }
  ]
 }
