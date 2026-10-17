@@ -13,6 +13,10 @@ pair-stack modules of Protenix (https://github.com/bytedance/Protenix),
 Copyright 2024 ByteDance and/or its affiliates, licensed under the Apache
 License, Version 2.0. No Protenix source file is included.
 
+opendde/model/optimized/triattn_exact.py and csrc/triattn_v3.cu reproduce the
+results of cuEquivariance's triangle_attention; they were written against its
+observable numerics and contain no cuEquivariance source.
+
 opendde/model/optimized/transition.py follows the arithmetic of OpenDDE's
 own Transition module, itself derived from Protenix (Apache License 2.0).
 

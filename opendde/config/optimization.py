@@ -93,6 +93,9 @@ OPTIMIZATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
         # Pair transition: one fused SiLU-multiply kernel between the stock
         # GEMMs, bit-identical on the rows of opendde.model.optimized.dispatch.
         "transition_triton": EXACT_AND_ABOVE,
+        # Triangle attention: a CUDA kernel bit-identical to cuEquivariance's
+        # on the rows of opendde.model.optimized.dispatch.
+        "triattn_exact": EXACT_AND_ABOVE,
         # Triangle attention: the flash triangle-attention Triton kernel in
         # place of cuEquivariance's (rounding differs; error against fp32 as
         # stock's) on the rows of opendde.model.optimized.dispatch.
@@ -104,6 +107,7 @@ OPTIMIZATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
 OPTIMIZATION_OVERLAPS: Mapping[str, tuple[str, ...]] = MappingProxyType(
     {
         "trimul_triton": ("trimul_kernel",),
+        "triattn_exact": ("triatt_kernel",),
         "triattn_k2b": ("triatt_kernel",),
     }
 )

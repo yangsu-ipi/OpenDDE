@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2026 Aureka AI Research
-"""trimul_triton / transition_triton: dispatch, fallbacks, and (on a GPU with
-a measured row) bitwise equality with the stock modules."""
+"""Optimized kernels: dispatch, fallbacks, and (on a GPU with a measured row)
+bitwise equality with the stock modules, or for triattn_k2b accuracy."""
 
 import pytest
 import torch
@@ -60,9 +60,9 @@ def test_rows_match_only_the_measured_stack(monkeypatch):
         assert ("trimul_triton", reason) in dispatch._LOGGED
     dispatch._row_reason.cache_clear()
     monkeypatch.setattr(dispatch, "_stack", lambda: stack)
-    monkeypatch.setattr(torch.cuda, "get_device_capability", lambda index: (8, 0))
+    monkeypatch.setattr(torch.cuda, "get_device_capability", lambda index: (9, 0))
     assert not dispatch.available("trimul_triton", cuda)
-    assert ("trimul_triton", "compute capability 8.0") in dispatch._LOGGED
+    assert ("trimul_triton", "compute capability 9.0") in dispatch._LOGGED
     assert not dispatch.available("trimul_triton", torch.device("cpu"))
 
 
@@ -231,3 +231,164 @@ def test_triattn_small_calls_run_the_stock_kernel():
         module.mha, lambda: module(z, triangle_attention="cuequivariance")
     )
     assert torch.equal(fast, stock)
+
+
+# ------------------------------------------------------------ triattn_exact
+
+
+def test_triattn_exact_row_ignores_triton(monkeypatch):
+    monkeypatch.setattr(torch.cuda, "get_device_capability", lambda index: (8, 0))
+    monkeypatch.setattr(
+        torch.cuda, "get_device_name", lambda index: "NVIDIA A100 80GB PCIe"
+    )
+    stack = {"torch": "2.7.1+cu128", "triton": None, "cuequivariance_ops": "0.10.0"}
+    monkeypatch.setattr(dispatch, "_stack", lambda: stack)
+    cuda = torch.device("cuda", 0)
+    assert dispatch.available("triattn_exact", cuda)
+    assert not dispatch.available("trimul_triton", cuda)  # a Triton kernel
+    dispatch._row_reason.cache_clear()
+    monkeypatch.setattr(
+        dispatch, "_stack", lambda: {**stack, "cuequivariance_ops": "0.11.1"}
+    )
+    assert not dispatch.available("triattn_exact", cuda)
+    dispatch._row_reason.cache_clear()
+    monkeypatch.setattr(dispatch, "_stack", lambda: stack)
+    monkeypatch.setattr(torch.cuda, "get_device_name", lambda index: "NVIDIA A30")
+    assert not dispatch.available("triattn_exact", cuda)
+    assert ("triattn_exact", "device NVIDIA A30") in dispatch._LOGGED
+    dispatch._row_reason.cache_clear()
+    monkeypatch.setattr(torch.cuda, "get_device_capability", lambda index: (12, 0))
+    assert not dispatch.available("triattn_exact", cuda)
+
+
+def test_triattn_exact_requires_the_measured_nvcc(monkeypatch):
+    from opendde.model.optimized import triattn_exact as TE
+
+    release = "Cuda compilation tools, release {0}, V{0}.85"
+    monkeypatch.setattr(TE, "_nvcc_version", lambda: release.format("12.8"))
+    assert TE._toolchain_reason() is None
+    monkeypatch.setattr(TE, "_nvcc_version", lambda: release.format("12.6"))
+    assert TE._toolchain_reason() == "nvcc 12.6"
+    monkeypatch.setattr(TE, "_nvcc_version", lambda: None)
+    assert TE._toolchain_reason() == "nvcc not found"
+
+
+def test_triattn_exact_cache_must_be_private(monkeypatch, tmp_path):
+    from opendde.model.optimized import triattn_exact as TE
+
+    monkeypatch.setenv("TORCH_EXTENSIONS_DIR", str(tmp_path))
+    path = TE._cache_dir()
+    assert path == tmp_path / "opendde_triattn_exact"
+    assert path.stat().st_mode & 0o777 == 0o700
+    path.chmod(0o775)
+    with pytest.raises(PermissionError):
+        TE._cache_dir()
+
+
+def test_triattn_exact_launch_plan():
+    from opendde.model.optimized import triattn_exact as TE
+
+    assert TE._plan_rows(300, 128) == (256, 44, 0)  # 44 tail rows: a BM64 launch
+    assert TE._plan_rows(256, 128) == (256, 0, None)
+    assert TE._plan_rows(250, 128) == (250, 0, None)  # under 257 rows: no split
+    assert TE._plan_rows(1030, 128) == (1024, 6, 9)
+    for n in (192, 300, 1001, 2047):
+        assert TE._pick_cfg(1, n, 4, n) in TE._CFG
+
+
+def test_triattn_exact_skips_ineligible_calls():
+    from opendde.model.optimized import triattn_exact as TE
+
+    q = torch.zeros(4, 4, 256, 32)
+    biases = [torch.zeros(4, 1, 1, 256), torch.zeros(1, 4, 256, 256)]
+    with torch.no_grad():
+        assert TE.serve(q, q, q, biases, 32) is None  # no CUDA autocast
+    with torch.enable_grad():
+        assert TE.serve(q, q, q, biases, 32) is None
+    assert ("triattn_exact", "autograd enabled") in dispatch._LOGGED
+    assert ("triattn_exact", "not under bf16 autocast") in dispatch._LOGGED
+
+
+def _exact_row():
+    if not _gpu_row("triattn_exact"):
+        pytest.skip("no measured triattn_exact row on this machine")
+    from opendde.model.optimized import triattn_exact as TE
+
+    if TE._toolchain_reason() is not None:
+        pytest.skip(TE._toolchain_reason())
+
+
+def _stock_and_exact(module, call, k2b=False):
+    with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
+        module.use_triton_kernel = module.use_exact_kernel = False
+        stock = call()
+        module.use_triton_kernel = k2b
+        module.use_exact_kernel = True
+        exact = call()
+        again = call()
+    return stock, exact, again
+
+
+@pytest.mark.parametrize(
+    "n, chunk",
+    [
+        (192, None),
+        (245, None),
+        (300, None),
+        (517, None),
+        (1001, None),
+        (1218, 512),
+        (2047, 256),
+    ],
+)
+@pytest.mark.parametrize("mask_kind", ["ones", "pad"])
+def test_triattn_exact_is_bitwise_the_stock_op(monkeypatch, n, chunk, mask_kind):
+    _exact_row()
+    from opendde.model.optimized import triattn_exact as TE
+    from opendde.model.triangular.triangular import TriangleAttention
+
+    module = _randomized(TriangleAttention(c_in=384, c_hidden=32, no_heads=12)).cuda()
+    g = torch.Generator(device="cuda").manual_seed(n)
+    z = torch.randn(n, n, 384, device="cuda", generator=g).to(torch.bfloat16)
+    mask = _pad_mask(n) if mask_kind == "pad" else torch.ones(n, n, device="cuda")
+
+    def call():
+        return module(
+            z, mask=mask, triangle_attention="cuequivariance", chunk_size=chunk
+        )
+
+    served = []
+    serve = TE.serve
+    monkeypatch.setattr(TE, "serve", lambda *a: served.append(serve(*a)) or served[-1])
+    stock, exact, again = _stock_and_exact(module.mha, call)
+    assert served and all(o is not None for o in served)  # the kernel ran
+    assert exact.dtype == stock.dtype and exact.shape == stock.shape
+    assert torch.equal(exact, stock), (n, chunk, mask_kind)
+    assert torch.equal(exact, again)
+
+
+def test_triattn_exact_serves_fast_where_k2b_has_no_row():
+    _exact_row()
+    if _gpu_row("triattn_k2b"):
+        pytest.skip("triattn_k2b has a row on this machine")
+    from opendde.model.triangular.triangular import TriangleAttention
+
+    module = _randomized(TriangleAttention(c_in=384, c_hidden=32, no_heads=12)).cuda()
+    z = torch.randn(300, 300, 384, device="cuda").to(torch.bfloat16)
+    stock, exact, _ = _stock_and_exact(
+        module.mha, lambda: module(z, triangle_attention="cuequivariance"), k2b=True
+    )
+    assert torch.equal(exact, stock)
+
+
+def test_triattn_exact_small_calls_run_the_stock_kernel():
+    _exact_row()
+    from opendde.model.triangular.triangular import TriangleAttention
+
+    module = _randomized(TriangleAttention(c_in=384, c_hidden=32, no_heads=12)).cuda()
+    z = torch.randn(150, 150, 384, device="cuda").to(torch.bfloat16)
+    stock, exact, _ = _stock_and_exact(
+        module.mha, lambda: module(z, triangle_attention="cuequivariance")
+    )
+    assert torch.equal(exact, stock)
+    assert ("triattn_exact", "150 tokens outside 192-2047") in dispatch._LOGGED

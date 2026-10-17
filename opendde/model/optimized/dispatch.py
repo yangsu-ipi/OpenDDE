@@ -2,9 +2,10 @@
 # Copyright 2026 Anthropic, PBC
 """Where each optimized kernel may run: the measured GPUs and software stacks.
 
-A row names the compute capability and the torch, Triton and cuEquivariance
-versions a kernel was validated on. A call on any other device or stack runs
-the stock code, and the first fallback of each reason is logged once.
+A row names the compute capability, optionally the device, and the torch,
+Triton (for the Triton kernels) and cuEquivariance versions a kernel was
+validated on. A call on any other device or stack runs the stock code, and
+the first fallback of each reason is logged once.
 """
 
 from __future__ import annotations
@@ -25,15 +26,25 @@ logger = get_logger(__name__)
 class Row:
     capability: tuple[int, int]
     torch_prefix: str
-    triton: str
+    triton: Optional[str]  # None for a kernel that does not use Triton
     cuequivariance_ops: Optional[str] = None  # required when the kernel calls it
+    device_name: Optional[str] = None  # required in the device name when set
 
 
-# Bit-identical to the stock op at OpenDDE's shapes (kernel benchmark on
-# RTX PRO 6000 Blackwell, 2026-10-17; D1-D15 byte-identical end to end).
+# Bit-identical to the stock op at OpenDDE's shapes: kernel benchmarks on
+# RTX PRO 6000 Blackwell (12.0) and A100 80GB PCIe (8.0), 2026-10-17; D1-D15
+# byte-identical end to end on both.
 ROWS: dict[str, tuple[Row, ...]] = {
-    "trimul_triton": (Row((12, 0), "2.7.", "3.3.1", "0.10.0"),),
-    "transition_triton": (Row((12, 0), "2.7.", "3.3.1"),),
+    "trimul_triton": (
+        Row((12, 0), "2.7.", "3.3.1", "0.10.0"),
+        Row((8, 0), "2.7.", "3.3.1", "0.10.0", "A100"),
+    ),
+    "transition_triton": (
+        Row((12, 0), "2.7.", "3.3.1"),
+        Row((8, 0), "2.7.", "3.3.1", device_name="A100"),
+    ),
+    # CUDA (nvcc), bit-identical to cuEquivariance's triangle attention.
+    "triattn_exact": (Row((8, 0), "2.7.", None, "0.10.0", "A100"),),
     # Not bitwise: error against fp32 as stock's (fast only; tile sweep on
     # RTX PRO 6000 Blackwell, 2026-10-17).
     "triattn_k2b": (Row((12, 0), "2.7.", "3.3.1"),),
@@ -69,12 +80,17 @@ def _stack() -> dict[str, Optional[str]]:
 def _row_reason(site: str, device_index: int) -> Optional[str]:
     capability = torch.cuda.get_device_capability(device_index)
     stack = _stack()
+    name = None
     for row in ROWS[site]:
         if row.capability != capability:
             continue
+        if row.device_name:
+            name = name or torch.cuda.get_device_name(device_index)
+            if row.device_name not in name:
+                return f"device {name}"
         if not stack["torch"].startswith(row.torch_prefix):
             return f"torch {stack['torch']}"
-        if stack["triton"] != row.triton:
+        if row.triton and stack["triton"] != row.triton:
             return f"triton {stack['triton']}"
         if (
             row.cuequivariance_ops

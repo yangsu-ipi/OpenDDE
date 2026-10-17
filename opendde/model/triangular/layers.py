@@ -345,8 +345,10 @@ class Attention(nn.Module):
     """
 
     # Serve measured cuEquivariance triangle-attention calls with the flash
-    # kernel of opendde.model.optimized.triattn (triattn_k2b, fast only).
+    # kernel of opendde.model.optimized.triattn (triattn_k2b, fast only), or
+    # else the bit-identical kernel of opendde.model.optimized.triattn_exact.
     use_triton_kernel = False
+    use_exact_kernel = False
 
     def __init__(
         self,
@@ -470,6 +472,10 @@ class Attention(nn.Module):
             from opendde.model.optimized import triattn as optimized_triattn
 
             o = optimized_triattn.serve(q, k, v, biases, self.c_hidden)
+        if o is None and use_cuequivariance and self.use_exact_kernel:
+            from opendde.model.optimized import triattn_exact
+
+            o = triattn_exact.serve(q, k, v, biases, self.c_hidden)
         if o is not None:
             o = o.transpose(-2, -3)
         elif use_cuequivariance:

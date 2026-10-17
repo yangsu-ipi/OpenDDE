@@ -379,9 +379,10 @@ class OpenDDE(nn.Module):
         nn.init.zeros_(self.linear_no_bias_z_cycle.weight)
         nn.init.zeros_(self.linear_no_bias_s.weight)
 
-        # Bit-identical kernels, each used only where dispatch.ROWS lists it.
+        # Optimized kernels, each used only where dispatch.ROWS lists it.
         use_trimul = optimization_enabled(configs, "trimul_triton")
         use_transition = optimization_enabled(configs, "transition_triton")
+        use_triattn_exact = optimization_enabled(configs, "triattn_exact")
         use_triattn = optimization_enabled(configs, "triattn_k2b")
         for module in self.modules():
             if isinstance(module, TriangleMultiplicativeUpdate):
@@ -389,6 +390,7 @@ class OpenDDE(nn.Module):
             elif isinstance(module, Transition):
                 module.use_triton_kernel = use_transition
             elif isinstance(module, TriangleAttention):
+                module.mha.use_exact_kernel = use_triattn_exact
                 module.mha.use_triton_kernel = use_triattn
 
     @staticmethod
