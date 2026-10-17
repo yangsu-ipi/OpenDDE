@@ -21,5 +21,60 @@
    "gate_approved_tag": "qual-sm120-contract-6"
   }
  ],
- "draws": []
+ "draws": [
+  {
+   "id": "sm120-fast-1",
+   "gpu": "sm_120",
+   "candidate": "fast-k2b",
+   "code_commit": "25267ec49a720355c91c6f08c452397b3fa4407e",
+   "candidate_args": [
+    "--optimization_mode",
+    "fast"
+   ],
+   "receipt": "fast-25267ec",
+   "seeds": {
+    "H1": [
+     201,
+     202
+    ],
+    "H2": [
+     203,
+     204
+    ],
+    "H3": [
+     205,
+     206
+    ],
+    "H4": [
+     207,
+     208
+    ],
+    "H5": [
+     209,
+     210
+    ],
+    "H6": [
+     211,
+     212
+    ],
+    "H7": [
+     213,
+     214
+    ],
+    "H8": [
+     215,
+     216
+    ],
+    "H9": [
+     217,
+     218
+    ],
+    "H10": [
+     219,
+     220
+    ]
+   },
+   "zn_extra": {}
+  }
+ ]
 }
