@@ -1,0 +1,5275 @@
+{
+ "groups": [
+  {
+   "gate": "ensemble_contact_frequency",
+   "limit": 0.2,
+   "limit_badness": 0.2,
+   "direction": "at most",
+   "classes": [
+    "stable"
+   ],
+   "jobs": [
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D4 7wux",
+    "D5 9fm7",
+    "D7 d7_dna_duplex",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "ensemble_contact_frequency"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.15,
+   "new:kernel": {
+    "worst": 0.06899810964083178,
+    "job": "D9 1a14_contact ensemble_contact_frequency",
+    "margin": 0.34499054820415886,
+    "applicable": 8,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.06143667296786387,
+    "job": "D9 1a14_contact ensemble_contact_frequency",
+    "margin": 0.30718336483931935,
+    "applicable": 7,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.05103969754253307,
+    "job": "D9 1a14_contact ensemble_contact_frequency",
+    "margin": 0.25519848771266535,
+    "applicable": 8,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.07276119402985073,
+    "job": "D9 1a14_contact ensemble_contact_frequency",
+    "margin": 0.36380597014925364,
+    "applicable": 8,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.045708955223880604,
+    "job": "D9 1a14_contact ensemble_contact_frequency",
+    "margin": 0.22854477611940302,
+    "applicable": 7,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.052238805970149266,
+    "job": "D9 1a14_contact ensemble_contact_frequency",
+    "margin": 0.2611940298507463,
+    "applicable": 8,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "kernel"
+  },
+  {
+   "gate": "ensemble_contact_frequency",
+   "limit": 1.0,
+   "limit_badness": 1.0,
+   "direction": "at most",
+   "classes": [
+    "epitope",
+    "flexible"
+   ],
+   "jobs": [
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D3 1a14_unconstrained",
+    "D8 9lh2_unconstrained"
+   ],
+   "members": [
+    "ensemble_contact_frequency"
+   ],
+   "rule": null,
+   "precision_only_2P": 1.5,
+   "new:kernel": {
+    "worst": 0.575525812619509,
+    "job": "D10 1a14_pocket ensemble_contact_frequency",
+    "margin": 0.575525812619509,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.7224669603524271,
+    "job": "D8 9lh2_unconstrained ensemble_contact_frequency",
+    "margin": 0.7224669603524271,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.6204588910133915,
+    "job": "D10 1a14_pocket ensemble_contact_frequency",
+    "margin": 0.6204588910133915,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.6744680851063933,
+    "job": "D10 1a14_pocket ensemble_contact_frequency",
+    "margin": 0.6744680851063933,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.7224669603524265,
+    "job": "D8 9lh2_unconstrained ensemble_contact_frequency",
+    "margin": 0.7224669603524265,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.6074468085106473,
+    "job": "D10 1a14_pocket ensemble_contact_frequency",
+    "margin": 0.6074468085106473,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "ensemble_near_duplicates",
+   "limit": 3,
+   "limit_badness": 3,
+   "direction": "at most",
+   "classes": [
+    "epitope",
+    "flexible",
+    "low",
+    "stable"
+   ],
+   "jobs": [
+    "D1 synthetic_protein_200",
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D3 1a14_unconstrained",
+    "D4 7wux",
+    "D5 9fm7",
+    "D6 9gmw_2",
+    "D7 d7_dna_duplex",
+    "D8 9lh2_unconstrained",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "ensemble_near_duplicates"
+   ],
+   "rule": "declared from precision only (C8)",
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": 1,
+    "job": "D15 9muy ensemble_near_duplicates",
+    "margin": 0.3333333333333333,
+    "applicable": 16,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 1,
+    "job": "D3 1a14_unconstrained ensemble_near_duplicates",
+    "margin": 0.3333333333333333,
+    "applicable": 15,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 1,
+    "job": "D11 1a14_contact ensemble_near_duplicates",
+    "margin": 0.3333333333333333,
+    "applicable": 16,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 2,
+    "job": "D10 1a14_pocket ensemble_near_duplicates",
+    "margin": 0.6666666666666666,
+    "applicable": 16,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 2,
+    "job": "D10 1a14_pocket ensemble_near_duplicates",
+    "margin": 0.6666666666666666,
+    "applicable": 15,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 2,
+    "job": "D10 1a14_pocket ensemble_near_duplicates",
+    "margin": 0.6666666666666666,
+    "applicable": 16,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "ensemble_plddt_median",
+   "limit": 1.5,
+   "limit_badness": 1.5,
+   "direction": "at most",
+   "classes": [
+    "epitope",
+    "flexible",
+    "low",
+    "stable"
+   ],
+   "jobs": [
+    "D1 synthetic_protein_200",
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D3 1a14_unconstrained",
+    "D4 7wux",
+    "D5 9fm7",
+    "D6 9gmw_2",
+    "D7 d7_dna_duplex",
+    "D8 9lh2_unconstrained",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "ensemble_plddt_median"
+   ],
+   "rule": null,
+   "precision_only_2P": 1.5,
+   "new:kernel": {
+    "worst": 0.2895355224609375,
+    "job": "D8 9lh2_unconstrained ensemble_plddt_median",
+    "margin": 0.193023681640625,
+    "applicable": 16,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.620758056640625,
+    "job": "D1 synthetic_protein_200 ensemble_plddt_median",
+    "margin": 0.4138387044270833,
+    "applicable": 15,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.13720321655273438,
+    "job": "D12 1a14_contact ensemble_plddt_median",
+    "margin": 0.09146881103515625,
+    "applicable": 16,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.2895355224609375,
+    "job": "D8 9lh2_unconstrained ensemble_plddt_median",
+    "margin": 0.193023681640625,
+    "applicable": 16,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.620758056640625,
+    "job": "D1 synthetic_protein_200 ensemble_plddt_median",
+    "margin": 0.4138387044270833,
+    "applicable": 15,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.10931396484375,
+    "job": "D1 synthetic_protein_200 ensemble_plddt_median",
+    "margin": 0.0728759765625,
+    "applicable": 16,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "ensemble_ref_fnat_median",
+   "limit": 0.05,
+   "limit_badness": 0.05,
+   "direction": "at most",
+   "classes": [
+    "epitope",
+    "flexible",
+    "stable"
+   ],
+   "jobs": [
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D3 1a14_unconstrained",
+    "D4 7wux",
+    "D5 9fm7",
+    "D8 9lh2_unconstrained",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "ensemble_ref_fnat_median"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.03,
+   "new:kernel": {
+    "worst": 0.026315789473684292,
+    "job": "D12 1a14_contact ensemble_ref_fnat_median",
+    "margin": 0.5263157894736858,
+    "applicable": 13,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.013157894736842146,
+    "job": "D12 1a14_contact ensemble_ref_fnat_median",
+    "margin": 0.2631578947368429,
+    "applicable": 12,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.013157894736842146,
+    "job": "D12 1a14_contact ensemble_ref_fnat_median",
+    "margin": 0.2631578947368429,
+    "applicable": 13,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.02631578947368418,
+    "job": "D11 1a14_contact ensemble_ref_fnat_median",
+    "margin": 0.5263157894736836,
+    "applicable": 13,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.02631578947368418,
+    "job": "D11 1a14_contact ensemble_ref_fnat_median",
+    "margin": 0.5263157894736836,
+    "applicable": 12,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.00520833333333337,
+    "job": "D9 1a14_contact ensemble_ref_fnat_median",
+    "margin": 0.1041666666666674,
+    "applicable": 13,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "kernel"
+  },
+  {
+   "gate": "ensemble_ref_fnat_min_pair_median",
+   "limit": 0.05,
+   "limit_badness": 0.05,
+   "direction": "at most",
+   "classes": [
+    "epitope",
+    "flexible",
+    "stable"
+   ],
+   "jobs": [
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D3 1a14_unconstrained",
+    "D4 7wux",
+    "D5 9fm7",
+    "D8 9lh2_unconstrained",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "ensemble_ref_fnat_min_pair_median"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.01,
+   "new:kernel": {
+    "worst": 0.020000000000000018,
+    "job": "D9 1a14_contact ensemble_ref_fnat_min_pair_median",
+    "margin": 0.40000000000000036,
+    "applicable": 13,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.004807692307692402,
+    "job": "D15 9muy ensemble_ref_fnat_min_pair_median",
+    "margin": 0.09615384615384803,
+    "applicable": 12,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.0,
+    "job": "D2 7r6r ensemble_ref_fnat_min_pair_median",
+    "margin": 0.0,
+    "applicable": 13,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.0,
+    "job": "D2 7r6r ensemble_ref_fnat_min_pair_median",
+    "margin": 0.0,
+    "applicable": 13,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.004807692307692402,
+    "job": "D15 9muy ensemble_ref_fnat_min_pair_median",
+    "margin": 0.09615384615384803,
+    "applicable": 12,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.039999999999999925,
+    "job": "D9 1a14_contact ensemble_ref_fnat_min_pair_median",
+    "margin": 0.7999999999999985,
+    "applicable": 13,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "kernel"
+  },
+  {
+   "gate": "ensemble_ref_fnonnat_median",
+   "limit": 0.02,
+   "limit_badness": 0.02,
+   "direction": "at most",
+   "classes": [
+    "stable"
+   ],
+   "jobs": [
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D4 7wux",
+    "D5 9fm7",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "ensemble_ref_fnonnat_median"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.015,
+   "new:kernel": {
+    "worst": 0.0013513513513513514,
+    "job": "D5 9fm7 ensemble_ref_fnonnat_median",
+    "margin": 0.06756756756756757,
+    "applicable": 7,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.006054321648381052,
+    "job": "D5 9fm7 ensemble_ref_fnonnat_median",
+    "margin": 0.30271608241905257,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.011203246294989366,
+    "job": "D9 1a14_contact ensemble_ref_fnonnat_median",
+    "margin": 0.5601623147494683,
+    "applicable": 7,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.0013513513513513514,
+    "job": "D5 9fm7 ensemble_ref_fnonnat_median",
+    "margin": 0.06756756756756757,
+    "applicable": 7,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.006054321648381052,
+    "job": "D5 9fm7 ensemble_ref_fnonnat_median",
+    "margin": 0.30271608241905257,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.0,
+    "job": "D2 7r6r ensemble_ref_fnonnat_median",
+    "margin": 0.0,
+    "applicable": 7,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "layernorm"
+  },
+  {
+   "gate": "ensemble_ref_fnonnat_median",
+   "limit": 0.06,
+   "limit_badness": 0.06,
+   "direction": "at most",
+   "classes": [
+    "epitope",
+    "flexible"
+   ],
+   "jobs": [
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D3 1a14_unconstrained",
+    "D8 9lh2_unconstrained"
+   ],
+   "members": [
+    "ensemble_ref_fnonnat_median"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.025,
+   "new:kernel": {
+    "worst": 0.033685514410958683,
+    "job": "D12 1a14_contact ensemble_ref_fnonnat_median",
+    "margin": 0.5614252401826447,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.012316927328204219,
+    "job": "D3 1a14_unconstrained ensemble_ref_fnonnat_median",
+    "margin": 0.205282122136737,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.004471967621857087,
+    "job": "D3 1a14_unconstrained ensemble_ref_fnonnat_median",
+    "margin": 0.07453279369761812,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.06264350154692011,
+    "job": "D10 1a14_pocket ensemble_ref_fnonnat_median",
+    "margin": 1.0440583591153352,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": [
+     "D10 1a14_pocket ensemble_ref_fnonnat_median"
+    ]
+   },
+   "old:precision": {
+    "worst": 0.014461367174251172,
+    "job": "D12 1a14_contact ensemble_ref_fnonnat_median",
+    "margin": 0.24102278623751955,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.01572959418087483,
+    "job": "D12 1a14_contact ensemble_ref_fnonnat_median",
+    "margin": 0.2621599030145805,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "kernel"
+  },
+  {
+   "gate": "ensemble_ref_lddt_polymer_lowest",
+   "limit": 0.02,
+   "limit_badness": 0.02,
+   "direction": "at most",
+   "classes": [
+    "epitope",
+    "flexible",
+    "stable"
+   ],
+   "jobs": [
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D3 1a14_unconstrained",
+    "D4 7wux",
+    "D5 9fm7",
+    "D6 9gmw_2",
+    "D8 9lh2_unconstrained",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "ensemble_ref_lddt_dna_lowest",
+    "ensemble_ref_lddt_polymer_lowest",
+    "ensemble_ref_lddt_protein_lowest",
+    "ensemble_ref_lddt_rna_lowest"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.02,
+   "new:kernel": {
+    "worst": 0.0009285891761455778,
+    "job": "D12 1a14_contact ensemble_ref_lddt_polymer_lowest",
+    "margin": 0.04642945880727889,
+    "applicable": 30,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.009839326109250424,
+    "job": "D8 9lh2_unconstrained ensemble_ref_lddt_polymer_lowest",
+    "margin": 0.4919663054625212,
+    "applicable": 28,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.004721117653089579,
+    "job": "D10 1a14_pocket ensemble_ref_lddt_polymer_lowest",
+    "margin": 0.23605588265447897,
+    "applicable": 30,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.005447707500329524,
+    "job": "D10 1a14_pocket ensemble_ref_lddt_polymer_lowest",
+    "margin": 0.2723853750164762,
+    "applicable": 30,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.009839326109250424,
+    "job": "D8 9lh2_unconstrained ensemble_ref_lddt_polymer_lowest",
+    "margin": 0.4919663054625212,
+    "applicable": 28,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.007342562283052856,
+    "job": "D10 1a14_pocket ensemble_ref_lddt_polymer_lowest",
+    "margin": 0.3671281141526428,
+    "applicable": 30,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "ensemble_ref_lddt_polymer_median",
+   "limit": 0.008,
+   "limit_badness": 0.008,
+   "direction": "at most",
+   "classes": [
+    "epitope",
+    "flexible",
+    "stable"
+   ],
+   "jobs": [
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D3 1a14_unconstrained",
+    "D4 7wux",
+    "D5 9fm7",
+    "D6 9gmw_2",
+    "D8 9lh2_unconstrained",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "ensemble_ref_lddt_dna_median",
+    "ensemble_ref_lddt_polymer_median",
+    "ensemble_ref_lddt_protein_median",
+    "ensemble_ref_lddt_rna_median"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.0025,
+   "new:kernel": {
+    "worst": 0.0006578212648477022,
+    "job": "D9 1a14_contact ensemble_ref_lddt_polymer_median",
+    "margin": 0.08222765810596278,
+    "applicable": 30,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.0010302238940067543,
+    "job": "D6 9gmw_2 ensemble_ref_lddt_polymer_median",
+    "margin": 0.1287779867508443,
+    "applicable": 28,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.0008881948172367871,
+    "job": "D2 7r6r ensemble_ref_lddt_polymer_median",
+    "margin": 0.11102435215459838,
+    "applicable": 30,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.001976438808090508,
+    "job": "D3 1a14_unconstrained ensemble_ref_lddt_polymer_median",
+    "margin": 0.24705485101131353,
+    "applicable": 30,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.0013753716478462907,
+    "job": "D10 1a14_pocket ensemble_ref_lddt_polymer_median",
+    "margin": 0.17192145598078634,
+    "applicable": 28,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.0008881948172367871,
+    "job": "D2 7r6r ensemble_ref_lddt_polymer_median",
+    "margin": 0.11102435215459838,
+    "applicable": 30,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "ensemble_spread_ratio",
+   "limit": [
+    0.1,
+    10
+   ],
+   "limit_badness": 2.302585092994046,
+   "direction": "within range (|log ratio| gated)",
+   "classes": [
+    "epitope",
+    "flexible"
+   ],
+   "jobs": [
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D3 1a14_unconstrained",
+    "D8 9lh2_unconstrained"
+   ],
+   "members": [
+    "ensemble_spread_ratio"
+   ],
+   "rule": null,
+   "precision_only_2P": 3,
+   "new:kernel": {
+    "worst": 0.4976448704941961,
+    "job": "D8 9lh2_unconstrained ensemble_spread_ratio",
+    "margin": 0.21612442120308772,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 1.4346612986797822,
+    "job": "D3 1a14_unconstrained ensemble_spread_ratio",
+    "margin": 0.6230654854167824,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 1.162143937547515,
+    "job": "D3 1a14_unconstrained ensemble_spread_ratio",
+    "margin": 0.504712699254203,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.4976448704941959,
+    "job": "D8 9lh2_unconstrained ensemble_spread_ratio",
+    "margin": 0.21612442120308764,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 1.733033406636162,
+    "job": "D3 1a14_unconstrained ensemble_spread_ratio",
+    "margin": 0.7526468454560794,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 1.9339827624419463,
+    "job": "D3 1a14_unconstrained ensemble_spread_ratio",
+    "margin": 0.8399180418245448,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "ensemble_spread_ratio",
+   "limit": [
+    0.8,
+    1.25
+   ],
+   "limit_badness": 0.22314355131420976,
+   "direction": "within range (|log ratio| gated)",
+   "classes": [
+    "low",
+    "stable"
+   ],
+   "jobs": [
+    "D1 synthetic_protein_200",
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D4 7wux",
+    "D5 9fm7",
+    "D6 9gmw_2",
+    "D7 d7_dna_duplex",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "ensemble_spread_ratio"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.15,
+   "new:kernel": {
+    "worst": 0.15136487523692332,
+    "job": "D9 1a14_contact ensemble_spread_ratio",
+    "margin": 0.6783295970036147,
+    "applicable": 10,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.06567335130387496,
+    "job": "D14 6e4y ensemble_spread_ratio",
+    "margin": 0.294309877731577,
+    "applicable": 9,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.05437193606584077,
+    "job": "D9 1a14_contact ensemble_spread_ratio",
+    "margin": 0.24366348812509184,
+    "applicable": 10,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.26311118433058545,
+    "job": "D9 1a14_contact ensemble_spread_ratio",
+    "margin": 1.179111754657418,
+    "applicable": 10,
+    "not_applicable": 0,
+    "fails": [
+     "D9 1a14_contact ensemble_spread_ratio"
+    ]
+   },
+   "old:precision": {
+    "worst": 0.06567335130387184,
+    "job": "D14 6e4y ensemble_spread_ratio",
+    "margin": 0.29430987773156303,
+    "applicable": 9,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.03787036747432546,
+    "job": "D9 1a14_contact ensemble_spread_ratio",
+    "margin": 0.16971302666506358,
+    "applicable": 10,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "kernel"
+  },
+  {
+   "gate": "guidance_contact_mean",
+   "limit": [
+    0.5,
+    null
+   ],
+   "limit_badness": 0.5,
+   "direction": "|mean distance change| at most",
+   "classes": [
+    "flexible"
+   ],
+   "jobs": [
+    "D11 1a14_contact"
+   ],
+   "members": [
+    "guidance_contact_mean"
+   ],
+   "rule": "guidance tolerance (C7)",
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": 0.01262490599188748,
+    "job": "D11 1a14_contact guidance_contact_mean",
+    "margin": 0.02524981198377496,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.002309571883825967,
+    "job": "D11 1a14_contact guidance_contact_mean",
+    "margin": 0.004619143767651934,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.0007046080827421974,
+    "job": "D11 1a14_contact guidance_contact_mean",
+    "margin": 0.0014092161654843949,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.017458271865120167,
+    "job": "D11 1a14_contact guidance_contact_mean",
+    "margin": 0.034916543730240335,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.01459760204387095,
+    "job": "D11 1a14_contact guidance_contact_mean",
+    "margin": 0.0291952040877419,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.007400827166900825,
+    "job": "D11 1a14_contact guidance_contact_mean",
+    "margin": 0.01480165433380165,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "kernel"
+  },
+  {
+   "gate": "guidance_contact_mean",
+   "limit": [
+    1.0,
+    7.0
+   ],
+   "limit_badness": 1.0,
+   "direction": "|mean distance change| at most",
+   "classes": [
+    "flexible"
+   ],
+   "jobs": [
+    "D12 1a14_contact"
+   ],
+   "members": [
+    "guidance_contact_mean"
+   ],
+   "rule": "guidance tolerance (C7)",
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": 0.25705037588893287,
+    "job": "D12 1a14_contact guidance_contact_mean",
+    "margin": 0.25705037588893287,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.04249300898899566,
+    "job": "D12 1a14_contact guidance_contact_mean",
+    "margin": 0.04249300898899566,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.03245418555499846,
+    "job": "D12 1a14_contact guidance_contact_mean",
+    "margin": 0.03245418555499846,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.2793708473145262,
+    "job": "D12 1a14_contact guidance_contact_mean",
+    "margin": 0.2793708473145262,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.09223254251742308,
+    "job": "D12 1a14_contact guidance_contact_mean",
+    "margin": 0.09223254251742308,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.2077633070732734,
+    "job": "D12 1a14_contact guidance_contact_mean",
+    "margin": 0.2077633070732734,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "kernel"
+  },
+  {
+   "gate": "guidance_contacts",
+   "limit": 9,
+   "limit_badness": 9,
+   "direction": "at most",
+   "classes": [
+    "stable"
+   ],
+   "jobs": [
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "guidance_contacts"
+   ],
+   "rule": "guidance count (C7)",
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": 10,
+    "job": "D9 1a14_contact guidance_contacts",
+    "margin": 1.1111111111111112,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 10,
+    "job": "D9 1a14_contact guidance_contacts",
+    "margin": 1.1111111111111112,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 10,
+    "job": "D9 1a14_contact guidance_contacts",
+    "margin": 1.1111111111111112,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 10,
+    "job": "D9 1a14_contact guidance_contacts",
+    "margin": 1.1111111111111112,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 10,
+    "job": "D9 1a14_contact guidance_contacts",
+    "margin": 1.1111111111111112,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 10,
+    "job": "D9 1a14_contact guidance_contacts",
+    "margin": 1.1111111111111112,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "guidance_epitope",
+   "limit": 9,
+   "limit_badness": 9,
+   "direction": "at most",
+   "classes": [
+    "epitope"
+   ],
+   "jobs": [
+    "D10 1a14_pocket"
+   ],
+   "members": [
+    "guidance_epitope"
+   ],
+   "rule": "guidance count (C7)",
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": 10,
+    "job": "D10 1a14_pocket guidance_epitope",
+    "margin": 1.1111111111111112,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 10,
+    "job": "D10 1a14_pocket guidance_epitope",
+    "margin": 1.1111111111111112,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 10,
+    "job": "D10 1a14_pocket guidance_epitope",
+    "margin": 1.1111111111111112,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 10,
+    "job": "D10 1a14_pocket guidance_epitope",
+    "margin": 1.1111111111111112,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 10,
+    "job": "D10 1a14_pocket guidance_epitope",
+    "margin": 1.1111111111111112,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 10,
+    "job": "D10 1a14_pocket guidance_epitope",
+    "margin": 1.1111111111111112,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "iptm",
+   "limit": null,
+   "limit_badness": null,
+   "direction": "at most",
+   "classes": [
+    "epitope",
+    "flexible",
+    "low",
+    "stable"
+   ],
+   "jobs": [
+    "D1 synthetic_protein_200",
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D3 1a14_unconstrained",
+    "D4 7wux",
+    "D5 9fm7",
+    "D6 9gmw_2",
+    "D7 d7_dna_duplex",
+    "D8 9lh2_unconstrained",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "iptm"
+   ],
+   "rule": null,
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 16,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 15,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 16,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 16,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 15,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 16,
+    "fails": []
+   },
+   "binding_new": null
+  },
+  {
+   "gate": "lddt_polymer",
+   "limit": 0.78,
+   "limit_badness": 0.21999999999999997,
+   "direction": "at least (deficit from 1 gated)",
+   "classes": [
+    "low"
+   ],
+   "jobs": [
+    "D1 synthetic_protein_200"
+   ],
+   "members": [
+    "lddt_polymer",
+    "lddt_protein"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.4,
+   "new:kernel": {
+    "worst": 0.08961224503830445,
+    "job": "D1 synthetic_protein_200 lddt_polymer",
+    "margin": 0.40732838653774756,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.16263495203376177,
+    "job": "D1 synthetic_protein_200 lddt_polymer",
+    "margin": 0.7392497819716445,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.055697676454623424,
+    "job": "D1 synthetic_protein_200 lddt_polymer",
+    "margin": 0.2531712566119247,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.08961224503830445,
+    "job": "D1 synthetic_protein_200 lddt_polymer",
+    "margin": 0.40732838653774756,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.16263495203376177,
+    "job": "D1 synthetic_protein_200 lddt_polymer",
+    "margin": 0.7392497819716445,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.055697676454623424,
+    "job": "D1 synthetic_protein_200 lddt_polymer",
+    "margin": 0.2531712566119247,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "lddt_polymer",
+   "limit": 0.85,
+   "limit_badness": 0.15000000000000002,
+   "direction": "at least (deficit from 1 gated)",
+   "classes": [
+    "flexible"
+   ],
+   "jobs": [
+    "D8 9lh2_unconstrained"
+   ],
+   "members": [
+    "lddt_polymer",
+    "lddt_protein"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.15,
+   "new:kernel": {
+    "worst": 0.11226864177759988,
+    "job": "D8 9lh2_unconstrained lddt_polymer",
+    "margin": 0.7484576118506657,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.067588309555629,
+    "job": "D8 9lh2_unconstrained lddt_polymer",
+    "margin": 0.45058873037085995,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.04477241408500454,
+    "job": "D8 9lh2_unconstrained lddt_polymer",
+    "margin": 0.2984827605666969,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.11226864177759988,
+    "job": "D8 9lh2_unconstrained lddt_polymer",
+    "margin": 0.7484576118506657,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.067588309555629,
+    "job": "D8 9lh2_unconstrained lddt_polymer",
+    "margin": 0.45058873037085995,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.04477241408500454,
+    "job": "D8 9lh2_unconstrained lddt_polymer",
+    "margin": 0.2984827605666969,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "kernel"
+  },
+  {
+   "gate": "lddt_polymer",
+   "limit": 0.9,
+   "limit_badness": 0.09999999999999998,
+   "direction": "at least (deficit from 1 gated)",
+   "classes": [
+    "stable"
+   ],
+   "jobs": [
+    "D15 9muy"
+   ],
+   "members": [
+    "lddt_polymer",
+    "lddt_protein"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.15,
+   "new:kernel": {
+    "worst": 0.04263851892819248,
+    "job": "D15 9muy lddt_polymer",
+    "margin": 0.4263851892819249,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.0510862243061595,
+    "job": "D15 9muy lddt_polymer",
+    "margin": 0.5108622430615951,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.0350843196964179,
+    "job": "D15 9muy lddt_polymer",
+    "margin": 0.35084319696417904,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.04263851892819248,
+    "job": "D15 9muy lddt_polymer",
+    "margin": 0.4263851892819249,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.0510862243061595,
+    "job": "D15 9muy lddt_polymer",
+    "margin": 0.5108622430615951,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.0350843196964179,
+    "job": "D15 9muy lddt_polymer",
+    "margin": 0.35084319696417904,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "lddt_polymer",
+   "limit": 0.95,
+   "limit_badness": 0.050000000000000044,
+   "direction": "at least (deficit from 1 gated)",
+   "classes": [
+    "epitope",
+    "flexible",
+    "stable"
+   ],
+   "jobs": [
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D13 7r6r",
+    "D14 6e4y",
+    "D2 7r6r",
+    "D3 1a14_unconstrained",
+    "D4 7wux",
+    "D5 9fm7",
+    "D6 9gmw_2",
+    "D7 d7_dna_duplex",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "lddt_dna",
+    "lddt_polymer",
+    "lddt_protein",
+    "lddt_rna"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.08,
+   "new:kernel": {
+    "worst": 0.0473613964123335,
+    "job": "D3 1a14_unconstrained lddt_polymer",
+    "margin": 0.9472279282466691,
+    "applicable": 28,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.03493036021961271,
+    "job": "D3 1a14_unconstrained lddt_polymer",
+    "margin": 0.6986072043922535,
+    "applicable": 26,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.04420689400364142,
+    "job": "D3 1a14_unconstrained lddt_polymer",
+    "margin": 0.8841378800728276,
+    "applicable": 26,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.05267707554340628,
+    "job": "D3 1a14_unconstrained lddt_polymer",
+    "margin": 1.0535415108681248,
+    "applicable": 26,
+    "not_applicable": 0,
+    "fails": [
+     "D3 1a14_unconstrained lddt_polymer",
+     "D3 1a14_unconstrained lddt_protein",
+     "D13 1a14_unconstrained lddt_polymer",
+     "D13 1a14_unconstrained lddt_protein"
+    ]
+   },
+   "old:precision": {
+    "worst": 0.05262086942488575,
+    "job": "D3 1a14_unconstrained lddt_polymer",
+    "margin": 1.0524173884977142,
+    "applicable": 26,
+    "not_applicable": 0,
+    "fails": [
+     "D3 1a14_unconstrained lddt_polymer",
+     "D3 1a14_unconstrained lddt_protein",
+     "D10 1a14_pocket lddt_polymer",
+     "D10 1a14_pocket lddt_protein",
+     "D13 1a14_unconstrained lddt_polymer",
+     "D13 1a14_unconstrained lddt_protein"
+    ]
+   },
+   "old:layernorm": {
+    "worst": 0.05035445234653424,
+    "job": "D3 1a14_unconstrained lddt_polymer",
+    "margin": 1.007089046930684,
+    "applicable": 28,
+    "not_applicable": 0,
+    "fails": [
+     "D3 1a14_unconstrained lddt_polymer",
+     "D3 1a14_unconstrained lddt_protein",
+     "D13 1a14_unconstrained lddt_polymer",
+     "D13 1a14_unconstrained lddt_protein"
+    ]
+   },
+   "binding_new": "kernel"
+  },
+  {
+   "gate": "lddt_polymer",
+   "limit": null,
+   "limit_badness": null,
+   "direction": "at least (deficit from 1 gated)",
+   "classes": [
+    "epitope"
+   ],
+   "jobs": [
+    "D10 1a14_pocket"
+   ],
+   "members": [
+    "lddt_polymer",
+    "lddt_protein"
+   ],
+   "rule": null,
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 2,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 2,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": null
+  },
+  {
+   "gate": "ligand_pocket",
+   "limit": 0.6,
+   "limit_badness": 0.4,
+   "direction": "at least (deficit from 1 gated)",
+   "classes": [
+    "flexible",
+    "stable"
+   ],
+   "jobs": [
+    "D4 7wux",
+    "D5 9fm7",
+    "D8 9lh2_unconstrained"
+   ],
+   "members": [
+    "ligand_pocket"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.5,
+   "new:kernel": {
+    "worst": 0.25,
+    "job": "D8 9lh2_unconstrained ligand_pocket",
+    "margin": 0.625,
+    "applicable": 3,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.25,
+    "job": "D8 9lh2_unconstrained ligand_pocket",
+    "margin": 0.625,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.25,
+    "job": "D8 9lh2_unconstrained ligand_pocket",
+    "margin": 0.625,
+    "applicable": 3,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.25,
+    "job": "D8 9lh2_unconstrained ligand_pocket",
+    "margin": 0.625,
+    "applicable": 3,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.25,
+    "job": "D8 9lh2_unconstrained ligand_pocket",
+    "margin": 0.625,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.25,
+    "job": "D8 9lh2_unconstrained ligand_pocket",
+    "margin": 0.625,
+    "applicable": 3,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "ligand_rmsd",
+   "limit": 2.0,
+   "limit_badness": 2.0,
+   "direction": "at most",
+   "classes": [
+    "flexible",
+    "stable"
+   ],
+   "jobs": [
+    "D4 7wux",
+    "D5 9fm7",
+    "D8 9lh2_unconstrained"
+   ],
+   "members": [
+    "ligand_rmsd"
+   ],
+   "rule": null,
+   "precision_only_2P": 3,
+   "new:kernel": {
+    "worst": 1.0292576634670447,
+    "job": "D8 9lh2_unconstrained ligand_rmsd",
+    "margin": 0.5146288317335224,
+    "applicable": 3,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 1.3479790624251193,
+    "job": "D8 9lh2_unconstrained ligand_rmsd",
+    "margin": 0.6739895312125597,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 1.1461241246275817,
+    "job": "D4 7wux ligand_rmsd",
+    "margin": 0.5730620623137909,
+    "applicable": 3,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 1.0292576634670498,
+    "job": "D8 9lh2_unconstrained ligand_rmsd",
+    "margin": 0.5146288317335249,
+    "applicable": 3,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 1.3479790624250978,
+    "job": "D8 9lh2_unconstrained ligand_rmsd",
+    "margin": 0.6739895312125489,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.876414522170849,
+    "job": "D8 9lh2_unconstrained ligand_rmsd",
+    "margin": 0.4382072610854245,
+    "applicable": 3,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "mean_plddt",
+   "limit": 2.0,
+   "limit_badness": 2.0,
+   "direction": "at most",
+   "classes": [
+    "epitope",
+    "flexible",
+    "low",
+    "stable"
+   ],
+   "jobs": [
+    "D1 synthetic_protein_200",
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D3 1a14_unconstrained",
+    "D4 7wux",
+    "D5 9fm7",
+    "D6 9gmw_2",
+    "D7 d7_dna_duplex",
+    "D8 9lh2_unconstrained",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "mean_plddt"
+   ],
+   "rule": null,
+   "precision_only_2P": 2,
+   "new:kernel": {
+    "worst": 0.5365524291992188,
+    "job": "D8 9lh2_unconstrained mean_plddt",
+    "margin": 0.2682762145996094,
+    "applicable": 16,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.898529052734375,
+    "job": "D8 9lh2_unconstrained mean_plddt",
+    "margin": 0.4492645263671875,
+    "applicable": 15,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.19641876220703125,
+    "job": "D3 1a14_unconstrained mean_plddt",
+    "margin": 0.09820938110351562,
+    "applicable": 15,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.5365524291992188,
+    "job": "D8 9lh2_unconstrained mean_plddt",
+    "margin": 0.2682762145996094,
+    "applicable": 15,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.898529052734375,
+    "job": "D8 9lh2_unconstrained mean_plddt",
+    "margin": 0.4492645263671875,
+    "applicable": 15,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.19205093383789062,
+    "job": "D1 synthetic_protein_200 mean_plddt",
+    "margin": 0.09602546691894531,
+    "applicable": 16,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "mean_plddt",
+   "limit": null,
+   "limit_badness": null,
+   "direction": "at most",
+   "classes": [
+    "epitope"
+   ],
+   "jobs": [
+    "D10 1a14_pocket"
+   ],
+   "members": [
+    "mean_plddt"
+   ],
+   "rule": null,
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 1,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 1,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": null
+  },
+  {
+   "gate": "no_duplicate_samples",
+   "limit": 0.01,
+   "limit_badness": 0.01,
+   "direction": "at most",
+   "classes": [
+    "epitope",
+    "flexible",
+    "low",
+    "stable"
+   ],
+   "jobs": [
+    "D1 synthetic_protein_200",
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D3 1a14_unconstrained",
+    "D4 7wux",
+    "D5 9fm7",
+    "D6 9gmw_2",
+    "D7 d7_dna_duplex",
+    "D8 9lh2_unconstrained",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "no_duplicate_samples"
+   ],
+   "rule": "exact-duplicate floor",
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": 2.195560664351439,
+    "job": "D12 1a14_contact no_duplicate_samples",
+    "margin": 219.55606643514392,
+    "applicable": 16,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 5.281159268555447,
+    "job": "D10 1a14_pocket no_duplicate_samples",
+    "margin": 528.1159268555447,
+    "applicable": 15,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 3.037071903712752,
+    "job": "D10 1a14_pocket no_duplicate_samples",
+    "margin": 303.7071903712752,
+    "applicable": 16,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 3.0198478552823507,
+    "job": "D11 1a14_contact no_duplicate_samples",
+    "margin": 301.9847855282351,
+    "applicable": 16,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 1.5232839247550338,
+    "job": "D8 9lh2_unconstrained no_duplicate_samples",
+    "margin": 152.3283924755034,
+    "applicable": 15,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 1.617743122079847,
+    "job": "D10 1a14_pocket no_duplicate_samples",
+    "margin": 161.7743122079847,
+    "applicable": 16,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "outcome_count",
+   "limit": 0,
+   "limit_badness": 10,
+   "direction": "at least (count floor)",
+   "classes": [
+    "epitope"
+   ],
+   "jobs": [
+    "D10 1a14_pocket"
+   ],
+   "members": [
+    "outcome_count"
+   ],
+   "rule": "count floor (C1)",
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": 9,
+    "job": "D10 1a14_pocket outcome_count",
+    "margin": 0.9,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 9,
+    "job": "D10 1a14_pocket outcome_count",
+    "margin": 0.9,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 10,
+    "job": "D10 1a14_pocket outcome_count",
+    "margin": 1.0,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 10,
+    "job": "D10 1a14_pocket outcome_count",
+    "margin": 1.0,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 8,
+    "job": "D10 1a14_pocket outcome_count",
+    "margin": 0.8,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 9,
+    "job": "D10 1a14_pocket outcome_count",
+    "margin": 0.9,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "layernorm"
+  },
+  {
+   "gate": "outcome_count",
+   "limit": 2,
+   "limit_badness": 8,
+   "direction": "at least (count floor)",
+   "classes": [
+    "flexible"
+   ],
+   "jobs": [
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D3 1a14_unconstrained",
+    "D8 9lh2_unconstrained"
+   ],
+   "members": [
+    "outcome_count"
+   ],
+   "rule": "count floor (C1)",
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": 3,
+    "job": "D3 1a14_unconstrained outcome_count",
+    "margin": 0.375,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 6,
+    "job": "D8 9lh2_unconstrained outcome_count",
+    "margin": 0.75,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 4,
+    "job": "D3 1a14_unconstrained outcome_count",
+    "margin": 0.5,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 8,
+    "job": "D12 1a14_contact outcome_count",
+    "margin": 1.0,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 6,
+    "job": "D8 9lh2_unconstrained outcome_count",
+    "margin": 0.75,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 3,
+    "job": "D12 1a14_contact outcome_count",
+    "margin": 0.375,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "outcome_count",
+   "limit": 7,
+   "limit_badness": 3,
+   "direction": "at least (count floor)",
+   "classes": [
+    "low"
+   ],
+   "jobs": [
+    "D1 synthetic_protein_200"
+   ],
+   "members": [
+    "outcome_count"
+   ],
+   "rule": "count floor (C1)",
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": 0,
+    "job": "D1 synthetic_protein_200 outcome_count",
+    "margin": 0.0,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0,
+    "job": "D1 synthetic_protein_200 outcome_count",
+    "margin": 0.0,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0,
+    "job": "D1 synthetic_protein_200 outcome_count",
+    "margin": 0.0,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0,
+    "job": "D1 synthetic_protein_200 outcome_count",
+    "margin": 0.0,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0,
+    "job": "D1 synthetic_protein_200 outcome_count",
+    "margin": 0.0,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0,
+    "job": "D1 synthetic_protein_200 outcome_count",
+    "margin": 0.0,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "outcome_count",
+   "limit": 9,
+   "limit_badness": 1,
+   "direction": "at least (count floor)",
+   "classes": [
+    "stable"
+   ],
+   "jobs": [
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D4 7wux",
+    "D5 9fm7",
+    "D6 9gmw_2",
+    "D7 d7_dna_duplex",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "outcome_count"
+   ],
+   "rule": "count floor (C1)",
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": 0,
+    "job": "D2 7r6r outcome_count",
+    "margin": 0.0,
+    "applicable": 9,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0,
+    "job": "D2 7r6r outcome_count",
+    "margin": 0.0,
+    "applicable": 8,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0,
+    "job": "D2 7r6r outcome_count",
+    "margin": 0.0,
+    "applicable": 9,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0,
+    "job": "D2 7r6r outcome_count",
+    "margin": 0.0,
+    "applicable": 9,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0,
+    "job": "D2 7r6r outcome_count",
+    "margin": 0.0,
+    "applicable": 8,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0,
+    "job": "D2 7r6r outcome_count",
+    "margin": 0.0,
+    "applicable": 9,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "p95_error",
+   "limit": 1.0,
+   "limit_badness": 1.0,
+   "direction": "at most",
+   "classes": [
+    "stable"
+   ],
+   "jobs": [
+    "D4 7wux",
+    "D5 9fm7",
+    "D6 9gmw_2",
+    "D7 d7_dna_duplex"
+   ],
+   "members": [
+    "p95_error"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.6,
+   "new:kernel": {
+    "worst": 0.2601362348155365,
+    "job": "D6 9gmw_2 p95_error",
+    "margin": 0.2601362348155365,
+    "applicable": 4,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.28079938627752005,
+    "job": "D6 9gmw_2 p95_error",
+    "margin": 0.28079938627752005,
+    "applicable": 3,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.2572246550148918,
+    "job": "D6 9gmw_2 p95_error",
+    "margin": 0.2572246550148918,
+    "applicable": 4,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.2601362348155457,
+    "job": "D6 9gmw_2 p95_error",
+    "margin": 0.2601362348155457,
+    "applicable": 4,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.2807993862775242,
+    "job": "D6 9gmw_2 p95_error",
+    "margin": 0.2807993862775242,
+    "applicable": 3,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.2572246550148877,
+    "job": "D6 9gmw_2 p95_error",
+    "margin": 0.2572246550148877,
+    "applicable": 4,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "p95_error",
+   "limit": null,
+   "limit_badness": null,
+   "direction": "at most",
+   "classes": [
+    "epitope",
+    "flexible",
+    "low",
+    "stable"
+   ],
+   "jobs": [
+    "D1 synthetic_protein_200",
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D3 1a14_unconstrained",
+    "D8 9lh2_unconstrained",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "p95_error"
+   ],
+   "rule": null,
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 12,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 12,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 11,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 11,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 12,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 12,
+    "fails": []
+   },
+   "binding_new": null
+  },
+  {
+   "gate": "pair_interface_fnat",
+   "limit": 0.55,
+   "limit_badness": 0.44999999999999996,
+   "direction": "at least (deficit from 1 gated)",
+   "classes": [
+    "flexible"
+   ],
+   "jobs": [
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D3 1a14_unconstrained",
+    "D8 9lh2_unconstrained"
+   ],
+   "members": [
+    "pair_interface_fnat"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.6,
+   "new:kernel": {
+    "worst": 0.4392523364485982,
+    "job": "D8 9lh2_unconstrained pair_interface_fnat",
+    "margin": 0.9761163032191071,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.2892156862745098,
+    "job": "D8 9lh2_unconstrained pair_interface_fnat",
+    "margin": 0.6427015250544662,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.29670329670329665,
+    "job": "D11 1a14_contact pair_interface_fnat",
+    "margin": 0.6593406593406593,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.4392523364485982,
+    "job": "D8 9lh2_unconstrained pair_interface_fnat",
+    "margin": 0.9761163032191071,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.37168141592920356,
+    "job": "D3 1a14_unconstrained pair_interface_fnat",
+    "margin": 0.8259587020648969,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.34513274336283184,
+    "job": "D3 1a14_unconstrained pair_interface_fnat",
+    "margin": 0.7669616519174042,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "kernel"
+  },
+  {
+   "gate": "pair_interface_fnat",
+   "limit": 0.7,
+   "limit_badness": 0.30000000000000004,
+   "direction": "at least (deficit from 1 gated)",
+   "classes": [
+    "epitope",
+    "stable"
+   ],
+   "jobs": [
+    "D10 1a14_pocket",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "pair_interface_fnat"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.5,
+   "new:kernel": {
+    "worst": 0.1009174311926605,
+    "job": "D9 1a14_contact pair_interface_fnat",
+    "margin": 0.3363914373088683,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.21818181818181814,
+    "job": "D9 1a14_contact pair_interface_fnat",
+    "margin": 0.7272727272727271,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.08256880733944949,
+    "job": "D9 1a14_contact pair_interface_fnat",
+    "margin": 0.27522935779816493,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.17142857142857137,
+    "job": "D9 1a14_contact pair_interface_fnat",
+    "margin": 0.5714285714285712,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.32692307692307687,
+    "job": "D10 1a14_pocket pair_interface_fnat",
+    "margin": 1.0897435897435894,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": [
+     "D10 1a14_pocket pair_interface_fnat"
+    ]
+   },
+   "old:layernorm": {
+    "worst": 0.1333333333333333,
+    "job": "D9 1a14_contact pair_interface_fnat",
+    "margin": 0.44444444444444425,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "pair_interface_fnat",
+   "limit": 0.9,
+   "limit_badness": 0.09999999999999998,
+   "direction": "at least (deficit from 1 gated)",
+   "classes": [
+    "stable"
+   ],
+   "jobs": [
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D4 7wux",
+    "D5 9fm7",
+    "D7 d7_dna_duplex"
+   ],
+   "members": [
+    "pair_interface_fnat"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.2,
+   "new:kernel": {
+    "worst": 0.08633093525179858,
+    "job": "D15 9muy pair_interface_fnat",
+    "margin": 0.863309352517986,
+    "applicable": 7,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.09420289855072461,
+    "job": "D15 9muy pair_interface_fnat",
+    "margin": 0.9420289855072463,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.05755395683453235,
+    "job": "D15 9muy pair_interface_fnat",
+    "margin": 0.5755395683453236,
+    "applicable": 7,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.08633093525179858,
+    "job": "D15 9muy pair_interface_fnat",
+    "margin": 0.863309352517986,
+    "applicable": 7,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.09420289855072461,
+    "job": "D15 9muy pair_interface_fnat",
+    "margin": 0.9420289855072463,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.05755395683453235,
+    "job": "D15 9muy pair_interface_fnat",
+    "margin": 0.5755395683453236,
+    "applicable": 7,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "pair_interface_fnat",
+   "limit": null,
+   "limit_badness": null,
+   "direction": "at least (deficit from 1 gated)",
+   "classes": [
+    "epitope"
+   ],
+   "jobs": [
+    "D10 1a14_pocket"
+   ],
+   "members": [
+    "pair_interface_fnat"
+   ],
+   "rule": null,
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 1,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 1,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": null
+  },
+  {
+   "gate": "pair_interface_fnonnat",
+   "limit": 0.15,
+   "limit_badness": 0.15,
+   "direction": "at most",
+   "classes": [
+    "stable"
+   ],
+   "jobs": [
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D4 7wux",
+    "D5 9fm7",
+    "D7 d7_dna_duplex"
+   ],
+   "members": [
+    "pair_interface_fnonnat"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.15,
+   "new:kernel": {
+    "worst": 0.050359712230215826,
+    "job": "D15 9muy pair_interface_fnonnat",
+    "margin": 0.33573141486810554,
+    "applicable": 7,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.06015037593984962,
+    "job": "D15 9muy pair_interface_fnonnat",
+    "margin": 0.40100250626566414,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.03007518796992481,
+    "job": "D15 9muy pair_interface_fnonnat",
+    "margin": 0.20050125313283207,
+    "applicable": 7,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.050359712230215826,
+    "job": "D15 9muy pair_interface_fnonnat",
+    "margin": 0.33573141486810554,
+    "applicable": 7,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.06015037593984962,
+    "job": "D15 9muy pair_interface_fnonnat",
+    "margin": 0.40100250626566414,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.03007518796992481,
+    "job": "D15 9muy pair_interface_fnonnat",
+    "margin": 0.20050125313283207,
+    "applicable": 7,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "pair_interface_fnonnat",
+   "limit": 0.4,
+   "limit_badness": 0.4,
+   "direction": "at most",
+   "classes": [
+    "epitope"
+   ],
+   "jobs": [
+    "D10 1a14_pocket"
+   ],
+   "members": [
+    "pair_interface_fnonnat"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.08,
+   "new:kernel": {
+    "worst": 0.019417475728155338,
+    "job": "D10 1a14_pocket pair_interface_fnonnat",
+    "margin": 0.04854368932038834,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.04,
+    "job": "D10 1a14_pocket pair_interface_fnonnat",
+    "margin": 0.09999999999999999,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.36936936936936937,
+    "job": "D10 1a14_pocket pair_interface_fnonnat",
+    "margin": 0.9234234234234234,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.07446808510638298,
+    "job": "D10 1a14_pocket pair_interface_fnonnat",
+    "margin": 0.18617021276595744,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "pair_interface_fnonnat",
+   "limit": 0.6,
+   "limit_badness": 0.6,
+   "direction": "at most",
+   "classes": [
+    "stable"
+   ],
+   "jobs": [
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "pair_interface_fnonnat"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.3,
+   "new:kernel": {
+    "worst": 0.12264150943396226,
+    "job": "D9 1a14_contact pair_interface_fnonnat",
+    "margin": 0.20440251572327045,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.1391304347826087,
+    "job": "D9 1a14_contact pair_interface_fnonnat",
+    "margin": 0.2318840579710145,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.1391304347826087,
+    "job": "D9 1a14_contact pair_interface_fnonnat",
+    "margin": 0.2318840579710145,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.16346153846153846,
+    "job": "D9 1a14_contact pair_interface_fnonnat",
+    "margin": 0.27243589743589747,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.15178571428571427,
+    "job": "D9 1a14_contact pair_interface_fnonnat",
+    "margin": 0.25297619047619047,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.09,
+    "job": "D9 1a14_contact pair_interface_fnonnat",
+    "margin": 0.15,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "pair_interface_fnonnat",
+   "limit": 0.8,
+   "limit_badness": 0.8,
+   "direction": "at most",
+   "classes": [
+    "flexible"
+   ],
+   "jobs": [
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D3 1a14_unconstrained",
+    "D8 9lh2_unconstrained"
+   ],
+   "members": [
+    "pair_interface_fnonnat"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.8,
+   "new:kernel": {
+    "worst": 0.42028985507246375,
+    "job": "D8 9lh2_unconstrained pair_interface_fnonnat",
+    "margin": 0.5253623188405796,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.31155778894472363,
+    "job": "D8 9lh2_unconstrained pair_interface_fnonnat",
+    "margin": 0.38944723618090454,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.2857142857142857,
+    "job": "D12 1a14_contact pair_interface_fnonnat",
+    "margin": 0.3571428571428571,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.42028985507246375,
+    "job": "D8 9lh2_unconstrained pair_interface_fnonnat",
+    "margin": 0.5253623188405796,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.31155778894472363,
+    "job": "D8 9lh2_unconstrained pair_interface_fnonnat",
+    "margin": 0.38944723618090454,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.308411214953271,
+    "job": "D3 1a14_unconstrained pair_interface_fnonnat",
+    "margin": 0.38551401869158874,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "kernel"
+  },
+  {
+   "gate": "pair_interface_fnonnat",
+   "limit": null,
+   "limit_badness": null,
+   "direction": "at most",
+   "classes": [
+    "epitope"
+   ],
+   "jobs": [
+    "D10 1a14_pocket"
+   ],
+   "members": [
+    "pair_interface_fnonnat"
+   ],
+   "rule": null,
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 1,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 1,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": null
+  },
+  {
+   "gate": "ranking_score",
+   "limit": 0.01,
+   "limit_badness": 0.01,
+   "direction": "at most",
+   "classes": [
+    "low",
+    "stable"
+   ],
+   "jobs": [
+    "D1 synthetic_protein_200",
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D4 7wux",
+    "D5 9fm7",
+    "D6 9gmw_2",
+    "D7 d7_dna_duplex"
+   ],
+   "members": [
+    "ranking_score"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.01,
+   "new:kernel": {
+    "worst": 0.0005925297737121582,
+    "job": "D7 d7_dna_duplex ranking_score",
+    "margin": 0.05925297737121582,
+    "applicable": 9,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.004274845123291016,
+    "job": "D5 9fm7 ranking_score",
+    "margin": 0.42748451232910156,
+    "applicable": 8,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.0007668733596801758,
+    "job": "D7 d7_dna_duplex ranking_score",
+    "margin": 0.07668733596801758,
+    "applicable": 9,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.0005925297737121582,
+    "job": "D7 d7_dna_duplex ranking_score",
+    "margin": 0.05925297737121582,
+    "applicable": 9,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.004274845123291016,
+    "job": "D5 9fm7 ranking_score",
+    "margin": 0.42748451232910156,
+    "applicable": 8,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.0007668733596801758,
+    "job": "D7 d7_dna_duplex ranking_score",
+    "margin": 0.07668733596801758,
+    "applicable": 9,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "ranking_score",
+   "limit": 0.05,
+   "limit_badness": 0.05,
+   "direction": "at most",
+   "classes": [
+    "stable"
+   ],
+   "jobs": [
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "ranking_score"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.03,
+   "new:kernel": {
+    "worst": 0.00541841983795166,
+    "job": "D9 1a14_contact ranking_score",
+    "margin": 0.1083683967590332,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.014972507953643799,
+    "job": "D9 1a14_contact ranking_score",
+    "margin": 0.299450159072876,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.009365618228912354,
+    "job": "D9 1a14_contact ranking_score",
+    "margin": 0.18731236457824707,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.014963746070861816,
+    "job": "D9 1a14_contact ranking_score",
+    "margin": 0.29927492141723633,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.01922154426574707,
+    "job": "D9 1a14_contact ranking_score",
+    "margin": 0.3844308853149414,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.003214716911315918,
+    "job": "D9 1a14_contact ranking_score",
+    "margin": 0.06429433822631836,
+    "applicable": 1,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "ranking_score",
+   "limit": 0.1,
+   "limit_badness": 0.1,
+   "direction": "at most",
+   "classes": [
+    "epitope",
+    "flexible"
+   ],
+   "jobs": [
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D3 1a14_unconstrained",
+    "D8 9lh2_unconstrained"
+   ],
+   "members": [
+    "ranking_score"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.15,
+   "new:kernel": {
+    "worst": 0.059581756591796875,
+    "job": "D8 9lh2_unconstrained ranking_score",
+    "margin": 0.5958175659179688,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.07380035519599915,
+    "job": "D8 9lh2_unconstrained ranking_score",
+    "margin": 0.7380035519599915,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.032776832580566406,
+    "job": "D12 1a14_contact ranking_score",
+    "margin": 0.32776832580566406,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.059581756591796875,
+    "job": "D8 9lh2_unconstrained ranking_score",
+    "margin": 0.5958175659179688,
+    "applicable": 5,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.07380035519599915,
+    "job": "D8 9lh2_unconstrained ranking_score",
+    "margin": 0.7380035519599915,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.020509421825408936,
+    "job": "D3 1a14_unconstrained ranking_score",
+    "margin": 0.20509421825408936,
+    "applicable": 6,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  },
+  {
+   "gate": "ranking_score",
+   "limit": null,
+   "limit_badness": null,
+   "direction": "at most",
+   "classes": [
+    "epitope"
+   ],
+   "jobs": [
+    "D10 1a14_pocket"
+   ],
+   "members": [
+    "ranking_score"
+   ],
+   "rule": null,
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 1,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 1,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": null
+  },
+  {
+   "gate": "spread_same_seed_cand",
+   "limit": null,
+   "limit_badness": null,
+   "direction": "at most",
+   "classes": [
+    "epitope",
+    "flexible",
+    "low",
+    "stable"
+   ],
+   "jobs": [
+    "D1 synthetic_protein_200",
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D3 1a14_unconstrained",
+    "D4 7wux",
+    "D5 9fm7",
+    "D6 9gmw_2",
+    "D7 d7_dna_duplex",
+    "D8 9lh2_unconstrained",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "spread_same_seed_cand"
+   ],
+   "rule": null,
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 16,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 15,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 16,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 16,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 15,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 16,
+    "fails": []
+   },
+   "binding_new": null
+  },
+  {
+   "gate": "spread_same_seed_off",
+   "limit": null,
+   "limit_badness": null,
+   "direction": "at most",
+   "classes": [
+    "epitope",
+    "flexible",
+    "low",
+    "stable"
+   ],
+   "jobs": [
+    "D1 synthetic_protein_200",
+    "D10 1a14_pocket",
+    "D11 1a14_contact",
+    "D12 1a14_contact",
+    "D13 1a14_unconstrained",
+    "D13 7r6r",
+    "D14 6e4y",
+    "D15 9muy",
+    "D2 7r6r",
+    "D3 1a14_unconstrained",
+    "D4 7wux",
+    "D5 9fm7",
+    "D6 9gmw_2",
+    "D7 d7_dna_duplex",
+    "D8 9lh2_unconstrained",
+    "D9 1a14_contact"
+   ],
+   "members": [
+    "spread_same_seed_off"
+   ],
+   "rule": null,
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 16,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 15,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 16,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 16,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 15,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 16,
+    "fails": []
+   },
+   "binding_new": null
+  },
+  {
+   "gate": "zn_claim",
+   "limit": null,
+   "limit_badness": null,
+   "direction": "at most",
+   "classes": [
+    "stable"
+   ],
+   "jobs": [
+    "D14 6e4y",
+    "D15 9muy"
+   ],
+   "members": [
+    "zn_claim"
+   ],
+   "rule": null,
+   "precision_only_2P": null,
+   "new:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 2,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 2,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 2,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 2,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 2,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": null,
+    "job": null,
+    "margin": null,
+    "applicable": 0,
+    "not_applicable": 2,
+    "fails": []
+   },
+   "binding_new": null
+  },
+  {
+   "gate": "zn_same_site",
+   "limit": 0.85,
+   "limit_badness": 0.15000000000000002,
+   "direction": "at least (deficit from 1 gated)",
+   "classes": [
+    "stable"
+   ],
+   "jobs": [
+    "D14 6e4y",
+    "D15 9muy"
+   ],
+   "members": [
+    "zn_same_site"
+   ],
+   "rule": null,
+   "precision_only_2P": 0.15,
+   "new:kernel": {
+    "worst": 0.02564102564102566,
+    "job": "D14 6e4y zn_same_site",
+    "margin": 0.17094017094017105,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:precision": {
+    "worst": 0.05128205128205132,
+    "job": "D14 6e4y zn_same_site",
+    "margin": 0.3418803418803421,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "new:layernorm": {
+    "worst": 0.0,
+    "job": "D14 6e4y zn_same_site",
+    "margin": 0.0,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:kernel": {
+    "worst": 0.02564102564102566,
+    "job": "D14 6e4y zn_same_site",
+    "margin": 0.17094017094017105,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:precision": {
+    "worst": 0.05128205128205132,
+    "job": "D14 6e4y zn_same_site",
+    "margin": 0.3418803418803421,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "old:layernorm": {
+    "worst": 0.0,
+    "job": "D14 6e4y zn_same_site",
+    "margin": 0.0,
+    "applicable": 2,
+    "not_applicable": 0,
+    "fails": []
+   },
+   "binding_new": "precision"
+  }
+ ],
+ "controls": {
+  "displaced": [
+   {
+    "job": "D2 7r6r",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_dna",
+     "pair_interface_fnat",
+     "pair_interface_fnonnat",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_dna_median",
+     "ensemble_ref_lddt_dna_lowest",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_contact_frequency"
+    ],
+    "failed_families": [
+     "ensemble_contact_frequency",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer",
+     "pair_interface_fnat",
+     "pair_interface_fnonnat"
+    ]
+   },
+   {
+    "job": "D3 1a14_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median"
+    ],
+    "failed_families": [
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D4 7wux",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_spread_ratio",
+     "ensemble_contact_frequency"
+    ],
+    "failed_families": [
+     "ensemble_contact_frequency",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_spread_ratio",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D5 9fm7",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_spread_ratio",
+     "ensemble_contact_frequency"
+    ],
+    "failed_families": [
+     "ensemble_contact_frequency",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_spread_ratio",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D7 d7_dna_duplex",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_spread_ratio",
+     "ensemble_contact_frequency"
+    ],
+    "failed_families": [
+     "ensemble_contact_frequency",
+     "ensemble_spread_ratio",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D8 9lh2_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count"
+    ],
+    "failed_families": [
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D9 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "guidance_contacts",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_spread_ratio",
+     "ensemble_contact_frequency"
+    ],
+    "failed_families": [
+     "ensemble_contact_frequency",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_spread_ratio",
+     "guidance_contacts",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D10 1a14_pocket",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median"
+    ],
+    "failed_families": [
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median"
+    ]
+   },
+   {
+    "job": "D11 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "guidance_contact_mean",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median"
+    ],
+    "failed_families": [
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "guidance_contact_mean",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D12 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "guidance_contact_mean",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median"
+    ],
+    "failed_families": [
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "guidance_contact_mean",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D13 7r6r",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_dna",
+     "pair_interface_fnat",
+     "pair_interface_fnonnat",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_dna_median",
+     "ensemble_ref_lddt_dna_lowest",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_contact_frequency"
+    ],
+    "failed_families": [
+     "ensemble_contact_frequency",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer",
+     "pair_interface_fnat",
+     "pair_interface_fnonnat"
+    ]
+   },
+   {
+    "job": "D13 1a14_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median"
+    ],
+    "failed_families": [
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "outcome_count"
+    ]
+   }
+  ],
+  "hinge": [
+   {
+    "job": "D1 synthetic_protein_200",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_spread_ratio"
+    ],
+    "failed_families": [
+     "ensemble_spread_ratio",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D2 7r6r",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "lddt_polymer",
+     "lddt_protein",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_spread_ratio"
+    ],
+    "failed_families": [
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_spread_ratio",
+     "lddt_polymer",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D3 1a14_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_protein",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest"
+    ],
+    "failed_families": [
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer"
+    ]
+   },
+   {
+    "job": "D4 7wux",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "lddt_polymer",
+     "lddt_protein",
+     "p95_error",
+     "pair_interface_fnat",
+     "pair_interface_fnonnat",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_contact_frequency"
+    ],
+    "failed_families": [
+     "ensemble_contact_frequency",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer",
+     "outcome_count",
+     "p95_error",
+     "pair_interface_fnat",
+     "pair_interface_fnonnat"
+    ]
+   },
+   {
+    "job": "D5 9fm7",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "lddt_polymer",
+     "lddt_protein",
+     "p95_error",
+     "pair_interface_fnat",
+     "pair_interface_fnonnat",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_spread_ratio",
+     "ensemble_contact_frequency"
+    ],
+    "failed_families": [
+     "ensemble_contact_frequency",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_spread_ratio",
+     "lddt_polymer",
+     "outcome_count",
+     "p95_error",
+     "pair_interface_fnat",
+     "pair_interface_fnonnat"
+    ]
+   },
+   {
+    "job": "D6 9gmw_2",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_rna_median",
+     "ensemble_ref_lddt_rna_lowest",
+     "ensemble_spread_ratio"
+    ],
+    "failed_families": [
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_spread_ratio",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D7 d7_dna_duplex",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_dna",
+     "p95_error",
+     "pair_interface_fnat",
+     "ensemble_spread_ratio"
+    ],
+    "failed_families": [
+     "ensemble_spread_ratio",
+     "lddt_polymer",
+     "p95_error",
+     "pair_interface_fnat"
+    ]
+   },
+   {
+    "job": "D8 9lh2_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest"
+    ],
+    "failed_families": [
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D9 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "lddt_polymer",
+     "lddt_protein",
+     "guidance_contacts",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_spread_ratio",
+     "ensemble_contact_frequency"
+    ],
+    "failed_families": [
+     "ensemble_contact_frequency",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_spread_ratio",
+     "guidance_contacts",
+     "lddt_polymer",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D10 1a14_pocket",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_protein",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnonnat_median"
+    ],
+    "failed_families": [
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer"
+    ]
+   },
+   {
+    "job": "D11 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "lddt_polymer",
+     "lddt_protein",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest"
+    ],
+    "failed_families": [
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D12 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "lddt_polymer",
+     "lddt_protein",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest"
+    ],
+    "failed_families": [
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D13 7r6r",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "lddt_polymer",
+     "lddt_protein",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_spread_ratio"
+    ],
+    "failed_families": [
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_spread_ratio",
+     "lddt_polymer",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D13 1a14_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_protein",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest"
+    ],
+    "failed_families": [
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer"
+    ]
+   }
+  ],
+  "jitter": [
+   {
+    "job": "D1 synthetic_protein_200",
+    "pass": true,
+    "failed_gates": [],
+    "failed_families": []
+   },
+   {
+    "job": "D2 7r6r",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_dna",
+     "lddt_protein",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_dna_median",
+     "ensemble_ref_lddt_dna_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnonnat_median"
+    ],
+    "failed_families": [
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer"
+    ]
+   },
+   {
+    "job": "D3 1a14_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_protein",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest"
+    ],
+    "failed_families": [
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer"
+    ]
+   },
+   {
+    "job": "D4 7wux",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_protein",
+     "p95_error",
+     "pair_interface_fnonnat",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_contact_frequency"
+    ],
+    "failed_families": [
+     "ensemble_contact_frequency",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer",
+     "p95_error",
+     "pair_interface_fnonnat"
+    ]
+   },
+   {
+    "job": "D5 9fm7",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_protein",
+     "p95_error",
+     "pair_interface_fnonnat",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_spread_ratio",
+     "ensemble_contact_frequency"
+    ],
+    "failed_families": [
+     "ensemble_contact_frequency",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_spread_ratio",
+     "lddt_polymer",
+     "p95_error",
+     "pair_interface_fnonnat"
+    ]
+   },
+   {
+    "job": "D6 9gmw_2",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_rna",
+     "p95_error",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_rna_median",
+     "ensemble_ref_lddt_rna_lowest"
+    ],
+    "failed_families": [
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer",
+     "p95_error"
+    ]
+   },
+   {
+    "job": "D7 d7_dna_duplex",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_dna",
+     "p95_error",
+     "ensemble_spread_ratio"
+    ],
+    "failed_families": [
+     "ensemble_spread_ratio",
+     "lddt_polymer",
+     "p95_error"
+    ]
+   },
+   {
+    "job": "D8 9lh2_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_protein",
+     "ligand_pocket",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest"
+    ],
+    "failed_families": [
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer",
+     "ligand_pocket"
+    ]
+   },
+   {
+    "job": "D9 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_protein",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_spread_ratio",
+     "ensemble_contact_frequency"
+    ],
+    "failed_families": [
+     "ensemble_contact_frequency",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_spread_ratio",
+     "lddt_polymer"
+    ]
+   },
+   {
+    "job": "D10 1a14_pocket",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_protein",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnonnat_median"
+    ],
+    "failed_families": [
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer"
+    ]
+   },
+   {
+    "job": "D11 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_protein",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnonnat_median"
+    ],
+    "failed_families": [
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer"
+    ]
+   },
+   {
+    "job": "D12 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_protein",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnonnat_median"
+    ],
+    "failed_families": [
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer"
+    ]
+   },
+   {
+    "job": "D13 7r6r",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_dna",
+     "lddt_protein",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_dna_median",
+     "ensemble_ref_lddt_dna_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnonnat_median"
+    ],
+    "failed_families": [
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer"
+    ]
+   },
+   {
+    "job": "D13 1a14_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "lddt_polymer",
+     "lddt_protein",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest"
+    ],
+    "failed_families": [
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer"
+    ]
+   }
+  ],
+  "collapsed": [
+   {
+    "job": "D1 synthetic_protein_200",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_spread_ratio",
+     "no_duplicate_samples",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_spread_ratio",
+     "no_duplicate_samples",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D2 7r6r",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_spread_ratio",
+     "no_duplicate_samples",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_spread_ratio",
+     "no_duplicate_samples",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D3 1a14_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "no_duplicate_samples",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "no_duplicate_samples"
+    ]
+   },
+   {
+    "job": "D4 7wux",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "no_duplicate_samples",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "no_duplicate_samples",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D5 9fm7",
+    "pass": false,
+    "failed_gates": [
+     "p95_error",
+     "ensemble_spread_ratio",
+     "no_duplicate_samples",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_spread_ratio",
+     "no_duplicate_samples",
+     "p95_error"
+    ]
+   },
+   {
+    "job": "D6 9gmw_2",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "lddt_polymer",
+     "lddt_rna",
+     "p95_error",
+     "no_duplicate_samples",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "lddt_polymer",
+     "no_duplicate_samples",
+     "outcome_count",
+     "p95_error"
+    ]
+   },
+   {
+    "job": "D7 d7_dna_duplex",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_spread_ratio",
+     "no_duplicate_samples",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_spread_ratio",
+     "no_duplicate_samples"
+    ]
+   },
+   {
+    "job": "D8 9lh2_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_protein_median",
+     "no_duplicate_samples",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_lddt_polymer_median",
+     "no_duplicate_samples"
+    ]
+   },
+   {
+    "job": "D9 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_ref_fnat_min_pair_median",
+     "no_duplicate_samples",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_fnat_min_pair_median",
+     "no_duplicate_samples"
+    ]
+   },
+   {
+    "job": "D10 1a14_pocket",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_ref_fnonnat_median",
+     "no_duplicate_samples",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_fnonnat_median",
+     "no_duplicate_samples"
+    ]
+   },
+   {
+    "job": "D11 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_spread_ratio",
+     "no_duplicate_samples",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_spread_ratio",
+     "no_duplicate_samples"
+    ]
+   },
+   {
+    "job": "D12 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_ref_fnat_median",
+     "no_duplicate_samples",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_fnat_median",
+     "no_duplicate_samples"
+    ]
+   },
+   {
+    "job": "D13 7r6r",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_spread_ratio",
+     "no_duplicate_samples",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_spread_ratio",
+     "no_duplicate_samples",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D13 1a14_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "no_duplicate_samples",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "no_duplicate_samples"
+    ]
+   }
+  ],
+  "ligand_out": [
+   {
+    "job": "D4 7wux",
+    "pass": false,
+    "failed_gates": [
+     "ligand_rmsd",
+     "ligand_pocket"
+    ],
+    "failed_families": [
+     "ligand_pocket",
+     "ligand_rmsd"
+    ]
+   },
+   {
+    "job": "D5 9fm7",
+    "pass": false,
+    "failed_gates": [
+     "ligand_rmsd",
+     "ligand_pocket"
+    ],
+    "failed_families": [
+     "ligand_pocket",
+     "ligand_rmsd"
+    ]
+   },
+   {
+    "job": "D8 9lh2_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "ligand_rmsd",
+     "ligand_pocket"
+    ],
+    "failed_families": [
+     "ligand_pocket",
+     "ligand_rmsd"
+    ]
+   }
+  ],
+  "no_guidance": [
+   {
+    "job": "D9 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ranking_score",
+     "guidance_contacts",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_spread_ratio",
+     "ensemble_contact_frequency"
+    ],
+    "failed_families": [
+     "ensemble_contact_frequency",
+     "ensemble_ref_fnat_median",
+     "ensemble_ref_fnat_min_pair_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_spread_ratio",
+     "guidance_contacts",
+     "outcome_count",
+     "ranking_score"
+    ]
+   },
+   {
+    "job": "D10 1a14_pocket",
+    "pass": false,
+    "failed_gates": [
+     "guidance_epitope",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_contact_frequency"
+    ],
+    "failed_families": [
+     "ensemble_contact_frequency",
+     "ensemble_ref_fnonnat_median",
+     "guidance_epitope"
+    ]
+   },
+   {
+    "job": "D12 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "guidance_contact_mean"
+    ],
+    "failed_families": [
+     "guidance_contact_mean"
+    ]
+   }
+  ],
+  "zn_moved": [
+   {
+    "job": "D14 6e4y",
+    "pass": false,
+    "failed_gates": [
+     "zn_same_site"
+    ],
+    "failed_families": [
+     "zn_same_site"
+    ]
+   },
+   {
+    "job": "D15 9muy",
+    "pass": false,
+    "failed_gates": [
+     "zn_same_site"
+    ],
+    "failed_families": [
+     "zn_same_site"
+    ]
+   }
+  ],
+  "zn_wrong_site": [
+   {
+    "job": "D14 6e4y",
+    "pass": false,
+    "failed_gates": [
+     "zn_same_site"
+    ],
+    "failed_families": [
+     "zn_same_site"
+    ]
+   },
+   {
+    "job": "D15 9muy",
+    "pass": false,
+    "failed_gates": [
+     "zn_same_site"
+    ],
+    "failed_families": [
+     "zn_same_site"
+    ]
+   }
+  ],
+  "partial_01": [
+   {
+    "job": "D1 synthetic_protein_200",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_spread_ratio",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_spread_ratio",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D2 7r6r",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_spread_ratio",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_spread_ratio",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D3 1a14_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates"
+    ]
+   },
+   {
+    "job": "D4 7wux",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D5 9fm7",
+    "pass": false,
+    "failed_gates": [
+     "p95_error",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_spread_ratio",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_spread_ratio",
+     "p95_error"
+    ]
+   },
+   {
+    "job": "D6 9gmw_2",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "lddt_polymer",
+     "lddt_rna",
+     "p95_error",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "lddt_polymer",
+     "outcome_count",
+     "p95_error"
+    ]
+   },
+   {
+    "job": "D8 9lh2_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates"
+    ]
+   },
+   {
+    "job": "D9 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates"
+    ]
+   },
+   {
+    "job": "D10 1a14_pocket",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates"
+    ]
+   },
+   {
+    "job": "D11 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_spread_ratio",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_spread_ratio"
+    ]
+   },
+   {
+    "job": "D12 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates"
+    ]
+   },
+   {
+    "job": "D13 7r6r",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_spread_ratio",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_spread_ratio",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D13 1a14_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates"
+    ]
+   },
+   {
+    "job": "D14 6e4y",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_spread_ratio",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_spread_ratio"
+    ]
+   },
+   {
+    "job": "D15 9muy",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "pair_interface_fnat",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "outcome_count",
+     "pair_interface_fnat"
+    ]
+   }
+  ],
+  "partial_half": [
+   {
+    "job": "D1 synthetic_protein_200",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_spread_ratio",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_spread_ratio",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D2 7r6r",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_dna_median",
+     "ensemble_ref_lddt_dna_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_spread_ratio",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_spread_ratio",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D3 1a14_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_lddt_polymer_median"
+    ]
+   },
+   {
+    "job": "D4 7wux",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D5 9fm7",
+    "pass": false,
+    "failed_gates": [
+     "p95_error",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_spread_ratio",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_spread_ratio",
+     "p95_error"
+    ]
+   },
+   {
+    "job": "D6 9gmw_2",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "lddt_polymer",
+     "lddt_rna",
+     "p95_error",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_rna_median",
+     "ensemble_ref_lddt_rna_lowest",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "lddt_polymer",
+     "outcome_count",
+     "p95_error"
+    ]
+   },
+   {
+    "job": "D8 9lh2_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median"
+    ]
+   },
+   {
+    "job": "D9 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates"
+    ]
+   },
+   {
+    "job": "D10 1a14_pocket",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_fnonnat_median",
+     "ensemble_ref_lddt_polymer_median"
+    ]
+   },
+   {
+    "job": "D11 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_spread_ratio",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_spread_ratio"
+    ]
+   },
+   {
+    "job": "D12 1a14_contact",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_lddt_polymer_median"
+    ]
+   },
+   {
+    "job": "D13 7r6r",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_dna_median",
+     "ensemble_ref_lddt_dna_lowest",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_ref_lddt_protein_lowest",
+     "ensemble_spread_ratio",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_lddt_polymer_lowest",
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_spread_ratio",
+     "outcome_count"
+    ]
+   },
+   {
+    "job": "D13 1a14_unconstrained",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_ref_lddt_polymer_median",
+     "ensemble_ref_lddt_protein_median",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_ref_lddt_polymer_median"
+    ]
+   },
+   {
+    "job": "D14 6e4y",
+    "pass": false,
+    "failed_gates": [
+     "ensemble_spread_ratio",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "ensemble_spread_ratio"
+    ]
+   },
+   {
+    "job": "D15 9muy",
+    "pass": false,
+    "failed_gates": [
+     "outcome_count",
+     "pair_interface_fnat",
+     "ensemble_near_duplicates"
+    ],
+    "failed_families": [
+     "ensemble_near_duplicates",
+     "outcome_count",
+     "pair_interface_fnat"
+    ]
+   }
+  ]
+ }
+}

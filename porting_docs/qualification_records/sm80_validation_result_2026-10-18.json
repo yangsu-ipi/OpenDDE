@@ -1,0 +1,88 @@
+{
+ "contrast": "predeclared sm_80 validation contrast (--deterministic false), runs/val-2026-10-17/contrast, paired with job 320 off",
+ "limits": "porting_docs/qualification_records/sm80_proposed_tier2_limits_2026-10-18.json sha256 7b87ad3e2cd838a366ae59ef6b728240dc11dc0e7ea644d6af3336a9f635413a",
+ "evaluation_job": 333,
+ "zn_claim": "qualified",
+ "jobs": [
+  {
+   "job": "D1 synthetic_protein_200",
+   "pass": true,
+   "failed": []
+  },
+  {
+   "job": "D2 7r6r",
+   "pass": true,
+   "failed": []
+  },
+  {
+   "job": "D3 1a14_unconstrained",
+   "pass": true,
+   "failed": []
+  },
+  {
+   "job": "D4 7wux",
+   "pass": true,
+   "failed": []
+  },
+  {
+   "job": "D5 9fm7",
+   "pass": true,
+   "failed": []
+  },
+  {
+   "job": "D6 9gmw_2",
+   "pass": true,
+   "failed": []
+  },
+  {
+   "job": "D7 d7_dna_duplex",
+   "pass": true,
+   "failed": []
+  },
+  {
+   "job": "D8 9lh2_unconstrained",
+   "pass": true,
+   "failed": []
+  },
+  {
+   "job": "D9 1a14_contact",
+   "pass": true,
+   "failed": []
+  },
+  {
+   "job": "D10 1a14_pocket",
+   "pass": true,
+   "failed": []
+  },
+  {
+   "job": "D11 1a14_contact",
+   "pass": true,
+   "failed": []
+  },
+  {
+   "job": "D12 1a14_contact",
+   "pass": true,
+   "failed": []
+  },
+  {
+   "job": "D13 7r6r",
+   "pass": true,
+   "failed": []
+  },
+  {
+   "job": "D13 1a14_unconstrained",
+   "pass": true,
+   "failed": []
+  },
+  {
+   "job": "D14 6e4y",
+   "pass": true,
+   "failed": []
+  },
+  {
+   "job": "D15 9muy",
+   "pass": true,
+   "failed": []
+  }
+ ]
+}
