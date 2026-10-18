@@ -163,6 +163,7 @@ def test_explicit_kernel_options_keep_the_stock_kernels():
     configs.explicit_options = ["triatt_kernel", "dtype"]
     plan = opt.build_optimization_plan(configs, device=None)
     assert not plan.enabled("triattn_k2b") and not plan.enabled("triattn_exact")
+    assert not plan.enabled("triattn_native")
     assert plan.decisions["triattn_k2b"].reason == "explicit triatt_kernel"
     assert plan.decisions["triattn_exact"].reason == "explicit triatt_kernel"
     assert plan.enabled("trimul_triton") and plan.enabled("transition_triton")
@@ -179,6 +180,7 @@ def test_fast_runs_exact_plus_the_fast_only_kernels():
     fast = opt.build_optimization_plan(configs, device=None)
     assert not exact.enabled("triattn_k2b") and fast.enabled("triattn_k2b")
     assert exact.enabled("triattn_exact")
+    assert not exact.enabled("triattn_native") and fast.enabled("triattn_native")
     for name in opt.OPTIMIZATIONS:
         if exact.enabled(name):
             assert fast.enabled(name), name

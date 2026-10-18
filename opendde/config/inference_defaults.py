@@ -53,5 +53,6 @@ inference_configs: dict[str, Any] = {
         "transition_triton": True,
         "triattn_exact": True,
         "triattn_k2b": True,
+        "triattn_native": True,
     },
 }

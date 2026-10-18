@@ -384,6 +384,7 @@ class OpenDDE(nn.Module):
         use_transition = optimization_enabled(configs, "transition_triton")
         use_triattn_exact = optimization_enabled(configs, "triattn_exact")
         use_triattn = optimization_enabled(configs, "triattn_k2b")
+        use_triattn_native = optimization_enabled(configs, "triattn_native")
         for module in self.modules():
             if isinstance(module, TriangleMultiplicativeUpdate):
                 module.use_triton_kernel = use_trimul
@@ -392,6 +393,7 @@ class OpenDDE(nn.Module):
             elif isinstance(module, TriangleAttention):
                 module.mha.use_exact_kernel = use_triattn_exact
                 module.mha.use_triton_kernel = use_triattn
+                module.mha.use_native_kernel = use_triattn_native
 
     @staticmethod
     def _maybe_foldcp_mesh() -> Optional[FoldCPProcessMesh]:

@@ -17,6 +17,9 @@ opendde/model/optimized/triattn_exact.py and csrc/triattn_v3.cu reproduce the
 results of cuEquivariance's triangle_attention; they were written against its
 observable numerics and contain no cuEquivariance source.
 
+opendde/model/optimized/triattn_native.py and csrc/triattn_sm80/ are the
+kit's triattn_native (v11) sm_80 member, trimmed to head dimension 32.
+
 opendde/model/optimized/transition.py follows the arithmetic of OpenDDE's
 own Transition module, itself derived from Protenix (Apache License 2.0).
 

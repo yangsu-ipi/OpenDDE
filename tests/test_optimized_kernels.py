@@ -392,3 +392,99 @@ def test_triattn_exact_small_calls_run_the_stock_kernel():
     )
     assert torch.equal(exact, stock)
     assert ("triattn_exact", "150 tokens outside 192-2047") in dispatch._LOGGED
+
+
+# ----------------------------------------------------------- triattn_native
+
+
+def test_triattn_native_row_is_a100_only(monkeypatch):
+    monkeypatch.setattr(torch.cuda, "get_device_capability", lambda index: (8, 0))
+    monkeypatch.setattr(
+        torch.cuda, "get_device_name", lambda index: "NVIDIA A100-SXM4-80GB"
+    )
+    stack = {"torch": "2.7.1+cu128", "triton": None, "cuequivariance_ops": None}
+    monkeypatch.setattr(dispatch, "_stack", lambda: stack)
+    cuda = torch.device("cuda", 0)
+    assert dispatch.available("triattn_native", cuda)
+    for capability in ((12, 0), (9, 0)):
+        dispatch._row_reason.cache_clear()
+        monkeypatch.setattr(
+            torch.cuda, "get_device_capability", lambda index, c=capability: c
+        )
+        assert not dispatch.available("triattn_native", cuda)
+
+
+def test_triattn_native_skips_ineligible_calls():
+    from opendde.model.optimized import triattn_native as TN
+
+    q = torch.zeros(4, 4, 256, 32)
+    biases = [torch.zeros(4, 1, 1, 256), torch.zeros(1, 4, 256, 256)]
+    with torch.no_grad():
+        assert TN.serve(q, q, q, biases, 32) is None
+    with torch.enable_grad():
+        assert TN.serve(q, q, q, biases, 32) is None
+    assert ("triattn_native", "autograd enabled") in dispatch._LOGGED
+    assert ("triattn_native", "not under bf16 autocast") in dispatch._LOGGED
+
+
+def _native_row():
+    if not _gpu_row("triattn_native"):
+        pytest.skip("no measured triattn_native row on this machine")
+    from opendde.model.optimized import triattn_exact as TE
+
+    if TE._toolchain_reason() is not None:
+        pytest.skip(TE._toolchain_reason())
+
+
+def _stock_and_native(module, call, exact=False):
+    with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
+        module.use_native_kernel = module.use_exact_kernel = False
+        stock = call()
+        module.use_native_kernel = True
+        module.use_exact_kernel = exact
+        fast = call()
+        again = call()
+    return stock, fast, again
+
+
+@pytest.mark.parametrize(
+    "n, chunk", [(192, None), (300, None), (517, None), (1001, None), (1218, 512)]
+)
+@pytest.mark.parametrize("mask_kind", ["ones", "pad"])
+def test_triattn_native_matches_stock_accuracy_and_repeats(n, chunk, mask_kind):
+    _native_row()
+    from opendde.model.triangular.triangular import TriangleAttention
+
+    module = _randomized(TriangleAttention(c_in=384, c_hidden=32, no_heads=12)).cuda()
+    g = torch.Generator(device="cuda").manual_seed(n)
+    z = torch.randn(n, n, 384, device="cuda", generator=g).to(torch.bfloat16)
+    mask = _pad_mask(n) if mask_kind == "pad" else torch.ones(n, n, device="cuda")
+
+    def call():
+        return module(
+            z, mask=mask, triangle_attention="cuequivariance", chunk_size=chunk
+        )
+
+    stock, fast, again = _stock_and_native(module.mha, call)
+    with torch.no_grad():
+        ref = module(z.float(), mask=mask, triangle_attention="torch", chunk_size=32)
+    assert fast.dtype == stock.dtype and fast.shape == stock.shape
+    assert torch.isfinite(fast).all()
+    assert torch.equal(fast, again)
+    assert not torch.equal(fast, stock)  # the kernel did run
+    # Kernel benchmark on A100 (2026-10-18): 1.03-1.06x stock's relative error.
+    assert _rel(fast, ref) <= 1.10 * _rel(stock, ref)
+    assert (fast.float() - ref).abs().max() <= 1.5 * (stock.float() - ref).abs().max()
+
+
+def test_triattn_native_small_calls_fall_through_to_exact():
+    _native_row()
+    from opendde.model.triangular.triangular import TriangleAttention
+
+    module = _randomized(TriangleAttention(c_in=384, c_hidden=32, no_heads=12)).cuda()
+    z = torch.randn(150, 150, 384, device="cuda").to(torch.bfloat16)
+    stock, fast, _ = _stock_and_native(
+        module.mha, lambda: module(z, triangle_attention="cuequivariance"), exact=True
+    )
+    assert torch.equal(fast, stock)  # 150 tokens: below both kernels' rows
+    assert ("triattn_native", "150 tokens outside 192-2047") in dispatch._LOGGED

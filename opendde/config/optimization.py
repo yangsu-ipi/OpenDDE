@@ -100,6 +100,10 @@ OPTIMIZATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
         # place of cuEquivariance's (rounding differs; error against fp32 as
         # stock's) on the rows of opendde.model.optimized.dispatch.
         "triattn_k2b": FAST_AND_ABOVE,
+        # Triangle attention on A100: the kit's sm_80 CUDA kernel in place of
+        # cuEquivariance's (rounding differs; error against fp32 as stock's) on
+        # the rows of opendde.model.optimized.dispatch.
+        "triattn_native": FAST_AND_ABOVE,
     }
 )
 # The overlapping options whose kernel choice an optimization replaces: an
@@ -109,6 +113,7 @@ OPTIMIZATION_OVERLAPS: Mapping[str, tuple[str, ...]] = MappingProxyType(
         "trimul_triton": ("trimul_kernel",),
         "triattn_exact": ("triatt_kernel",),
         "triattn_k2b": ("triatt_kernel",),
+        "triattn_native": ("triatt_kernel",),
     }
 )
 

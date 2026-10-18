@@ -92,7 +92,11 @@ include = ["opendde*", "runner*"]
 exclude = ["assets*", "benchmark*", "docs*", "examples*", "scripts*", "tests*"]
 
 [tool.setuptools.package-data]
-opendde = ["model/layer_norm/kernel/*", "model/optimized/csrc/*"]
+opendde = [
+    "model/layer_norm/kernel/*",
+    "model/optimized/csrc/*",
+    "model/optimized/csrc/triattn_sm80/*",
+]
 "opendde.config" = ["model_manifest.json"]
 
 [tool.setuptools.dynamic]
