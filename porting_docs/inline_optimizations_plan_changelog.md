@@ -2,6 +2,12 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 115 (2026-10-18)
+
+Records the contract-7 release the user approved; qualification code and limits are unchanged from revision 114.
+
+- Commit `37c02cc` pushed; rulesets rechecked (unchanged); tag `qual-sm120-contract-7` pushed. At the tag, `smoke.py` passed 102 of 102 checks on sm_120 (gnode2, job 54040) and on sm_80 (replacement A100, job 337); 264 qualification tests passed on gnode2 (job 54042); the gate passed a contract-7 candidate and refused a contract-6 candidate and a contract-6 gate checkout (protocol E6, contract-7 release). Contract-7 is the active contract for both GPUs.
+
 ## Revision 114 (2026-10-18)
 
 Records the sm_80 freeze and the contract-7 qualification amendment the user approved on 2026-10-18 (shared tag family; timing rule recorded in the receipt). The release (commit, contract tag, pushes) and the D1 smoke tests at the tag need the user's release approval.

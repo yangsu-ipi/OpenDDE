@@ -1,6 +1,6 @@
 # sm_80 limit audit and proposed limits (draft for approval)
 
-Status (2026-10-18): **approved for freeze by the user (option B).** Frozen in contract-7 as `scripts/qualification/inputs/tier1_limits_sm80.json` (`a79fc02d…`) and `tier2_limits_sm80.json` (`c96013e2…`), which differ from the recorded proposals below only in their status text, with `baseline_off_sm80.json` (`5af395cc…`) from job 320; the contract-7 release (tag, D1 smoke tests at the tag) is pending (protocol E6). The validation contrast was evaluated once: all 16 development jobs pass.
+Status (2026-10-18): **approved for freeze by the user (option B).** Frozen in contract-7 as `scripts/qualification/inputs/tier1_limits_sm80.json` (`a79fc02d…`) and `tier2_limits_sm80.json` (`c96013e2…`), which differ from the recorded proposals below only in their status text, with `baseline_off_sm80.json` (`5af395cc…`) from job 320; released with tag `qual-sm120-contract-7` on 2026-10-18, D1 smoke test passed on both GPUs at the tag (protocol E6). The validation contrast was evaluated once: all 16 development jobs pass.
 
 ## Decision and recorded limit set
 
