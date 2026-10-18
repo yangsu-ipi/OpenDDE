@@ -19,8 +19,8 @@ import qual_gate  # noqa: E402
 FAMILY = "qual-test-contract-"
 QUAL = Path("scripts/qualification")
 # A stand-in verifier: writes a verdict with the evidence's exit status, a
-# receipt naming the gate report when asked, and dirties its checkout when the
-# evidence says "touch".
+# receipt naming the gate report and smoke record when asked, and dirties its
+# checkout when the evidence says "touch".
 STUB = """import json
 import sys
 from pathlib import Path
@@ -32,7 +32,9 @@ Path(args[args.index("--out") + 1]).write_text(json.dumps({{"exit": evidence["ex
 if "--receipt" in args:
     i = args.index("--receipt")
     gate = args[args.index("--gate-report") + 1]
-    Path(args[i + 2]).write_text(json.dumps({{"id": args[i + 1], "gate": gate}}))
+    smoke = args[args.index("--smoke") + 1] if "--smoke" in args else None
+    receipt = {{"id": args[i + 1], "gate": gate, "smoke": smoke}}
+    Path(args[i + 2]).write_text(json.dumps(receipt))
 if evidence.get("touch"):
     Path("stray.txt").write_text("x")
 sys.exit(evidence["exit"])
@@ -301,18 +303,26 @@ def test_entrypoint_full_pass_binds_gate_and_verdict(remote):
     assert json.loads((out / "record.json").read_text()) == record
 
 
-def test_entrypoint_rehearsal_writes_a_receipt_with_the_gate_report(remote):
+def test_entrypoint_rehearsal_writes_a_receipt_with_the_gate_and_smoke(remote):
     cand = remote.candidate("cand", 2)
+    smoke = remote.tmp / "smoke.json"
+    smoke.write_text(json.dumps({"ok": True, "gpu": "sm_120"}))
     code, record, out = _entry(
         remote,
         cand,
         _evidence(remote.tmp, exit=4),
         "rec",
         write_receipt="rehearsal-1",
+        smoke=smoke,
     )
     assert code == 4 and not record["ok"]
     receipt = json.loads((out / "receipt.json").read_text())
-    assert receipt == {"id": "rehearsal-1", "gate": str((out / "gate.json").resolve())}
+    assert receipt == {
+        "id": "rehearsal-1",
+        "gate": str((out / "gate.json").resolve()),
+        "smoke": str(smoke.resolve()),
+    }
+    assert record["smoke_sha256"] == qual_gate._sha256(smoke.read_text())
 
 
 def test_entrypoint_refuses_a_candidate_changed_during_the_verdict(remote):
@@ -339,3 +349,13 @@ def test_entrypoint_command_line(remote, monkeypatch):
     )
     with pytest.raises(SystemExit):
         qual_gate.main()  # --write-receipt needs --accept
+    monkeypatch.setattr(sys, "argv", ["qual_gate.py", str(cand), "--smoke", "s"])
+    with pytest.raises(SystemExit):
+        qual_gate.main()  # --smoke needs --accept
+    for extra in (["--write-receipt", "r"], ["--smoke", str(evidence)]):
+        argv = ["qual_gate.py", str(cand), "--accept", str(evidence)]
+        argv += ["--record-dir", str(remote.tmp / "rec-x"), *extra]
+        monkeypatch.setattr(sys, "argv", argv)
+        with pytest.raises(SystemExit):
+            qual_gate.main()  # --write-receipt and --smoke go together
+        assert not (remote.tmp / "rec-x").exists()

@@ -2,6 +2,15 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 114 (2026-10-18)
+
+Records the sm_80 freeze and the contract-7 qualification amendment the user approved on 2026-10-18 (shared tag family; timing rule recorded in the receipt). The release (commit, contract tag, pushes) and the D1 smoke tests at the tag need the user's release approval.
+
+- sm_80 limits: option B of the [audit](sm80_limit_audit.md), frozen as `inputs/tier1_limits_sm80.json` and `inputs/tier2_limits_sm80.json`, which differ from the recorded proposals only in their status text. sm_80's own `baseline_off_sm80.json` holds job 320's 480 `off` artifacts (`baseline_manifest.py`); `runtime_assets.json` gains the sm_80 asset copy (`assets.py verify`, `freeze`, `preflight`; the same six digests as sm_120). Reason: E6 requires the calibration host's own baseline and limits.
+- `acceptance.json`: each GPU block names its tier 1 and tier 2 limit files and baseline (the top-level `baseline` is removed); an `sm_80` block with sm_120's routes, capability 8.0 and its frozen hashes; both blocks name `qual-sm120-contract-7`. `accept.py` reads the GPU's files and fails closed when a GPU does not declare them. sm_120's files and hashes are unchanged.
+- Timing rule: new `smoke.py` runs and checks the D1 stock smoke test of one GPU at its contract tag (the former operator procedure, with `accept.py`'s own checks) and writes a record; `accept.py --receipt` (through `qual_gate.py --write-receipt --smoke`) writes a receipt only with a passing record of the same GPU at the approved tag's commit, records its sha256, GPU, tag and tag commit, and checks them at the draw. Reason: a GPU may not rehearse or draw under a tag until its D1 smoke test has passed there (E5, revision 98).
+- Tests: 264 qualification tests pass (VM CPU job 335), including a full sm_80 acceptance on its own files, the GPU's own baseline, undeclared files, the receipt's smoke record and its absence or mismatch, and the gate's `--smoke` path. A stand-in smoke test of sm_80 at a local, never-pushed contract-7 tag in a scratch clone passed 102 of 102 checks (job 336), D1 `off` byte-identical to `baseline_off_sm80.json`.
+
 ## Revision 113 (2026-10-16)
 
 Records the helper identity change the user approved; qualification code, numeric limits, tags and declared claims are unchanged. No porting, environment creation or GPU work is authorized.

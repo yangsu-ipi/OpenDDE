@@ -7,7 +7,8 @@ Usage:
         [--gpu sm_120] [--remote origin] [--receipt ID] [--out GATE.json]
     python scripts/qualification/qual_gate.py CANDIDATE_CHECKOUT
         [--gpu sm_120] [--remote origin] [--receipt ID]
-        --accept EVIDENCE.json --record-dir DIR [--write-receipt ID]
+        --accept EVIDENCE.json --record-dir DIR
+        [--write-receipt ID --smoke SMOKE.json]
 
 Run from a clean checkout of the approved contract tag. The gate compares
 files rather than running a second verifier: when the candidate's
@@ -35,8 +36,10 @@ each batch of held-out runs; exit 0 passes, 1 fails. With ``--accept`` it is
 the qualification entrypoint for a rehearsal or a final acceptance: it writes
 ``gate.json`` to a new ``--record-dir``, runs the candidate's ``accept.py`` on
 the evidence only if the gate passed (``verdict.json``; with
-``--write-receipt ID`` a passing rehearsal also writes ``receipt.json``,
-recording this gate report), then checks that the candidate checkout is still
+``--write-receipt ID --smoke SMOKE.json`` a passing rehearsal also writes
+``receipt.json``, recording this gate report and the passing ``smoke.py``
+record of this GPU at the approved tag, without which no receipt is written),
+then checks that the candidate checkout is still
 clean at the commit the gate approved, and writes ``record.json``. A full
 qualification claim is that record with ``ok`` true and exit status 0, not
 ``accept.py``'s exit status alone. Exit status: ``accept.py``'s own when the
@@ -221,6 +224,7 @@ def run_entrypoint(
     remote: str = "origin",
     receipt_id: str | None = None,
     write_receipt: str | None = None,
+    smoke: Path | None = None,
 ) -> tuple[int, dict[str, Any]]:
     """Gate, then the candidate's verifier, then the post-verdict check;
     return the exit status and the combined record."""
@@ -238,6 +242,11 @@ def run_entrypoint(
         "evidence": str(evidence),
         "evidence_sha256": _sha256(evidence.read_text()),
     }
+    if write_receipt:
+        record["smoke"] = str(smoke) if smoke else None
+        record["smoke_sha256"] = (
+            _sha256(smoke.read_text()) if smoke and smoke.is_file() else None
+        )
 
     def finish(code: int):
         record["exit_code"] = code
@@ -260,6 +269,8 @@ def run_entrypoint(
         receipt_path = (record_dir / "receipt.json").resolve()
         cmd += ["--receipt", write_receipt, str(receipt_path)]
         cmd += ["--gate-report", str(gate_path.resolve())]
+        if smoke is not None:
+            cmd += ["--smoke", str(smoke.resolve())]
     result = subprocess.run(cmd, cwd=candidate, env=dict(os.environ))
     verdict_text = verdict_path.read_text() if verdict_path.is_file() else None
     record["verdict"] = {
@@ -285,10 +296,13 @@ def main() -> int:
     parser.add_argument("--accept", type=Path, help="evidence for accept.py")
     parser.add_argument("--record-dir", type=Path)
     parser.add_argument("--write-receipt", help="receipt id for a passing rehearsal")
+    parser.add_argument(
+        "--smoke", type=Path, help="smoke.py record of this GPU at the approved tag"
+    )
     args = parser.parse_args()
     if args.accept is None:
-        if args.record_dir or args.write_receipt:
-            parser.error("--record-dir and --write-receipt need --accept")
+        if args.record_dir or args.write_receipt or args.smoke:
+            parser.error("--record-dir, --write-receipt and --smoke need --accept")
         report = gate(args.candidate, GATE_REPO, args.gpu, args.remote, args.receipt)
         if args.out:
             args.out.write_text(json.dumps(report, indent=1) + "\n")
@@ -303,6 +317,8 @@ def main() -> int:
         parser.error("--accept needs --record-dir (and no --out)")
     if args.record_dir.exists():
         parser.error(f"{args.record_dir} exists; use a new record directory")
+    if bool(args.write_receipt) != bool(args.smoke):
+        parser.error("--write-receipt and --smoke go together")
     code, record = run_entrypoint(
         args.candidate,
         args.accept,
@@ -312,6 +328,7 @@ def main() -> int:
         args.remote,
         args.receipt,
         args.write_receipt,
+        args.smoke,
     )
     print(
         f"gate {'passed' if record['gate_ok'] else 'FAILED'}; verdict "

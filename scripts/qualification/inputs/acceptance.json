@@ -1,5 +1,5 @@
 {
- "description": "Rows each GPU and route must cover for full candidate acceptance or a development-only rehearsal, and the frozen limit hashes and contract tag (qualification_protocol.md, E5). accept.py reads only this file for the required rows; command-line flags cannot change them.",
+ "description": "Rows each GPU and route must cover for full candidate acceptance or a development-only rehearsal, each GPU's limit and baseline files, and the frozen limit hashes and contract tag (qualification_protocol.md, E5 and E6). accept.py reads only this file for the required rows and the files it gates against; command-line flags cannot change them.",
  "recipe": {
   "note": "The acceptance recipe, the step 0 off recipe (qualification_protocol.md, E5). Every run is built by run_rows.build_command from its manifest row and the logged seeds, with `extra` (full runs: off, candidate, repeat, H3 extra seeds) or `tier1_extra` (tier 1 capture runs) appended; candidate runs then append the draw's candidate_args. `env` is the inference environment every run must have beyond its row's env (empty: LAYERNORM_TYPE and every OPENDDE_ variable unset); `host_env` names host-specific variables that are recorded but not compared. `diffusion_chunk_size` is the sampler chunk size every traced rollout must record.",
   "extra": [
@@ -22,13 +22,15 @@
   ],
   "diffusion_chunk_size": 5
  },
- "baseline": "baseline_off.json",
  "gpus": {
   "sm_120": {
    "capability": [
     12,
     0
    ],
+   "tier1_limits": "tier1_limits.json",
+   "tier2_limits": "tier2_limits.json",
+   "baseline": "baseline_off.json",
    "routes": {
     "port-chosen": {
      "rows": [
@@ -163,8 +165,154 @@
    "frozen": {
     "tier1_limits_sha256": "b4b8fdd3bbc05be696e55eb82c7aa954a49e668232ebf3b6f7c7b88bcca50fa0",
     "tier2_limits_sha256": "d0294133b8cf8f7569bb70320a94faadc24654dcd365c566aefd0d2d9f17a920",
-    "contract_tag": "qual-sm120-contract-6",
-    "note": "Frozen on 2026-10-12 by user approval as qual-sm120-contract-1, amended the same day as qual-sm120-contract-2 (dev-rehearsal route), qual-sm120-contract-3 (pre-draw rehearsal receipt, one draw per candidate, newest contract tag), qual-sm120-contract-4 (independent contract-version gate qual_gate.py, the receipt's contract tag) and qual-sm120-contract-5 (the gate's own remote as the tag source, the qual_gate.py --accept entrypoint, the receipt's gate record, model packages required to load from the acceptance checkout, unreadable measurement files reported as failed checks), amended on 2026-10-14 as qual-sm120-contract-6 (held-out seed range widened to 201-999; fail-closed run provenance: single-file no-search inputs, parser-read input digest with frozen effective digests for legacy-MSA inputs, before/after digests of referenced and template files, fresh template cache, runtime assets and Kalign checked against runtime_assets.json, actual seeds from the output layout; signature inventory and do-not-run audit); limit files and hashes unchanged; earlier tags superseded. The commit setting these values is tagged contract_tag and the tag is pushed. Run every rehearsal and acceptance through qual_gate.py --accept from a checkout of the approved tag, with PYTHONPATH set to the acceptance checkout; accept.py requires both hashes to match, the tag to be the newest of its family, and the draw's code commit to descend from it with scripts/qualification unchanged apart from the held-out log. Changing anything under scripts/qualification needs a contract amendment and a new tag; no tag may be created while a draw is open."
+    "contract_tag": "qual-sm120-contract-7",
+    "note": "Frozen on 2026-10-12 by user approval as qual-sm120-contract-1, amended the same day as qual-sm120-contract-2 (dev-rehearsal route), qual-sm120-contract-3 (pre-draw rehearsal receipt, one draw per candidate, newest contract tag), qual-sm120-contract-4 (independent contract-version gate qual_gate.py, the receipt's contract tag) and qual-sm120-contract-5 (the gate's own remote as the tag source, the qual_gate.py --accept entrypoint, the receipt's gate record, model packages required to load from the acceptance checkout, unreadable measurement files reported as failed checks), amended on 2026-10-14 as qual-sm120-contract-6 (held-out seed range widened to 201-999; fail-closed run provenance: single-file no-search inputs, parser-read input digest with frozen effective digests for legacy-MSA inputs, before/after digests of referenced and template files, fresh template cache, runtime assets and Kalign checked against runtime_assets.json, actual seeds from the output layout; signature inventory and do-not-run audit); limit files and hashes unchanged; earlier tags superseded. The commit setting these values is tagged contract_tag and the tag is pushed. Run every rehearsal and acceptance through qual_gate.py --accept from a checkout of the approved tag, with PYTHONPATH set to the acceptance checkout; accept.py requires both hashes to match, the tag to be the newest of its family, and the draw's code commit to descend from it with scripts/qualification unchanged apart from the held-out log. Amended on 2026-10-18 as qual-sm120-contract-7 (one shared contract for sm_120 and sm_80: per-GPU limit and baseline files, sm_80's frozen limits and baseline, and the per-GPU D1 smoke test recorded in the rehearsal receipt); sm_120's limits, baseline and hashes unchanged. Changing anything under scripts/qualification needs a contract amendment and a new tag; no tag may be created while a draw is open."
+   }
+  },
+  "sm_80": {
+   "capability": [
+    8,
+    0
+   ],
+   "tier1_limits": "tier1_limits_sm80.json",
+   "tier2_limits": "tier2_limits_sm80.json",
+   "baseline": "baseline_off_sm80.json",
+   "routes": {
+    "port-chosen": {
+     "rows": [
+      "D1",
+      "D2",
+      "D3",
+      "D4",
+      "D5",
+      "D6",
+      "D7",
+      "D8",
+      "D9",
+      "D10",
+      "D11",
+      "D12",
+      "D13",
+      "D14",
+      "D15",
+      "H1",
+      "H2",
+      "H3",
+      "H4",
+      "H5",
+      "H6",
+      "H7",
+      "H8",
+      "H9",
+      "H10"
+     ],
+     "tier1_rows": [
+      "D1",
+      "D2",
+      "D3",
+      "D4",
+      "D5",
+      "D6",
+      "D7",
+      "D8",
+      "D9",
+      "D10",
+      "D11",
+      "D12",
+      "D13",
+      "D14",
+      "D15",
+      "H1",
+      "H2",
+      "H3",
+      "H4",
+      "H5",
+      "H6",
+      "H7",
+      "H8",
+      "H9",
+      "H10"
+     ],
+     "drift_rows": [
+      "D1",
+      "D2",
+      "D3",
+      "D4",
+      "D5",
+      "D6",
+      "D7",
+      "D8",
+      "D9",
+      "D10",
+      "D11",
+      "D12",
+      "D13",
+      "D14",
+      "D15"
+     ],
+     "note": "Every sm_80 dispatch row is port-chosen (protocol, when a held-out draw is required)."
+    },
+    "dev-rehearsal": {
+     "rehearsal": true,
+     "rows": [
+      "D1",
+      "D2",
+      "D3",
+      "D4",
+      "D5",
+      "D6",
+      "D7",
+      "D8",
+      "D9",
+      "D10",
+      "D11",
+      "D12",
+      "D13",
+      "D14",
+      "D15"
+     ],
+     "tier1_rows": [
+      "D1",
+      "D2",
+      "D3",
+      "D4",
+      "D5",
+      "D6",
+      "D7",
+      "D8",
+      "D9",
+      "D10",
+      "D11",
+      "D12",
+      "D13",
+      "D14",
+      "D15"
+     ],
+     "drift_rows": [
+      "D1",
+      "D2",
+      "D3",
+      "D4",
+      "D5",
+      "D6",
+      "D7",
+      "D8",
+      "D9",
+      "D10",
+      "D11",
+      "D12",
+      "D13",
+      "D14",
+      "D15"
+     ],
+     "note": "Development-only rehearsal of a candidate before any held-out draw (qualification_protocol.md, E5). The evidence names code_commit and candidate_args instead of a held-out draw; every check that does not need a draw runs, a declared freeze is required, and a pass exits 4, never 0. The rehearsed development runs become the development set of the final acceptance."
+    }
+   },
+   "frozen": {
+    "tier1_limits_sha256": "a79fc02dc3c300d08883f9815d74754f8e6bbdcc65d1cf1019dd73d964e4eee4",
+    "tier2_limits_sha256": "c96013e2ff99de8037c9007346594d05931154c24d4ac6b031d02eda177e5726",
+    "contract_tag": "qual-sm120-contract-7",
+    "note": "Frozen on 2026-10-18 by user approval as part of qual-sm120-contract-7, the shared contract of both GPUs: the sm_80 limits of porting_docs/sm80_limit_audit.md (tier 1 the sm_120 values; tier 2 the sm_120 values with the flexible-class same-outcome lDDT limit 0.92), calibrated on the replacement A100 (A100 80GB PCIe, driver 595.91.07), and baseline_off_sm80.json from that host's stock off (job 320). Run every rehearsal and acceptance through qual_gate.py --gpu sm_80 --accept from a checkout of the approved tag; a rehearsal receipt needs a passing D1 smoke test of sm_80 at that tag (smoke.py). Changing anything under scripts/qualification needs a contract amendment and a new tag; no tag may be created while a draw is open."
    }
   }
  }

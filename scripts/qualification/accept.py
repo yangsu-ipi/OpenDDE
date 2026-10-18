@@ -3,13 +3,14 @@
 
 Usage:
     python scripts/qualification/accept.py EVIDENCE.json [--out VERDICT.json]
-        [--receipt ID RECEIPT.json]
+        [--receipt ID RECEIPT.json --gate-report GATE.json --smoke SMOKE.json]
 
 Run from the root of the acceptance checkout on the GPU host, with
 ``OPENDDE_QUAL_DATA`` set. This command, not ``tier2_gates.py evaluate`` or
-any other diagnostic, decides acceptance. The rows a GPU and route must cover
-and the run recipe come from ``inputs/acceptance.json``, never from the
-command line or the evidence file.
+any other diagnostic, decides acceptance. The rows a GPU and route must cover,
+the GPU's tier 1 and tier 2 limit files and step 0 baseline, and the run recipe
+come from ``inputs/acceptance.json``, never from the command line or the
+evidence file.
 
 EVIDENCE.json names the GPU, route, candidate and held-out draw, and lists run
 sets. Every run directory is a ``run_rows.py --out`` directory, whose
@@ -27,15 +28,20 @@ on the development rows before any held-out draw. Its evidence names
 must not name. Only the checks that need a draw are skipped (the current
 log's draw entry, seeds logged at each run's commit, H3's extra seeds); every
 other check below runs unchanged, and a declared freeze is required. With
-``--receipt ID PATH --gate-report GATE.json`` a passing rehearsal writes its
-held-out log receipt (candidate, contract tag, code commit, ordered
-arguments, the evidence digest, the verdict's sha256, status and exit code,
-and the passing gate report's sha256, commit and approved tag), to be appended to ``receipts`` in
-``held_out_log.json`` and committed before the draw that names it. The
-development sets of the later acceptance must be declared exactly as in the
-rehearsal, since their digest is compared with the receipt's.
+``--receipt ID PATH --gate-report GATE.json --smoke SMOKE.json`` a passing
+rehearsal writes its held-out log receipt (candidate, contract tag, code
+commit, ordered arguments, the evidence digest, the verdict's sha256, status
+and exit code, the passing gate report's sha256, commit and approved tag, and
+the passing ``smoke.py`` record of this GPU at the approved tag: its sha256,
+GPU, contract tag and tag commit), to be appended to ``receipts`` in
+``held_out_log.json`` and committed before the draw that names it. No receipt
+is written without such a smoke record: a GPU may not rehearse or draw under
+a tag until its D1 smoke test has passed there. The development sets of the
+later acceptance must be declared exactly as in the rehearsal, since their
+digest is compared with the receipt's.
 
 Checks:
+- the GPU and route are declared, with the GPU's limit and baseline files;
 - every required row appears in exactly one full set, and no other row does;
 - the frozen inputs match their digests, repository and external, and the
   expected effective digests of inputs ``pred`` converts from the legacy MSA
@@ -46,8 +52,9 @@ Checks:
   arguments; receipt ids are unique, a receipt is named by at most one draw,
   and a candidate (code commit and ordered arguments) is drawn at most once;
 - the draw names a passing rehearsal receipt of the same GPU, candidate, code
-  commit and ordered arguments, recording this contract tag and a passing
-  gate run at the tag's commit, present in the log before the commit that
+  commit and ordered arguments, recording this contract tag, a passing
+  gate run at the tag's commit and a passing D1 smoke test of this GPU at the
+  tag's commit, present in the log before the commit that
   first adds the draw, whose evidence digest equals that of the development
   sets being accepted (``evidence_digest``: set declarations, every run
   record and trace, both measurement files);
@@ -80,12 +87,12 @@ Checks:
   both sides; ``off`` and candidate rollout settings and raw draw hashes match;
 - per row: ``off``, candidate and repeat runs hold exactly the expected
   prediction artifacts, byte for byte the ones their run records list; the repeat is a separate run and byte-identical to the
-  candidate; development ``off`` artifacts match the committed step 0
+  candidate; development ``off`` artifacts match the GPU's committed step 0
   baseline digests;
 - per row: the tier 1 comparison measured the declared tier 1 captures (each
   entry's capture digests equal those the capturing runs recorded, for every
   job and seed), the candidate capture replayed the declared ``off`` capture,
-  and every job and seed passes the approved tier 1 limits;
+  and every job and seed passes the GPU's approved tier 1 limits;
 - measurements: each tier 1 and tier 2 measurement was made at a commit that
   passes the run-commit rule, with no uncommitted changes; each set's tier 2
   file has exactly one entry per row and job, and its tier 1 file exactly one
@@ -96,7 +103,7 @@ Checks:
   ``tier2_gates.evaluate`` with the expected seeds, H3's extra seeds are covered by their own runs and
   measured from them in log order, and the aggregate Zn claim is
   ``qualified``;
-- once ``acceptance.json`` declares a freeze: the limits files match its
+- once ``acceptance.json`` declares a freeze: the GPU's limits files match its
   hashes, and its ``contract_tag`` exists, is the newest tag of its numbered
   family in the checkout, is an ancestor of the draw's code
   commit, and the qualification directory (code, constants, inputs, limits,
@@ -514,6 +521,19 @@ def check_receipt(checks: Checks, log, draw, git, digest, contract_tag) -> None:
             "tag_commit": tagged,
         },
     )
+    smoke = receipt.get("smoke") or {}
+    smoke_sha = smoke.get("sha256")
+    checks.add(
+        "rehearsal receipt records a passing D1 smoke test of this GPU at the tag",
+        isinstance(smoke_sha, str)
+        and len(smoke_sha) == 64
+        and set(smoke_sha) <= HEX
+        and smoke.get("ok") is True
+        and smoke.get("gpu") == draw.get("gpu")
+        and smoke.get("contract_tag") == contract_tag
+        and smoke.get("tag_commit") == tagged,
+        {"smoke": smoke or None, "gpu": draw.get("gpu"), "tag_commit": tagged},
+    )
     checks.add(
         "development evidence matches the rehearsal receipt",
         receipt.get("evidence_sha256") == digest,
@@ -536,12 +556,42 @@ def check_receipt(checks: Checks, log, draw, git, digest, contract_tag) -> None:
     )
 
 
+def smoke_problems(verdict, gate_text: str, smoke_text: str | None) -> list[str]:
+    """Why ``smoke_text`` is not a passing ``smoke.py`` record of the
+    verdict's GPU at the contract tag the gate approved (empty if it is)."""
+    if smoke_text is None:
+        return ["no smoke record"]
+    try:
+        smoke = json.loads(smoke_text)
+    except json.JSONDecodeError:
+        return ["smoke record is not JSON"]
+    gate = json.loads(gate_text)
+    expected = {
+        "ok": True,
+        "gpu": verdict.get("gpu"),
+        "contract_tag": verdict.get("contract_tag"),
+        "tag_commit": gate.get("tag_commit"),
+    }
+    problems = [
+        f"smoke {k} {smoke.get(k)!r}, expected {v!r}"
+        for k, v in expected.items()
+        if smoke.get(k) != v
+    ]
+    if gate.get("approved_tag") != verdict.get("contract_tag"):
+        problems.append("the gate approved another contract tag")
+    if not gate.get("tag_commit"):
+        problems.append("the gate report names no tag commit")
+    return problems
+
+
 def make_receipt(
-    verdict, receipt_id, verdict_text: str, gate_text: str
+    verdict, receipt_id, verdict_text: str, gate_text: str, smoke_text: str
 ) -> dict[str, Any]:
     """The held-out log entry for a passing rehearsal (``--receipt``), with
-    the passing ``qual_gate.py`` report that preceded it."""
+    the passing ``qual_gate.py`` report that preceded it and the passing
+    ``smoke.py`` record of this GPU at the approved tag."""
     gate = json.loads(gate_text)
+    smoke = json.loads(smoke_text)
     return {
         "id": receipt_id,
         "gpu": verdict.get("gpu"),
@@ -557,6 +607,13 @@ def make_receipt(
         "gate_sha256": hashlib.sha256(gate_text.encode()).hexdigest(),
         "gate_commit": gate.get("gate_commit"),
         "gate_approved_tag": gate.get("approved_tag"),
+        "smoke": {
+            "sha256": hashlib.sha256(smoke_text.encode()).hexdigest(),
+            "ok": smoke.get("ok"),
+            "gpu": smoke.get("gpu"),
+            "contract_tag": smoke.get("contract_tag"),
+            "tag_commit": smoke.get("tag_commit"),
+        },
     }
 
 
@@ -1450,12 +1507,23 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
     manifest_path = root / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
     table = {r["id"]: r for r in manifest["rows"]}
-    t2_path, t1_path = root / "tier2_limits.json", root / "tier1_limits.json"
-    t2_limits = json.loads(t2_path.read_text())
-    t1_limits = json.loads(t1_path.read_text())
     gpu = required_file["gpus"].get(evidence.get("gpu"))
     route = (gpu or {}).get("routes", {}).get(evidence.get("route"))
     if not checks.add("GPU and route declared", gpu is not None and route is not None):
+        return _verdict(checks, evidence, frozen=False)
+    files = {k: gpu.get(k) for k in ("tier1_limits", "tier2_limits", "baseline")}
+    if not checks.add(
+        "GPU limit and baseline files declared",
+        all(isinstance(v, str) and v and Path(v).name == v for v in files.values()),
+        files,
+    ):
+        return _verdict(checks, evidence, frozen=False)
+    t2_path, t1_path = root / files["tier2_limits"], root / files["tier1_limits"]
+    try:
+        t2_limits = json.loads(t2_path.read_text())
+        t1_limits = json.loads(t1_path.read_text())
+    except (OSError, json.JSONDecodeError) as error:
+        checks.add("GPU limit files readable", False, str(error))
         return _verdict(checks, evidence, frozen=False)
     required = list(route["rows"])
     rehearsal = bool(route.get("rehearsal"))
@@ -1496,7 +1564,7 @@ def accept(evidence: dict[str, Any], root: Path = INPUTS) -> dict[str, Any]:
         list(gpu["capability"]),
         frozen_refs,
     )
-    baseline_path = root / required_file["baseline"]
+    baseline_path = root / files["baseline"]
     baseline = (
         json.loads(baseline_path.read_text()) if baseline_path.is_file() else None
     )
@@ -1658,6 +1726,11 @@ def main() -> int:
         type=Path,
         help="the passing qual_gate.py report recorded in the receipt",
     )
+    parser.add_argument(
+        "--smoke",
+        type=Path,
+        help="the passing smoke.py record of this GPU at the approved tag",
+    )
     args = parser.parse_args()
     if "OPENDDE_QUAL_DATA" not in os.environ:
         print("error: OPENDDE_QUAL_DATA is not set")
@@ -1673,8 +1746,17 @@ def main() -> int:
             print("error: --receipt needs a passing rehearsal; no receipt written")
         elif not gate_ok:
             print("error: --receipt needs a passing --gate-report; no receipt written")
+        elif problems := smoke_problems(
+            verdict, gate_text, args.smoke.read_text() if args.smoke else None
+        ):
+            print(
+                "error: --receipt needs a passing --smoke record of this GPU at the "
+                f"approved tag ({'; '.join(problems)}); no receipt written"
+            )
         else:
-            receipt = make_receipt(verdict, args.receipt[0], text, gate_text)
+            receipt = make_receipt(
+                verdict, args.receipt[0], text, gate_text, args.smoke.read_text()
+            )
             Path(args.receipt[1]).write_text(json.dumps(receipt, indent=1) + "\n")
     print(f"{verdict['status']} (Zn claim: {verdict['zn_claim']})")
     for name in verdict["failed"]:

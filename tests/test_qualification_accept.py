@@ -41,6 +41,14 @@ VERSIONS = {"torch": "2.7.1+cu128"}
 HOST_ENV = {"OPENDDE_QUAL_DATA": "/qual", "OPENDDE_QUAL_KALIGN": "/bin/kalign"}
 CAND_ARGS = ["--optimization_mode", "fast"]
 CONTRACT_TAG = "qual-test-contract-1"
+SMOKE_CHECK = "rehearsal receipt records a passing D1 smoke test of this GPU at the tag"
+UNFROZEN_SMOKE = {
+    "sha256": hashlib.sha256(b"smoke").hexdigest(),
+    "ok": True,
+    "gpu": "sm_120",
+    "contract_tag": None,
+    "tag_commit": None,
+}
 H3_JOB = "9sat_unconstrained"
 N_SAMPLE = 5
 DEV = [f"D{i}" for i in range(1, 16)]
@@ -175,6 +183,7 @@ class World:
         candidate_change=None,
         receipt="before",
         receipt_changes=None,
+        gpu="sm_120",
     ):
         """The checkout has a contract commit (tagged ``CONTRACT_TAG`` when
         ``frozen``), then the candidate's code commit, which changes model code
@@ -192,8 +201,10 @@ class World:
         (self.repo / "opendde" / "model.py").write_text("stock = True\n")
         self.manifest = json.loads((INPUTS / "manifest.json").read_text())
         self.table = {r["id"]: r for r in self.manifest["rows"]}
-        self.limits = json.loads((INPUTS / "tier2_limits.json").read_text())
         acceptance = json.loads((INPUTS / "acceptance.json").read_text())
+        self.gpu = gpu
+        self.block = acceptance["gpus"][gpu]
+        self.limits = json.loads((INPUTS / self.block["tier2_limits"]).read_text())
         self.recipe = acceptance["recipe"]
         self.jobs_run = 0
         self.seeds = {row: [101, 102] for row in DEV}
@@ -202,20 +213,24 @@ class World:
         baseline = {
             "rows": {row: _digests(self.jobs(row), self.seeds[row]) for row in DEV}
         }
-        (self.inputs / "baseline_off.json").write_text(json.dumps(baseline))
+        (self.inputs / self.block["baseline"]).write_text(json.dumps(baseline))
         self.log = {"description": "test", "receipts": [], "draws": []}
         self.write_log()
-        acceptance["gpus"]["sm_120"]["frozen"] = (
+        acceptance["gpus"][gpu]["frozen"] = (
             {
-                "tier1_limits_sha256": accept.sha256(self.inputs / "tier1_limits.json"),
-                "tier2_limits_sha256": accept.sha256(self.inputs / "tier2_limits.json"),
+                "tier1_limits_sha256": accept.sha256(
+                    self.inputs / self.block["tier1_limits"]
+                ),
+                "tier2_limits_sha256": accept.sha256(
+                    self.inputs / self.block["tier2_limits"]
+                ),
                 "contract_tag": CONTRACT_TAG,
             }
             if frozen
             else {}
         )
         (self.inputs / "acceptance.json").write_text(json.dumps(acceptance))
-        reference = {"gpus": {"sm_120": {"root": ASSET_ROOT, "assets": ASSET_REF}}}
+        reference = {"gpus": {gpu: {"root": ASSET_ROOT, "assets": ASSET_REF}}}
         (self.inputs / "runtime_assets.json").write_text(json.dumps(reference))
         _git(self.repo, "init", "-q")
         self.contract = self.commit("contract")
@@ -230,7 +245,7 @@ class World:
         dev = self._build_set("development", DEV, self.code, h3_zn)
         self.receipt = {
             "id": "rehearsal-1",
-            "gpu": "sm_120",
+            "gpu": gpu,
             "candidate": "fast-test",
             "route": "dev-rehearsal",
             "contract_tag": CONTRACT_TAG if frozen else None,
@@ -243,14 +258,21 @@ class World:
             "gate_sha256": _sha("gate"),
             "gate_commit": self.contract if frozen else None,
             "gate_approved_tag": CONTRACT_TAG if frozen else None,
+            "smoke": {
+                "sha256": _sha("smoke"),
+                "ok": True,
+                "gpu": gpu,
+                "contract_tag": CONTRACT_TAG if frozen else None,
+                "tag_commit": self.contract if frozen else None,
+            },
             **(receipt_changes or {}),
         }
         if receipt == "before":
             self.log["receipts"].append(self.receipt)
             self.receipt_commit = self.commit_log("receipt")
         self.draw = {
-            "id": "sm_120-1",
-            "gpu": "sm_120",
+            "id": f"{gpu}-1",
+            "gpu": gpu,
             "candidate": "fast-test",
             "code_commit": self.code,
             "candidate_args": list(cand_args),
@@ -359,7 +381,7 @@ class World:
                 "host": "gnode2",
                 "slurm_job_id": str(self.jobs_run),
                 "utc": "2026-10-12T00:00:00Z",
-                "gpu": {"capability": [12, 0]},
+                "gpu": {"capability": list(self.block["capability"])},
                 "versions": VERSIONS,
                 "imports": self.imports(),
             },
@@ -494,7 +516,7 @@ class World:
         measure = {
             "off": str(runs["off"]),
             "cand": str(runs["cand"]),
-            "draw": "sm_120-1",
+            "draw": f"{self.gpu}-1",
             "source": dict(source),
             "entries": entries,
         }
@@ -557,10 +579,10 @@ class World:
 
     def evidence(self):
         return {
-            "gpu": "sm_120",
+            "gpu": self.gpu,
             "route": "port-chosen",
             "candidate": "fast-test",
-            "held_out_draw": "sm_120-1",
+            "held_out_draw": f"{self.gpu}-1",
             "sets": copy.deepcopy(self.sets),
         }
 
@@ -648,6 +670,7 @@ def test_complete_pass_is_provisional_until_frozen_then_full(tmp_path):
         "rehearsal receipt matches the draw",
         "rehearsal receipt names the contract tag",
         "rehearsal receipt records a gate at the contract tag",
+        SMOKE_CHECK,
         "development evidence matches the rehearsal receipt",
         "rehearsal receipt committed before the draw",
         "each candidate drawn at most once",
@@ -685,6 +708,7 @@ def test_code_commit_not_descending_from_the_tag_fails(tmp_path):
     verdict = _fails(world, "code commit descends from the contract tag")
     assert verdict["failed"] == [
         "rehearsal receipt records a gate at the contract tag",
+        SMOKE_CHECK,
         "code commit descends from the contract tag",
     ]
 
@@ -1599,6 +1623,12 @@ def test_receipt_not_committed_before_the_draw_fails(tmp_path, when):
         ({"gate_commit": "f" * 40}, "records a gate at the contract tag"),
         ({"gate_approved_tag": "qual-test-contract-9"}, "records a gate"),
         ({"gate_sha256": None}, "records a gate at the contract tag"),
+        ({"smoke": None}, SMOKE_CHECK),
+        ({"smoke": {**UNFROZEN_SMOKE, "ok": False}}, SMOKE_CHECK),
+        ({"smoke": {**UNFROZEN_SMOKE, "gpu": "sm_80"}}, SMOKE_CHECK),
+        ({"smoke": {**UNFROZEN_SMOKE, "contract_tag": "qual-x-9"}}, SMOKE_CHECK),
+        ({"smoke": {**UNFROZEN_SMOKE, "tag_commit": "f" * 40}}, SMOKE_CHECK),
+        ({"smoke": {**UNFROZEN_SMOKE, "sha256": None}}, SMOKE_CHECK),
     ],
 )
 def test_mismatched_receipt_fails(tmp_path, changes, fragment):
@@ -1694,14 +1724,37 @@ def test_rehearsal_digest_and_receipt_match_the_log_entry(tmp_path):
     verdict = world.run(_rehearsal(world))
     assert verdict["exit_code"] == accept.REHEARSAL
     assert verdict["evidence_sha256"] == world.receipt["evidence_sha256"]
-    gate = {"ok": True, "gate_commit": world.contract, "approved_tag": CONTRACT_TAG}
+    gate = {
+        "ok": True,
+        "gate_commit": world.contract,
+        "approved_tag": CONTRACT_TAG,
+        "tag_commit": world.contract,
+    }
     gate_text = json.dumps(gate)
-    receipt = accept.make_receipt(verdict, "rehearsal-1", "verdict text", gate_text)
+    smoke_text = json.dumps(_smoke_record(world.contract))
+    assert accept.smoke_problems(verdict, gate_text, smoke_text) == []
+    receipt = accept.make_receipt(
+        verdict, "rehearsal-1", "verdict text", gate_text, smoke_text
+    )
     assert receipt["verdict_sha256"] == _sha("verdict text")
     assert receipt["gate_sha256"] == _sha(gate_text)
-    hashes = ("verdict_sha256", "gate_sha256")
+    assert receipt["smoke"] == {**world.receipt["smoke"], "sha256": _sha(smoke_text)}
+    hashes = ("verdict_sha256", "gate_sha256", "smoke")
     keep = {k: v for k, v in world.receipt.items() if k not in hashes}
     assert {k: v for k, v in receipt.items() if k not in hashes} == keep
+
+
+def _smoke_record(tag_commit, **changes):
+    return {
+        "gpu": "sm_120",
+        "contract_tag": CONTRACT_TAG,
+        "tag_commit": tag_commit,
+        "checkout_commit": tag_commit,
+        "checks": [],
+        "failed": [],
+        "ok": True,
+        **changes,
+    }
 
 
 def test_receipt_written_only_for_a_passing_rehearsal(tmp_path, monkeypatch):
@@ -1709,25 +1762,51 @@ def test_receipt_written_only_for_a_passing_rehearsal(tmp_path, monkeypatch):
     (tmp_path / "e.json").write_text("{}")
     passing, failing = tmp_path / "gate-ok.json", tmp_path / "gate-fail.json"
     passing.write_text(
-        json.dumps({"ok": True, "gate_commit": "c", "approved_tag": "t"})
+        json.dumps(
+            {"ok": True, "gate_commit": "c", "approved_tag": "t", "tag_commit": "c"}
+        )
     )
     failing.write_text(json.dumps({"ok": False}))
+    smokes = {}
+    for name, changes in {
+        "ok": {},
+        "failed": {"ok": False, "failed": ["D1 off exit 0"]},
+        "other GPU": {"gpu": "sm_80"},
+        "other tag": {"contract_tag": "other"},
+        "other commit": {"tag_commit": "d"},
+    }.items():
+        smokes[name] = tmp_path / f"smoke-{len(smokes)}.json"
+        record = {**_smoke_record("c"), "contract_tag": "t", **changes}
+        smokes[name].write_text(json.dumps(record))
     cases = [
-        (accept.REHEARSAL, passing, True),
-        (accept.REHEARSAL, failing, False),
-        (accept.REHEARSAL, None, False),
-        (accept.FAIL, passing, False),
+        (accept.REHEARSAL, passing, smokes["ok"], True),
+        (accept.REHEARSAL, failing, smokes["ok"], False),
+        (accept.REHEARSAL, None, smokes["ok"], False),
+        (accept.FAIL, passing, smokes["ok"], False),
+        (accept.REHEARSAL, passing, None, False),
+        (accept.REHEARSAL, passing, smokes["failed"], False),
+        (accept.REHEARSAL, passing, smokes["other GPU"], False),
+        (accept.REHEARSAL, passing, smokes["other tag"], False),
+        (accept.REHEARSAL, passing, smokes["other commit"], False),
     ]
-    for n, (code, gate, written) in enumerate(cases):
-        verdict = {"status": "s", "exit_code": code, "failed": [], "zn_claim": "x"}
+    for n, (code, gate, smoke, written) in enumerate(cases):
+        verdict = {
+            "status": "s",
+            "exit_code": code,
+            "failed": [],
+            "zn_claim": "x",
+            "gpu": "sm_120",
+            "contract_tag": "t",
+        }
         monkeypatch.setattr(accept, "accept", lambda e, v=verdict: dict(v))
         out, receipt = tmp_path / f"v{n}.json", tmp_path / f"r{n}.json"
         argv = ["accept.py", str(tmp_path / "e.json"), "--out", str(out)]
         argv += ["--receipt", "r", str(receipt)]
         argv += ["--gate-report", str(gate)] if gate else []
+        argv += ["--smoke", str(smoke)] if smoke else []
         monkeypatch.setattr(sys, "argv", argv)
         assert accept.main() == code
-        assert receipt.exists() == written
+        assert receipt.exists() == written, n
         if written:
             entry = json.loads(receipt.read_text())
             assert (
@@ -1735,6 +1814,100 @@ def test_receipt_written_only_for_a_passing_rehearsal(tmp_path, monkeypatch):
             )
             assert entry["gate_sha256"] == hashlib.sha256(gate.read_bytes()).hexdigest()
             assert (entry["gate_commit"], entry["gate_approved_tag"]) == ("c", "t")
+            assert entry["smoke"] == {
+                "sha256": hashlib.sha256(smoke.read_bytes()).hexdigest(),
+                "ok": True,
+                "gpu": "sm_120",
+                "contract_tag": "t",
+                "tag_commit": "c",
+            }
+
+
+# Per-GPU limit and baseline files (contract-7)
+
+
+def test_sm_80_acceptance_uses_its_own_limits_and_baseline(tmp_path):
+    world = World(tmp_path, frozen=True, gpu="sm_80")
+    verdict = world.run()
+    assert verdict["exit_code"] == accept.FULL, verdict["failed"]
+    assert verdict["limits_sha256"] == {
+        "tier1": accept.sha256(world.inputs / "tier1_limits_sm80.json"),
+        "tier2": accept.sha256(world.inputs / "tier2_limits_sm80.json"),
+    }
+    assert verdict["limits_sha256"]["tier2"] != accept.sha256(
+        world.inputs / "tier2_limits.json"
+    )
+
+
+def test_off_is_checked_against_the_gpus_own_baseline(tmp_path):
+    """sm_80's development off is compared with baseline_off_sm80.json, not
+    with sm_120's baseline_off.json, which stays in place."""
+    world = World(tmp_path, gpu="sm_80")
+    (world.inputs / "baseline_off_sm80.json").unlink()
+    world.commit("drop the sm_80 baseline")
+    assert (world.inputs / "baseline_off.json").is_file()
+    verdict = _fails(world, "step 0 baseline digests present")
+    assert _failed(verdict, "D1 off matches step 0 baseline")
+
+
+@pytest.mark.parametrize("key", ["tier1_limits", "tier2_limits", "baseline"])
+def test_gpu_without_its_files_declared_fails(world, key):
+    path = world.inputs / "acceptance.json"
+    acceptance = json.loads(path.read_text())
+    del acceptance["gpus"]["sm_120"][key]
+    path.write_text(json.dumps(acceptance))
+    world.commit("undeclare a file")
+    verdict = _fails(world, "GPU limit and baseline files declared")
+    assert verdict["failed"] == ["GPU limit and baseline files declared"]
+
+
+def test_committed_contract_declares_both_gpus_consistently():
+    """The real inputs: one contract tag, the same routes, and each GPU's
+    frozen hashes equal to its own limit files."""
+    acceptance = json.loads((INPUTS / "acceptance.json").read_text())
+    reference = json.loads((INPUTS / "runtime_assets.json").read_text())["gpus"]
+    gpus = acceptance["gpus"]
+    assert set(gpus) == {"sm_120", "sm_80"}
+    assert "baseline" not in acceptance
+    assert len({g["frozen"]["contract_tag"] for g in gpus.values()}) == 1
+    assert gpus["sm_80"]["routes"] == {
+        name: {**r, "note": gpus["sm_80"]["routes"][name]["note"]}
+        for name, r in gpus["sm_120"]["routes"].items()
+    }
+    files = set()
+    for name, g in gpus.items():
+        for tier in ("tier1", "tier2"):
+            path = INPUTS / g[f"{tier}_limits"]
+            assert g["frozen"][f"{tier}_limits_sha256"] == accept.sha256(path), name
+            files.add(g[f"{tier}_limits"])
+        baseline = json.loads((INPUTS / g["baseline"]).read_text())["rows"]
+        assert set(baseline) == set(g["routes"]["port-chosen"]["drift_rows"]), name
+        files.add(g["baseline"])
+        assert {k: v["sha256"] for k, v in reference[name]["assets"].items()} == {
+            k: v["sha256"] for k, v in reference["sm_120"]["assets"].items()
+        }
+    assert len(files) == 6  # no file shared between the GPUs
+
+
+def test_smoke_checks_preconditions_before_running(tmp_path, monkeypatch):
+    """Off the tag commit and without the asset environment, smoke.py runs
+    nothing and creates no output directory."""
+    import smoke
+
+    world = World(tmp_path / "w", frozen=True)
+    monkeypatch.delenv("OPENDDE_ROOT_DIR", raising=False)
+    calls = []
+    out = tmp_path / "smoke"
+    record = smoke.smoke("sm_120", out, world.inputs, runner=lambda *a: calls.append(a))
+    assert not record["ok"] and calls == [] and not out.exists()
+    assert {"checkout is the contract tag commit", "runtime-asset preflight"} <= set(
+        record["failed"]
+    )
+    assert record["tag_commit"] == world.contract
+    out.mkdir()
+    record = smoke.smoke("sm_120", out, world.inputs, runner=lambda *a: calls.append(a))
+    assert "output directory is new" in record["failed"] and calls == []
+    assert not record.get("created")
 
 
 # Model packages loaded from the checkout, and unreadable measurements
