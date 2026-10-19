@@ -9,34 +9,55 @@ Date: 2026-10-19. Sources: the optimization kit at commit `f4f62fa` (`opendde/CH
 - The kit's `fast` also runs its `exact`-tier scheduling items. This port's `exact` has the host and data-path ones, but not the CUDA graph replay of the denoiser step, input prefetch, skipped cache flushes, the expandable-segments allocator or the aligned pair-bias allocation.
 - Both of this port's `fast` candidates, each differing from `off` only in triangle-attention rounding, were rejected at their first held-out draws on tier 2 gates. Following the protocol, the failures have not been diagnosed on held-out outputs.
 
-## Numerics-changing items (the kit's `fast` tier)
+## Every kit item: mode, GPUs and port status
 
-The kit's `fast` replaces its exact-tier kernel items (`arm_z`, `fpf_trimul_exact`/`trimul_exact`, `triattn_exact`, `transition_exact`, `dit_attn_exact`) with these fast-tier bindings. The kit describes their numerics as bf16 re-association and fused-kernel rounding.
+The kit targets A100 (sm_80) and H100/H200 (sm_90). Its host items run on any GPU; its kernel items run where the shared core's cell tables vouch for a row: CUDA-native kernels for sm_90a or sm_80, Triton elsewhere. sm_120 appears nowhere in the kit. Most "no" entries below are planned but not reached; the reason says which.
 
-| Kit item | What it does | This port, sm_80 | This port, sm_120 |
-| --- | --- | --- | --- |
-| `arm_u` + `arm_u23` | bf16 pair stack on the trunk, structure refiner and confidence pairformer: cast-once prologue, transpose-free block, the arm's triangle-multiplication route | not ported | not ported |
-| `triattn_core` + `triattn_conf` | fast triangle attention at every pair-stack site; the row per card, dtype, head count and size comes from the core's cell table | `triattn_native` (see below) | `triattn_k2b` |
-| `trimul_core` | bf16 Triton triangle multiplication | not ported: no fast candidate measured more than 5-10% faster than the bit-identical one (`trimul_triton`) | not ported |
-| `transition_core` (`sep16`) | fused pair transition, fast variant | not ported; the bit-identical `transition_triton` runs | not ported; `transition_triton` runs |
-| `ln_core` | Triton pair-row LayerNorms at C = 384 | not ported | not ported |
-| `chunk_lift` | un-chunked fp32 attention scores where free memory allows; only when every item has at most 1,024 tokens | not ported | not ported |
-| Sampler fast tier | `dit_attn_apb` (token attention), `atom_attn_apb` (atom transformers), `cond_dedupe`, `dit_fused` + `dit_lowp` (the token DiffusionTransformer as one fused schedule, fp16 operands), `atom_fused` | not ported | not ported |
+### `exact` (`fast` and `big` also run its host items)
 
-The plan's scope table already places the bf16 pair stack and the Triton kernels in "Pairformer fast path" and the sampler items in "Diffusion and atom fast path", both after exact parity.
-
-## Exact-tier items the kit's `fast` also runs
-
-| Kit item | What it does | This port's `exact` |
-| --- | --- | --- |
-| `drop_bond_mask`, `tmpl_dedup`, `json_oneshot`, `structok_sync`, `sched_host`, `dit_hoist`, `zprep_hoist` | host and data-path changes | ported (`drop_bond_mask`, `template_dedup`, `json_oneshot`, `structural_token_sync`, `host_noise_schedule`, `dit_hoist`, `zprep_hoist`) |
-| `stepgraph` | the denoiser step captured into a CUDA graph and replayed; on sm_80 only up to 1,024 tokens, since replay is not bit-exact above that | not ported (an optional `exact` item in the plan) |
-| `prefetch`, `keep_pool`, `alloc_auto` | featurise the next input during this one; make in-forward `empty_cache()` calls no-ops; the expandable-segments allocator | not ported (optional `exact` items in the plan) |
-| `dit_align` | the denoiser's pair biases in an aligned allocation | not ported |
-| `lnstream` | upstream's fused LayerNorm launched on the current CUDA stream | not in a mode; the plan treats it as a bug fix outside the modes |
-| `cueq_tuned_cache` | exports cuEquivariance's tuning-cache location; no tiles are shipped | not needed |
+| Kit item | Kit GPUs | sm_120 | sm_80 | Reason |
+| --- | --- | --- | --- | --- |
+| `drop_bond_mask`, `tmpl_dedup`, `json_oneshot`, `structok_sync`, `sched_host` | any | ported | ported | Host and data-path changes with identical bytes (`c584e6d`; as `template_dedup`, `structural_token_sync`, `host_noise_schedule`) |
+| `dit_hoist`, `zprep_hoist` | any | ported | ported | The same (`7fddcb4`) |
+| `dit_align` | any | no | no | Not in the plan's scope; not evaluated |
+| `stepgraph` | sm_90; sm_80 up to 1,024 tokens | no | no | Optional `exact` item: needs graph-capture tests and a measured bit-exact window per GPU, and must stay off under guidance |
+| `prefetch` | any | no | no | Optional: adds a worker process and must step aside to keep RDKit's random state as in stock |
+| `keep_pool` | any | no | no | Optional: less fragmentation control for fewer synchronizations |
+| `alloc_auto` | any | no | no | Optional: a process-wide allocator setting |
+| `lnstream` | prebuilt sm_80 and sm_90 | as a bug fix | as a bug fix | Ported outside the modes (`0950ab5`): a correctness bug, used only by `fast_layernorm` |
+| `served_levers_hook`, `cueq_tuned_cache` | any | no | no | Overlay infrastructure, excluded by the plan; no tile tables are shipped anyway |
+| `arm_z` (transpose-free pair update, stock kernels) | any | no | no | In the plan's "Pairformer fast path", after exact parity; not reached |
+| `fpf_trimul_exact` + `trimul_exact` | CUDA sm_90a and sm_80, only where a bit-exact record exists (none on A100) | ported as `trimul_triton` | ported as `trimul_triton` | This port's Triton gated projections around cuEquivariance's LayerNorms and contraction give the stock bits; about 2x per call (`33e09d2`, `f79dcb4`) |
+| `transition_exact` | per the core's cells | ported as `transition_triton` | ported as `transition_triton` | Bit-identical, about 1.15x per call |
+| `triattn_exact` + `triattn_conf` | H100 stacks the core vouches for; the sm_80 cells list the CUDA v3 kernel | no | ported as `triattn_exact` | Bitwise cuEquivariance on A100, 1.04-1.71x from 192 tokens. Its tiling is sized for sm_80's 163 KB of shared memory (sm_120 allows about 99 KB per block), and the kit has no sm_120 exact records |
+| `dit_attn_exact` | prebuilt sm_90a only | no | no | No sm_80 or sm_120 build exists; the kit itself runs stock on A100 |
 
 This port's `exact` also has bit-identical kernels that the kit's `exact` does not serve on these GPUs: `trimul_triton` and `transition_triton` on both GPUs, and `triattn_exact` on A100. On A100 the kit's `exact` runs the stock operation for triangle multiplication and sampler attention, because it has no bit-exact record there.
+
+### `fast` (rounding changes; replaces `arm_z` and the exact-tier kernel items)
+
+The kit describes these as bf16 re-association and fused-kernel rounding.
+
+| Kit item | Kit GPUs | sm_120 | sm_80 | Reason |
+| --- | --- | --- | --- | --- |
+| `triattn_core` + `triattn_conf` | CUDA sm_90a and sm_80, Triton elsewhere; the sm_80 cells serve `triattn_native@v11` | ported as `triattn_k2b` | ported as `triattn_native` | The only `fast` item ported; rejected at the first held-out draw on both GPUs |
+| `arm_u` + `arm_u23` (bf16 pair stack on the trunk, structure refiner and confidence pairformer) | any, from 300 tokens | no | no | "Pairformer fast path", after exact parity; not reached |
+| `trimul_core` | Triton | no | no | sm_80: no fast candidate beat the bit-identical kernel by more than 5-10%, and the core's native triangle-multiplication cubins are CUDA 13 builds. sm_120: not attempted; triangle attention came first |
+| `transition_core` (`sep16`) | Triton | no | no | Pairformer fast path; not reached. The bit-identical version already runs |
+| `ln_core` | Triton, C = 384 | no | no | Wraps `FusedLayerNorm` only, which never runs under 1.2's default `LAYERNORM_TYPE=torch`; it needs a new dispatch point, worth it only if the profile shows LayerNorm time matters |
+| `chunk_lift` | any, up to 1,024 tokens | no | no | Not in the plan's scope; not evaluated |
+| `dit_attn_apb`, `atom_attn_apb`, `cond_dedupe`, `dit_fused` + `dit_lowp`, `atom_fused` | Triton and CUDA through the core's apb provider | no | no | "Diffusion and atom fast path", after the Pairformer path. Tuned against TF32-on stock while 1.2's sampler runs full FP32, so their error will be larger than the kit reported; they must also fit the 1.2 guidance loop |
+
+### `big`
+
+| Kit item | Kit GPUs | sm_120 | sm_80 | Reason |
+| --- | --- | --- | --- | --- |
+| `pair_offload_trunk`, `pair_offload_struct`, `pair_offload_conf`, `diffz`, `bigln_guard`, `free_templ`, `sample_chunk`, `no_dit_hoist` | any; gates sized per card (64 GiB boundary) | no | no | Conditional on measured capacity: ported only if target inputs do not fit under `fast`. So far D4 (1,218 tokens) peaks at 43 GiB on the 80 GB A100 |
+| `rowpair_tp`, `tp_triatt`, `struct_pair_bf16` (`--n_gpu P`) | multiple GPUs of one host | no | no | Deferred: about 23k lines, overlaps native Fold-CP, refuses guidance, and suits NVLink better than gnode2's PCIe |
+
+Registered in the kit but in no shipped mode, and excluded by the plan as neutral or negative: `sampler_amp`, `writer_overlap`, `xl_tri_ln`, `dit_attn_bf16`.
+
+In short: every exact host item is ported to both GPUs; bit-identical kernels are ported for triangle multiplication and the pair transition on both GPUs and for triangle attention on sm_80; from `fast` only triangle attention is ported, and both kernels were rejected at their draws. The optional exact scheduling items, the rest of the Pairformer and sampler fast paths, and all of `big` are planned but not ported.
 
 ## Triangle attention on sm_80
 
