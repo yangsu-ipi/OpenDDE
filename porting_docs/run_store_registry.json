@@ -58,7 +58,7 @@
   {
    "path": "/mnt/compbio-data/yang.su/opendde-qualification-archive",
    "registered": "2026-10-17",
-   "note": "Archive copies of closed acceptance lines, one directory per line with its source manifests (accept-sm120-fast-25267ec: rejected, 2026-10-17). Copies, not new runs; originals stay in their registered stores until the storage-admin procedure protects the archive."
+   "note": "Archive copies of closed acceptance lines, one directory per line with its source manifests (accept-sm120-fast-25267ec: rejected, 2026-10-17; accept-sm80-fast80-87526cb: rejected, 2026-10-19). Copies, not new runs; originals stay in their registered stores until the storage-admin procedure protects the archive."
   },
   {
    "path": "/ephemeral/porting",

@@ -44,16 +44,17 @@ Held-out draw and closure (2026-10-17):
 
 | Field | Value |
 | --- | --- |
-| Status | open (opened 2026-10-18) |
+| Status | **rejected** (closed 2026-10-19) |
 | GPU | sm_80 (A100 80GB PCIe, A100 VM `/ephemeral/porting`) |
 | Branch | `accept/sm80-fast80-87526cb` on `yangsu-ipi/OpenDDE` |
 | Receipt ID | `fast80-87526cb` |
 | Candidate | `fast-native80`: code commit `87526cb52a76d8729a35ec1d24cca5063674aeff`, candidate arguments `--optimization_mode fast` |
 | Contract tag | `qual-sm120-contract-7` (commit `37c02cc9fa13ce3c61119769de181747b5322475`) |
 | Pushed receipt commit | `97a875d04c16242ae7bdb02068c099772bb5cb4e` (changes only `scripts/qualification/inputs/held_out_log.json`) |
-| Final branch tip | not yet recorded |
-| Acceptance checkout | `/ephemeral/porting/opendde-accept` on the A100 VM, on branch `accept/sm80-fast80-87526cb` at the receipt commit |
-| Draw | none logged; at most 3 draws for the declared `fast` sm_80 claim |
+| Final branch tip | `d2637e07b50c109a090328156eedfd6361adf48e` (pushed; the draw commit) |
+| Acceptance checkout | `/ephemeral/porting/opendde-accept` on the A100 VM, on branch `accept/sm80-fast80-87526cb` at the final branch tip |
+| Draw | `sm80-fast-1`, draw 1 of at most 3 for the declared `fast` sm_80 claim; seeds H1 222-223 through H10 240-241 (lowest unused seeds in row order); no extra Zn seeds (H3 had 15 eligible ions from its primary seeds) |
+| Verdict | **fail**, `accept.py` exit 1 through `qual_gate.py --gpu sm_80 --accept --receipt fast80-87526cb` (gate passed, candidate unchanged); 2,498 checks, 3 failed; Zn claim `qualified` |
 
 Rehearsal (2026-10-18, `dev-rehearsal` route through `qual_gate.py --accept` from the clean `qual-sm120-contract-7` checkout `/ephemeral/porting/opendde-c7-gate`):
 
@@ -65,3 +66,15 @@ Rehearsal (2026-10-18, `dev-rehearsal` route through `qual_gate.py --accept` fro
 - Record hashes (SHA-256): `verdict.json` `8b7e875d8f069a366a8d7f4c95af05a9fe93ccb021d131abc136d804c248a29d`; `gate.json` `619a8ab804dc34c11c825e9718e1b81c085a4474cb5bf907851584b8cb93d13b`; `record.json` `22da4f171b91464631ea4dcfb335141f02fcdc769cef2aca24a8b2d4f7251d0e`; `receipt.json` `1b96361dd2a202fafe9e8be46dd3b9de723bbd8d431281af80cb8dbbc1f1f87d`; `evidence.json` `c5153aa977147b45d85a76040522cc2761ae9e6560c2ad34f5fe4cf62629f681`; gate preflight with the receipt after the push (11 of 11 checks passed) `gate-preflight-receipt.json` `e5e7c9bca54425b95036c2bcbcc919598ea20fea20ad470c908441e142b285fa`.
 - Pre-receipt checks: GitHub rulesets rechecked, unchanged since 2026-10-14, with the line branch and `accept/sm80-example` both under deletion and non-fast-forward protection ([record](qualification_records/ruleset_recheck_receipt_fast80-87526cb_2026-10-18.json)); the line check rerun against the remote (12 of 12 checks passed, [record](qualification_records/line_check_sm80-fast80-87526cb_receipt_2026-10-18.json)); disk preflight of the held-out block passed ([operator record](qualification_records/line_sm80-fast80-87526cb_preflight_receipt_2026-10-18.json), SHA-256 `c2ce87feff562fd3651363df0d60764d0647ec59b6175d1017b0ab7a3a35f811`, from the sm_120 line's method with A100 paths): every held-out row dominated by its comparator (H7 and H10 by identical entities), 58.1 GB of bounds plus a 20 GB margin against 802.1 GB available on `/ephemeral`, which has no user quota; 45.3 GB already held for the line.
 - The rehearsal outputs, the line's smoke test and the tag smoke record were made read-only after the receipt commit.
+
+Held-out draw and closure (2026-10-19):
+
+- Pre-draw: logged draws per claim counted (0 for the sm_80 `fast` claim; the only earlier draw is `sm120-fast-1`, seeds 201-221); audit of all registered stores from both hosts, each from a clean checkout holding the logged draws: gnode2 (job 54335, from the `qual-sm120-contract-7` checkout `~/opendde-c7`; 2,656 runs) and the A100 VM (from the acceptance checkout; 1,418 runs), no stop, no deviation, each host's missing stores being the other host's; supplementary scans of unregistered OpenDDE-related directories and the porting and gate checkouts on gnode2 (no runs) and of the VM's directories outside the registered store (the shared OpenDDE tools install and templates and the GIPR VHH campaign outputs: 99,297 seed directories of unrelated design inputs, no stop); GitHub rulesets rechecked before the draw commit push, before held-out batch B and before the final verdict (all unchanged).
+- Draw commit `d2637e0` (changes only the held-out log), pushed before any held-out run.
+- Runs, from `/ephemeral/porting/opendde-accept` at the draw commit with the frozen asset copy, serially behind the gate preflight with the receipt, the asset and input-digest preflights and a per-run headroom guard on `/ephemeral` (operator records in `draw-1/operator`): `off` and the candidate traced (job 357), then the candidate repeat and both tier 1 runs (job 358). All 50 runs exited 0; the checkout stayed clean. H3's eligible Zn ion count after job 357 (15) met the stopping rule, so no extra Zn seed was logged.
+- Verdict (job 359): the development set passed as in the rehearsal; every held-out tier 1, trace, repeat, provenance and seed check passed, and the Zn claim is qualified. Failed tier 2 gates: H5 (`9sat_pocket`) `ensemble_ref_lddt_polymer_lowest` and `ensemble_ref_lddt_protein_lowest` 0.282 (limit 0.02); H6 (`9xqn_contact`) `outcome_count` 8 (9); H7 (`9lh2_contact`) `outcome_count` 0 (2). H1-H4 and H8-H10 passed.
+- The failures were not diagnosed on held-out data, so that no later candidate is chosen from them.
+- Held-out evidence digest (`accept.evidence_digest` of the held-out set): `16470dd6bb26210fda9a55c5089e3008892592b2c972601f7b1d27a17053bcc0`; of all sets: `6de82f14f2f659c1ce4efb3a1a7a2ad3c35edf871d058713b7cf664634f4cb70`; development: `f5563339450a9b21a3226cb79f0039f8d40925fc78f5289c723c1b42057c3f64`, equal to the receipt's.
+- Record hashes (SHA-256, `draw-1/record`): `record.json` `5400cd185280cd085089e5a51dc726ee918650ca5449b1528c57685c42843993`; `gate.json` `24ac9429a99e599fc6f1643f47b3f9f76183e21572d3559b51578d4a43581e5e`; `verdict.json` `8bdf40cb0e667e91affa6b8cae6099c534e23aeee97952803d13436e606ef790`; `evidence.json` `643aee0234fe2e8d4b5956511dd42e7647b673b14b0582ce639eda82f7ef3b17`.
+- Archive: the whole line store (rehearsal, smoke test, draw, jobs, operator records and the line's job logs; 3,328 files, 79.3 GB, no symlinks) copied to `/mnt/compbio-data/yang.su/opendde-qualification-archive/accept-sm80-fast80-87526cb` (2,082 rehearsal files from their verified NAS copy, the rest streamed from the VM) and verified from gnode2 against the VM's source manifest (every file matched, none missing or extra apart from the manifest copies at the archive root, no symlinks on either side; job 54572). Archive manifest `manifest-sha256.txt` SHA-256 `8c33cb53752e78797ba42e47926fb742efecadb5307dbfc6b0abff1558936212`. The copy and the originals are read-only by file permission; this is not a NAS-protected immutable copy, and the originals on the ephemeral VM are kept until the storage-admin procedure protects and independently verifies the archive.
+- Merged into `porting/inline-optimizations` after this entry.
