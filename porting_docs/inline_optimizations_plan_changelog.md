@@ -2,6 +2,14 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 116 (2026-10-19)
+
+Adds two kit items the scope table had omitted; qualification code, limits, tags and declared claims are unchanged. The plan's header is brought up to this revision (it still read 113 after revisions 114 and 115).
+
+- `dit_align` joins the optional `exact` host and data-path items (scope table and step 2): the kit pairs it with `dit_hoist`, putting the hoisted pair biases in an aligned allocation, which this port's `dit_hoist` does not do. Reason: the plan never named it, so leaving it out of `dit_hoist` was never a recorded choice.
+- `chunk_lift` gets its own scope row, "Evaluate with the fast path": a `fast` item that moves attention chunk boundaries (rounding changes) for inputs of at most 1,024 tokens, with the condition that its decision be fixed by the input and declared settings, or shown identical across repeats. Reason: it was in no scope group, and its choice depends on the free GPU memory at run time, which the repeat and determinism checks assume away.
+- Found while comparing the kit's `fast` with this port (`porting_docs/kit_fast_comparison.md`).
+
 ## Revision 115 (2026-10-18)
 
 Records the contract-7 release the user approved; qualification code and limits are unchanged from revision 114.

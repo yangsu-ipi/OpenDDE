@@ -19,7 +19,7 @@ The kit targets A100 (sm_80) and H100/H200 (sm_90). Its host items run on any GP
 | --- | --- | --- | --- | --- |
 | `drop_bond_mask`, `tmpl_dedup`, `json_oneshot`, `structok_sync`, `sched_host` | any | ported | ported | Host and data-path changes with identical bytes (`c584e6d`; as `template_dedup`, `structural_token_sync`, `host_noise_schedule`) |
 | `dit_hoist`, `zprep_hoist` | any | ported | ported | The same (`7fddcb4`) |
-| `dit_align` | any | no | no | Not in the plan's scope; not evaluated |
+| `dit_align` | any | no | no | Omitted from the plan's scope table and never evaluated; added in plan revision 116 as an optional `exact` item, to be checked for byte identity with `off` like `dit_hoist` |
 | `stepgraph` | sm_90; sm_80 up to 1,024 tokens | no | no | Optional `exact` item: needs graph-capture tests and a measured bit-exact window per GPU, and must stay off under guidance |
 | `prefetch` | any | no | no | Optional: adds a worker process and must step aside to keep RDKit's random state as in stock |
 | `keep_pool` | any | no | no | Optional: less fragmentation control for fewer synchronizations |
@@ -45,7 +45,7 @@ The kit describes these as bf16 re-association and fused-kernel rounding.
 | `trimul_core` | Triton | no | no | sm_80: no fast candidate beat the bit-identical kernel by more than 5-10%, and the core's native triangle-multiplication cubins are CUDA 13 builds. sm_120: not attempted; triangle attention came first |
 | `transition_core` (`sep16`) | Triton | no | no | Not started: "Pairformer fast path", planned after exact parity, which has been met. The bit-identical version already runs |
 | `ln_core` | Triton, C = 384 | no | no | Wraps `FusedLayerNorm` only, which never runs under 1.2's default `LAYERNORM_TYPE=torch`; it needs a new dispatch point, worth it only if the profile shows LayerNorm time matters |
-| `chunk_lift` | any, up to 1,024 tokens | no | no | Not in the plan's scope; not evaluated |
+| `chunk_lift` | any, up to 1,024 tokens | no | no | Omitted from the plan's scope table and never evaluated; added in plan revision 116 to be evaluated with the fast path. Its choice depends on free GPU memory at run time, so it needs a decision fixed by the input and settings, or identical choices across repeats |
 | `dit_attn_apb`, `atom_attn_apb`, `cond_dedupe`, `dit_fused` + `dit_lowp`, `atom_fused` | Triton and CUDA through the core's apb provider | no | no | "Diffusion and atom fast path", after the Pairformer path. Tuned against TF32-on stock while 1.2's sampler runs full FP32, so their error will be larger than the kit reported; they must also fit the 1.2 guidance loop |
 
 ### `big`
