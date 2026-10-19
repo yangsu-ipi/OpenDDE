@@ -1,0 +1,573 @@
+{
+ "line": "accept/sm80-fast80-87526cb",
+ "receipt": "fast80-87526cb",
+ "candidate": {
+  "code_commit": "87526cb52a76d8729a35ec1d24cca5063674aeff",
+  "candidate_args": [
+   "--optimization_mode",
+   "fast"
+  ]
+ },
+ "measured_at": "2026-10-19T02:09:22+0000",
+ "purpose": "pre-receipt disk preflight of the held-out block (protocol E5 disk headroom): frozen held-out token counts (signature inventory) and conservative heavy-atom counts against measured development comparators, per-role and per-class bounds from the rehearsal's measured bytes, and both headroom measurements",
+ "method": {
+  "held_out_atoms": "upper bound from the input JSONs: standard heavy atoms per residue and nucleotide (with phosphate), +1 terminal atom per chain, every non-hydrogen CCD atom of each ligand (leaving atoms included), 1 per ion; no OpenDDE inference or preprocessing of any held-out input",
+  "identity": "a held-out row whose entity list and covalent bonds equal its comparator's (restraint fields ignored; restraints add no tokens or atoms) has the comparator's own counts (H7 and D8, H10 and D4)",
+  "comparator_counts": "tokens from z_trunk and atoms from x_pred_coords of the comparator's own tier 1 off capture (seed 101)",
+  "bound": "factor 1.5 x the comparator's measured bytes for the same role and output class; H10 uses D4, its identical input",
+  "factor_justification": "every held-out row is at most its comparator in tokens and heavy atoms (dominated, below); the factor covers role-to-role and seed variation (measured below) and file-schema variation; candidate captures keep stock dtypes (cand_dtypes), so no dtype allowance beyond the factor is needed",
+  "h3_extra_zn": "4 extra seeds x (off + candidate) predictions and run files per seed of D8, times the factor",
+  "floor_and_margin": "remaining estimate = max(sum of bounds, 36 GB floor); margin = max(20 GB, 25% of the estimate)"
+ },
+ "comparators": {
+  "D4": {
+   "tokens": 1218,
+   "atoms": 9142,
+   "dtypes": {
+    "s_inputs": "torch.float32",
+    "s_trunk": "torch.bfloat16",
+    "z_trunk": "torch.bfloat16"
+   },
+   "capture": "/ephemeral/porting/accept-sm80/rehearsal-1/runs/cap_off/D4/7wux/seed_101/tier1.pt"
+  },
+  "D6": {
+   "tokens": 86,
+   "atoms": 1836,
+   "dtypes": {
+    "s_inputs": "torch.float32",
+    "s_trunk": "torch.bfloat16",
+    "z_trunk": "torch.bfloat16"
+   },
+   "capture": "/ephemeral/porting/accept-sm80/rehearsal-1/runs/cap_off/D6/9gmw_2/seed_101/tier1.pt"
+  },
+  "D8": {
+   "tokens": 732,
+   "atoms": 5640,
+   "dtypes": {
+    "s_inputs": "torch.float32",
+    "s_trunk": "torch.bfloat16",
+    "z_trunk": "torch.bfloat16"
+   },
+   "capture": "/ephemeral/porting/accept-sm80/rehearsal-1/runs/cap_off/D8/9lh2_unconstrained/seed_101/tier1.pt"
+  }
+ },
+ "cand_capture_dtypes": {
+  "D4": {
+   "s_inputs": "torch.float32",
+   "s_trunk": "torch.bfloat16",
+   "z_trunk": "torch.bfloat16"
+  },
+  "D6": {
+   "s_inputs": "torch.float32",
+   "s_trunk": "torch.bfloat16",
+   "z_trunk": "torch.bfloat16"
+  },
+  "D8": {
+   "s_inputs": "torch.float32",
+   "s_trunk": "torch.bfloat16",
+   "z_trunk": "torch.bfloat16"
+  }
+ },
+ "held_out": {
+  "H1": {
+   "tokens": 693,
+   "atoms_upper": 5370,
+   "basis": [
+    "1 x proteinChain 5370"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H2": {
+   "tokens": 600,
+   "atoms_upper": 5222,
+   "basis": [
+    "2 x proteinChain 1908",
+    "2 x dnaSequence 389",
+    "2 x dnaSequence 291",
+    "2 x ligand 23"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H3": {
+   "tokens": 710,
+   "atoms_upper": 5456,
+   "basis": [
+    "1 x proteinChain 1690",
+    "1 x proteinChain 1667",
+    "1 x proteinChain 2078",
+    "3 x ligand 7"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H4": {
+   "tokens": 650,
+   "atoms_upper": 5013,
+   "basis": [
+    "1 x proteinChain 3260",
+    "1 x proteinChain 818",
+    "1 x proteinChain 935"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H5": {
+   "tokens": 710,
+   "atoms_upper": 5456,
+   "basis": [
+    "1 x proteinChain 1690",
+    "1 x proteinChain 1667",
+    "1 x proteinChain 2078",
+    "3 x ligand 7"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H6": {
+   "tokens": 650,
+   "atoms_upper": 5013,
+   "basis": [
+    "1 x proteinChain 3260",
+    "1 x proteinChain 818",
+    "1 x proteinChain 935"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H7": {
+   "tokens": 732,
+   "atoms_upper": 5642,
+   "basis": [
+    "2 x proteinChain 1734",
+    "2 x proteinChain 1072",
+    "2 x ligand 15"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": true,
+   "dominated": true
+  },
+  "H8": {
+   "tokens": 28,
+   "atoms_upper": 576,
+   "basis": [
+    "1 x dnaSequence 289",
+    "1 x dnaSequence 287"
+   ],
+   "comparator": "D6",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H9": {
+   "tokens": 30,
+   "atoms_upper": 638,
+   "basis": [
+    "1 x rnaSequence 638"
+   ],
+   "comparator": "D6",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H10": {
+   "tokens": 1218,
+   "atoms_upper": 9160,
+   "basis": [
+    "2 x proteinChain 1791",
+    "2 x proteinChain 2756",
+    "1 x ligand 11",
+    "2 x ligand 17",
+    "3 x ligand 7"
+   ],
+   "comparator": "D4",
+   "identical_entities_to_comparator": true,
+   "dominated": true
+  }
+ },
+ "measured_development_bytes": {
+  "D1": {
+   "off.prediction": 23037823,
+   "off.other": 2429373,
+   "cand.prediction": 23092943,
+   "cand.other": 2431495,
+   "repeat.prediction": 23092943,
+   "repeat.other": 19964,
+   "tier1_off.capture": 114408384,
+   "tier1_off.other": 4685001,
+   "tier1_cand.capture": 114368074,
+   "tier1_cand.other": 4684416
+  },
+  "D2": {
+   "off.prediction": 29608115,
+   "off.other": 2326791,
+   "cand.prediction": 29638692,
+   "cand.other": 2328921,
+   "repeat.prediction": 29638692,
+   "repeat.other": 19893,
+   "tier1_off.capture": 171407296,
+   "tier1_off.other": 5956969,
+   "tier1_cand.capture": 171346378,
+   "tier1_cand.other": 5956964
+  },
+  "D3": {
+   "off.prediction": 170749919,
+   "off.other": 2411571,
+   "cand.prediction": 170713052,
+   "cand.other": 2413877,
+   "repeat.prediction": 170713052,
+   "repeat.other": 18792,
+   "tier1_off.capture": 1059973824,
+   "tier1_off.other": 34046345,
+   "tier1_cand.capture": 1059858378,
+   "tier1_cand.other": 34045390
+  },
+  "D4": {
+   "off.prediction": 661411552,
+   "off.other": 2328475,
+   "cand.prediction": 661329743,
+   "cand.other": 2331717,
+   "repeat.prediction": 661329743,
+   "repeat.other": 22102,
+   "tier1_off.capture": 4187879744,
+   "tier1_off.other": 132196196,
+   "tier1_cand.capture": 4187659978,
+   "tier1_cand.other": 132188914
+  },
+  "D5": {
+   "off.prediction": 196642182,
+   "off.other": 2333489,
+   "cand.prediction": 196633693,
+   "cand.other": 2335808,
+   "repeat.prediction": 196633693,
+   "repeat.other": 24381,
+   "tier1_off.capture": 1173130432,
+   "tier1_off.other": 47803442,
+   "tier1_cand.capture": 1173025226,
+   "tier1_cand.other": 47808597
+  },
+  "D6": {
+   "off.prediction": 5533262,
+   "off.other": 2335740,
+   "cand.prediction": 5533262,
+   "cand.other": 2339038,
+   "repeat.prediction": 5533262,
+   "repeat.other": 18209,
+   "tier1_off.capture": 22083648,
+   "tier1_off.other": 1120436,
+   "tier1_cand.capture": 22039370,
+   "tier1_cand.other": 1123755
+  },
+  "D7": {
+   "off.prediction": 885980,
+   "off.other": 2375177,
+   "cand.prediction": 885980,
+   "cand.other": 2378521,
+   "repeat.prediction": 885980,
+   "repeat.other": 17490,
+   "tier1_off.capture": 1969984,
+   "tier1_off.other": 188808,
+   "tier1_cand.capture": 1957962,
+   "tier1_cand.other": 192173
+  },
+  "D8": {
+   "off.prediction": 241811317,
+   "off.other": 2412411,
+   "cand.prediction": 241517959,
+   "cand.other": 2414724,
+   "repeat.prediction": 241517959,
+   "repeat.other": 20792,
+   "tier1_off.capture": 1515123264,
+   "tier1_off.other": 48609060,
+   "tier1_cand.capture": 1514987594,
+   "tier1_cand.other": 48622884
+  },
+  "D9": {
+   "off.prediction": 170871917,
+   "off.other": 3292647,
+   "cand.prediction": 170817838,
+   "cand.other": 3295142,
+   "repeat.prediction": 170817838,
+   "repeat.other": 139570,
+   "tier1_off.capture": 1059973824,
+   "tier1_off.other": 34088611,
+   "tier1_cand.capture": 1059858378,
+   "tier1_cand.other": 34073165
+  },
+  "D10": {
+   "off.prediction": 170941282,
+   "off.other": 3233127,
+   "cand.prediction": 170930741,
+   "cand.other": 3237599,
+   "repeat.prediction": 170930741,
+   "repeat.other": 90104,
+   "tier1_off.capture": 1059973824,
+   "tier1_off.other": 34086011,
+   "tier1_cand.capture": 1059858378,
+   "tier1_cand.other": 34078053
+  },
+  "D11": {
+   "off.prediction": 170964845,
+   "off.other": 3175591,
+   "cand.prediction": 170885204,
+   "cand.other": 3177929,
+   "repeat.prediction": 170885204,
+   "repeat.other": 22327,
+   "tier1_off.capture": 1059973824,
+   "tier1_off.other": 34045476,
+   "tier1_cand.capture": 1059858378,
+   "tier1_cand.other": 34044949
+  },
+  "D12": {
+   "off.prediction": 170926984,
+   "off.other": 3175630,
+   "cand.prediction": 170877682,
+   "cand.other": 3178120,
+   "repeat.prediction": 170877682,
+   "repeat.other": 22480,
+   "tier1_off.capture": 1059973824,
+   "tier1_off.other": 34049499,
+   "tier1_cand.capture": 1059858378,
+   "tier1_cand.other": 34059246
+  },
+  "D13": {
+   "off.prediction": 200359935,
+   "off.other": 4726097,
+   "cand.prediction": 200353645,
+   "cand.other": 4728652,
+   "repeat.prediction": 200353645,
+   "repeat.other": 28266,
+   "tier1_off.capture": 1231381120,
+   "tier1_off.other": 39996525,
+   "tier1_cand.capture": 1231204756,
+   "tier1_cand.other": 39993671
+  },
+  "D14": {
+   "off.prediction": 101476589,
+   "off.other": 2329228,
+   "cand.prediction": 101476997,
+   "cand.other": 2331543,
+   "repeat.prediction": 101476997,
+   "repeat.other": 21254,
+   "tier1_off.capture": 623391168,
+   "tier1_off.other": 20342718,
+   "tier1_cand.capture": 623305290,
+   "tier1_cand.other": 20349271
+  },
+  "D15": {
+   "off.prediction": 90662789,
+   "off.other": 2324980,
+   "cand.prediction": 90657110,
+   "cand.other": 2327281,
+   "repeat.prediction": 90657110,
+   "repeat.other": 17623,
+   "tier1_off.capture": 556420544,
+   "tier1_off.other": 18159742,
+   "tier1_cand.capture": 556338250,
+   "tier1_cand.other": 18160093
+  }
+ },
+ "role_variation": {
+  "D1": {
+   "prediction_max_over_min": 1.0023925871815231,
+   "capture_cand_over_off": 0.999647665681564
+  },
+  "D2": {
+   "prediction_max_over_min": 1.0010327236299914,
+   "capture_cand_over_off": 0.9996446008926014
+  },
+  "D3": {
+   "prediction_max_over_min": 1.0002159588828627,
+   "capture_cand_over_off": 0.9998910859896857
+  },
+  "D4": {
+   "prediction_max_over_min": 1.0001237037965793,
+   "capture_cand_over_off": 0.9999475233260184
+  },
+  "D5": {
+   "prediction_max_over_min": 1.0000431716450549,
+   "capture_cand_over_off": 0.9999103202873865
+  },
+  "D6": {
+   "prediction_max_over_min": 1.0,
+   "capture_cand_over_off": 0.9979949870601089
+  },
+  "D7": {
+   "prediction_max_over_min": 1.0,
+   "capture_cand_over_off": 0.9938974123647705
+  },
+  "D8": {
+   "prediction_max_over_min": 1.0012146425931001,
+   "capture_cand_over_off": 0.9999104561303865
+  },
+  "D9": {
+   "prediction_max_over_min": 1.0003165887159864,
+   "capture_cand_over_off": 0.9998910859896857
+  },
+  "D10": {
+   "prediction_max_over_min": 1.0000616682519383,
+   "capture_cand_over_off": 0.9998910859896857
+  },
+  "D11": {
+   "prediction_max_over_min": 1.0004660497113607,
+   "capture_cand_over_off": 0.9998910859896857
+  },
+  "D12": {
+   "prediction_max_over_min": 1.000288522172252,
+   "capture_cand_over_off": 0.9998910859896857
+  },
+  "D13": {
+   "prediction_max_over_min": 1.0000313944874824,
+   "capture_cand_over_off": 0.9998567754555145
+  },
+  "D14": {
+   "prediction_max_over_min": 1.0000040206317933,
+   "capture_cand_over_off": 0.9998622405892026
+  },
+  "D15": {
+   "prediction_max_over_min": 1.0000626426322217,
+   "capture_cand_over_off": 0.9998521010755491
+  }
+ },
+ "bounds_bytes": {
+  "H1": {
+   "cand.other": 3622086,
+   "cand.prediction": 362276938,
+   "off.other": 3618616,
+   "off.prediction": 362716975,
+   "repeat.other": 31188,
+   "repeat.prediction": 362276938,
+   "tier1_cand.capture": 2272481391,
+   "tier1_cand.other": 72934326,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72913590
+  },
+  "H2": {
+   "cand.other": 3622086,
+   "cand.prediction": 362276938,
+   "off.other": 3618616,
+   "off.prediction": 362716975,
+   "repeat.other": 31188,
+   "repeat.prediction": 362276938,
+   "tier1_cand.capture": 2272481391,
+   "tier1_cand.other": 72934326,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72913590
+  },
+  "H3": {
+   "cand.other": 3622086,
+   "cand.prediction": 362276938,
+   "off.other": 3618616,
+   "off.prediction": 362716975,
+   "repeat.other": 31188,
+   "repeat.prediction": 362276938,
+   "tier1_cand.capture": 2272481391,
+   "tier1_cand.other": 72934326,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72913590
+  },
+  "H4": {
+   "cand.other": 3622086,
+   "cand.prediction": 362276938,
+   "off.other": 3618616,
+   "off.prediction": 362716975,
+   "repeat.other": 31188,
+   "repeat.prediction": 362276938,
+   "tier1_cand.capture": 2272481391,
+   "tier1_cand.other": 72934326,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72913590
+  },
+  "H5": {
+   "cand.other": 3622086,
+   "cand.prediction": 362276938,
+   "off.other": 3618616,
+   "off.prediction": 362716975,
+   "repeat.other": 31188,
+   "repeat.prediction": 362276938,
+   "tier1_cand.capture": 2272481391,
+   "tier1_cand.other": 72934326,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72913590
+  },
+  "H6": {
+   "cand.other": 3622086,
+   "cand.prediction": 362276938,
+   "off.other": 3618616,
+   "off.prediction": 362716975,
+   "repeat.other": 31188,
+   "repeat.prediction": 362276938,
+   "tier1_cand.capture": 2272481391,
+   "tier1_cand.other": 72934326,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72913590
+  },
+  "H7": {
+   "cand.other": 3622086,
+   "cand.prediction": 362276938,
+   "off.other": 3618616,
+   "off.prediction": 362716975,
+   "repeat.other": 31188,
+   "repeat.prediction": 362276938,
+   "tier1_cand.capture": 2272481391,
+   "tier1_cand.other": 72934326,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72913590
+  },
+  "H8": {
+   "cand.other": 3508557,
+   "cand.prediction": 8299893,
+   "off.other": 3503610,
+   "off.prediction": 8299893,
+   "repeat.other": 27313,
+   "repeat.prediction": 8299893,
+   "tier1_cand.capture": 33059055,
+   "tier1_cand.other": 1685632,
+   "tier1_off.capture": 33125472,
+   "tier1_off.other": 1680654
+  },
+  "H9": {
+   "cand.other": 3508557,
+   "cand.prediction": 8299893,
+   "off.other": 3503610,
+   "off.prediction": 8299893,
+   "repeat.other": 27313,
+   "repeat.prediction": 8299893,
+   "tier1_cand.capture": 33059055,
+   "tier1_cand.other": 1685632,
+   "tier1_off.capture": 33125472,
+   "tier1_off.other": 1680654
+  },
+  "H10": {
+   "cand.other": 3497575,
+   "cand.prediction": 991994614,
+   "off.other": 3492712,
+   "off.prediction": 992117328,
+   "repeat.other": 33153,
+   "repeat.prediction": 991994614,
+   "tier1_cand.capture": 6281489967,
+   "tier1_cand.other": 198283371,
+   "tier1_off.capture": 6281819616,
+   "tier1_off.other": 198294294
+  }
+ },
+ "h3_extra_zn_bound_bytes": 1464469233,
+ "sum_of_bounds_bytes": 58109365029,
+ "remaining_estimate_bytes": 58109365029,
+ "margin_bytes": 20000000000,
+ "required_bytes": 78109365029,
+ "headroom": {
+  "filesystem": "/ephemeral",
+  "filesystem_available_bytes": 802067005440,
+  "bytes_held_for_line": 45315545324,
+  "quota": "none: the VM's /ephemeral is not quota-mounted and has no quota tools, so filesystem space is the only limit",
+  "mount": "/dev/vdb /ephemeral ext4 rw,relatime,stripe=32 0 0",
+  "quota_tool": null
+ },
+ "pass": true
+}
