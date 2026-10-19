@@ -11,7 +11,7 @@ Date: 2026-10-19. Sources: the optimization kit at commit `f4f62fa` (`opendde/CH
 
 ## Every kit item: mode, GPUs and port status
 
-The kit targets A100 (sm_80) and H100/H200 (sm_90). Its host items run on any GPU; its kernel items run where the shared core's cell tables vouch for a row: CUDA-native kernels for sm_90a or sm_80, Triton elsewhere. sm_120 appears nowhere in the kit. Most "no" entries below are planned but not reached; the reason says which.
+The kit targets A100 (sm_80) and H100/H200 (sm_90). Its host items run on any GPU; its kernel items run where the shared core's cell tables vouch for a row: CUDA-native kernels for sm_90a or sm_80, Triton elsewhere. sm_120 appears nowhere in the kit. Most "no" entries below are planned but not started; the reason says which. The plan's "Pairformer fast path" group (the transpose-free pair stack and the fast Triton triangle, transition and LayerNorm kernels) is to be ported after exact parity, which `exact` has met on both GPUs since 2026-10-17; of that group only triangle attention has been taken up so far, and the rest has not been attempted or judged unsuitable.
 
 ### `exact` (`fast` and `big` also run its host items)
 
@@ -26,7 +26,7 @@ The kit targets A100 (sm_80) and H100/H200 (sm_90). Its host items run on any GP
 | `alloc_auto` | any | no | no | Optional: a process-wide allocator setting |
 | `lnstream` | prebuilt sm_80 and sm_90 | as a bug fix | as a bug fix | Ported outside the modes (`0950ab5`): a correctness bug, used only by `fast_layernorm` |
 | `served_levers_hook`, `cueq_tuned_cache` | any | no | no | Overlay infrastructure, excluded by the plan; no tile tables are shipped anyway |
-| `arm_z` (transpose-free pair update, stock kernels) | any | no | no | In the plan's "Pairformer fast path", after exact parity; not reached |
+| `arm_z` (transpose-free pair update, stock kernels) | any | no | no | Not started: in the plan's "Pairformer fast path", planned after exact parity, which has been met |
 | `fpf_trimul_exact` + `trimul_exact` | CUDA sm_90a and sm_80, only where a bit-exact record exists (none on A100) | ported as `trimul_triton` | ported as `trimul_triton` | This port's Triton gated projections around cuEquivariance's LayerNorms and contraction give the stock bits; about 2x per call (`33e09d2`, `f79dcb4`) |
 | `transition_exact` | per the core's cells | ported as `transition_triton` | ported as `transition_triton` | Bit-identical, about 1.15x per call |
 | `triattn_exact` + `triattn_conf` | H100 stacks the core vouches for; the sm_80 cells list the CUDA v3 kernel | no | ported as `triattn_exact` | Bitwise cuEquivariance on A100, 1.04-1.71x from 192 tokens. Its tiling is sized for sm_80's 163 KB of shared memory (sm_120 allows about 99 KB per block), and the kit has no sm_120 exact records |
@@ -41,9 +41,9 @@ The kit describes these as bf16 re-association and fused-kernel rounding.
 | Kit item | Kit GPUs | sm_120 | sm_80 | Reason |
 | --- | --- | --- | --- | --- |
 | `triattn_core` + `triattn_conf` | CUDA sm_90a and sm_80, Triton elsewhere; the sm_80 cells serve `triattn_native@v11` | ported as `triattn_k2b` | ported as `triattn_native` | The only `fast` item ported; rejected at the first held-out draw on both GPUs |
-| `arm_u` + `arm_u23` (bf16 pair stack on the trunk, structure refiner and confidence pairformer) | any, from 300 tokens | no | no | "Pairformer fast path", after exact parity; not reached |
+| `arm_u` + `arm_u23` (bf16 pair stack on the trunk, structure refiner and confidence pairformer) | any, from 300 tokens | no | no | Not started: "Pairformer fast path", planned after exact parity, which has been met |
 | `trimul_core` | Triton | no | no | sm_80: no fast candidate beat the bit-identical kernel by more than 5-10%, and the core's native triangle-multiplication cubins are CUDA 13 builds. sm_120: not attempted; triangle attention came first |
-| `transition_core` (`sep16`) | Triton | no | no | Pairformer fast path; not reached. The bit-identical version already runs |
+| `transition_core` (`sep16`) | Triton | no | no | Not started: "Pairformer fast path", planned after exact parity, which has been met. The bit-identical version already runs |
 | `ln_core` | Triton, C = 384 | no | no | Wraps `FusedLayerNorm` only, which never runs under 1.2's default `LAYERNORM_TYPE=torch`; it needs a new dispatch point, worth it only if the profile shows LayerNorm time matters |
 | `chunk_lift` | any, up to 1,024 tokens | no | no | Not in the plan's scope; not evaluated |
 | `dit_attn_apb`, `atom_attn_apb`, `cond_dedupe`, `dit_fused` + `dit_lowp`, `atom_fused` | Triton and CUDA through the core's apb provider | no | no | "Diffusion and atom fast path", after the Pairformer path. Tuned against TF32-on stock while 1.2's sampler runs full FP32, so their error will be larger than the kit reported; they must also fit the 1.2 guidance loop |
