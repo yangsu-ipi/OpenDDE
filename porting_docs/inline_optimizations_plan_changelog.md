@@ -2,6 +2,13 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 117 (2026-10-19)
+
+Records the user's decision that every kit item reaches a disposition; qualification code, limits, tags and declared claims are unchanged.
+
+- New section "Every kit item reaches a disposition" and a recorded-decisions row: each kit item, on sm_120 and on sm_80, ends ported, or shown (a) not worth porting (under 3% of model forward time summed over D1-D15 and under 5% on every row, by the controlled timing protocol; a phase-profile upper bound suffices), (b) numerically worse (alone on top of `exact`, failing a frozen development gate, or kernel error against fp32 above 1.25x stock's), or (c) not applicable to OpenDDE 1.2. Reason: the kit comparison showed most kit items neither ported nor evaluated, and two had been omitted from the plan.
+- Order: sm_120 on gnode2 first, then one A100 session (replacement-host test first); `fast` items that pass are bundled into one candidate per GPU, so each `fast` claim spends at most one more draw. `big` and `--n_gpu` items stay decided by capacity (steps 5 and 6). Reason: the A100 is provisioned per session, and each claim has two draws left.
+
 ## Revision 116 (2026-10-19)
 
 Adds two kit items the scope table had omitted; qualification code, limits, tags and declared claims are unchanged. The plan's header is brought up to this revision (it still read 113 after revisions 114 and 115).
