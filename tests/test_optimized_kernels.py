@@ -258,6 +258,9 @@ def test_triattn_exact_row_ignores_triton(monkeypatch):
     assert ("triattn_exact", "device NVIDIA A30") in dispatch._LOGGED
     dispatch._row_reason.cache_clear()
     monkeypatch.setattr(torch.cuda, "get_device_capability", lambda index: (12, 0))
+    assert dispatch.available("triattn_exact", cuda)  # any 12.0 device
+    dispatch._row_reason.cache_clear()
+    monkeypatch.setattr(torch.cuda, "get_device_capability", lambda index: (9, 0))
     assert not dispatch.available("triattn_exact", cuda)
 
 
@@ -294,6 +297,31 @@ def test_triattn_exact_launch_plan():
     assert TE._plan_rows(1030, 128) == (1024, 6, 9)
     for n in (192, 300, 1001, 2047):
         assert TE._pick_cfg(1, n, 4, n) in TE._CFG
+
+
+def test_triattn_exact_configs_fit_the_shared_memory():
+    from opendde.model.optimized import triattn_exact as TE
+
+    sm120 = TE._SMEM_OPTIN[(12, 0)]
+    # fp32 bias: the two largest-tile configurations exceed sm_120's 99 KB
+    assert TE._smem_bytes(4, 1000, 4, True) > sm120
+    assert TE._smem_bytes(0, 1000, 4, True) > sm120
+    assert TE._smem_bytes(4, 1000, 2, True) <= sm120  # bf16 bias fits
+    for n in (192, 300, 517, 1001, 1218, 2047):
+        for bias_bytes in (2, 4):
+            for rows in (8, 256):
+                cfg = TE._pick_cfg(1, rows, 12, n, bias_bytes, True, sm120)
+                assert TE._smem_bytes(cfg, n, bias_bytes, True) <= sm120
+                _, _, tail = TE._plan_rows(
+                    n,
+                    TE._CFG[cfg][1],
+                    lambda c: TE._smem_bytes(c, n, bias_bytes, True) <= sm120,
+                )
+                assert (
+                    tail is None or TE._smem_bytes(tail, n, bias_bytes, True) <= sm120
+                )
+    assert TE.nvcc_flags((8, 0))[-1] == "arch=compute_80,code=sm_80"
+    assert TE.nvcc_flags((12, 0))[-1] == "arch=compute_120,code=sm_120"
 
 
 def test_triattn_exact_skips_ineligible_calls():

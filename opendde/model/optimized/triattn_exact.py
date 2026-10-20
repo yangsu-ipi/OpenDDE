@@ -6,15 +6,21 @@
 """Triangle attention bit-identical to cuEquivariance's (triattn_exact).
 
 Serves the cuEquivariance ``triangle_attention`` call of ``Attention`` under
-bf16 autocast at head dimension 32 with a CUDA kernel (``mma.sync`` code path
-for sm_80, ``csrc/triattn_v3.cu``) whose results are bitwise the library's:
+bf16 autocast at head dimension 32 with a CUDA kernel (``mma.sync`` code path,
+``csrc/triattn_v3.cu``, built for sm_80 or sm_120) whose results are bitwise
+the library's on both:
 
     out[b, i, h, q] = softmax_j(scale * q . k_j + bias[b, h, q, j]
                                 (-1e9 where mask[b, i, j] is False)) @ v
 
-The kernel is compiled with nvcc at first use (``--fmad=false``: every FMA is
-explicit in the source) into a private cache under ``$TORCH_EXTENSIONS_DIR``
-and loaded with ctypes; it launches on torch's current stream. Before its
+The kernel is compiled with nvcc at first use for the device's compute
+capability (``--fmad=false``: every FMA is explicit in the source) into a
+private cache under ``$TORCH_EXTENSIONS_DIR`` and loaded with ctypes; it
+launches on torch's current stream. Launch configurations whose shared memory
+exceeds the device's per-block limit are never chosen (sm_120 allows about
+99 KB, so with an fp32 bias only the smaller tiles fit); on sm_120 a bf16 pair
+bias is passed as bf16, which the kernel widens to the fp32 values the library
+itself computes with. Before its
 first call on a device it is checked bitwise against the live library on
 three small shapes, and a mismatch disables it for the process. Forward
 only.
@@ -44,13 +50,15 @@ logger = get_logger(__name__)
 
 SITE = "triattn_exact"
 HEAD_DIM = 32
-# Measured row (A100 80GB PCIe, 2026-10-17): bitwise at 101-2,047 tokens,
-# 1.04-1.71x the stock kernel from 192 tokens; slower below about 176.
+# Measured rows: A100 80GB PCIe (2026-10-17), bitwise at 101-2,047 tokens,
+# 1.04-1.71x the stock kernel from 192 tokens, slower below about 176; RTX PRO
+# 6000 Blackwell (2026-10-20, bf16 bias), bitwise at 101-2,047 tokens and
+# 1.64-4.9x the stock kernel.
 MIN_TOKENS = 192
 MAX_TOKENS = 2047
 NVCC_RELEASE = "12.8"  # the compiler of the measured build
 SOURCE = Path(__file__).with_name("csrc") / "triattn_v3.cu"
-NVCC_FLAGS = (
+_BASE_FLAGS = (
     "-O3",
     "-std=c++17",
     "--shared",
@@ -58,13 +66,25 @@ NVCC_FLAGS = (
     "-fPIC",
     "-lineinfo",
     "--fmad=false",
-    "-gencode",
-    "arch=compute_80,code=sm_80",
 )
+# Build target per compute capability (each a row of dispatch.ROWS).
+_GENCODE = {
+    (8, 0): "arch=compute_80,code=sm_80",
+    (12, 0): "arch=compute_120,code=sm_120",
+}
+# Per-block shared memory a kernel may opt into, where torch does not report it.
+_SMEM_OPTIN = {(8, 0): 166912, (12, 0): 101376}
+
+
+def nvcc_flags(capability: tuple[int, int]) -> tuple[str, ...]:
+    """The nvcc command-line flags of the build for ``capability``."""
+    return (*_BASE_FLAGS, "-gencode", _GENCODE[capability])
+
 
 # Launch configurations of the kernel: cfg id -> (G pair rows per CTA, BM
 # query rows per CTA). 9 and 10 serve the S % BM tail rows.
 _CFG = {0: (4, 64), 2: (2, 64), 3: (1, 64), 4: (2, 128), 9: (4, 16), 10: (4, 32)}
+_CFG_STAGES = {0: 2, 2: 2, 3: 2, 4: 2, 9: 2, 10: 2}  # NST of each cfg in the source
 _CFG_ORDER = (4, 0, 2, 3)
 _CFG_RELCOST = {4: 1.00, 0: 1.09, 2: 1.20, 3: 1.35}
 _FILL_CTAS = 2 * 132  # the kit's configuration choice, as measured
@@ -105,7 +125,7 @@ class _LaunchArgs(ctypes.Structure):
 
 
 _lock = threading.Lock()
-_lib = None
+_libs: dict[tuple[int, int], ctypes.CDLL] = {}
 _checked: set[int] = set()
 
 
@@ -139,7 +159,14 @@ def serve(
         return _skip(f"{rows} rows")
     if tuple(biases[1].shape) != (1, heads, n, n):
         return _skip(f"bias shape {tuple(biases[1].shape)}")
-    bias = _dezero(biases[1].float())
+    bias = biases[1]
+    if not (
+        bias.dtype == torch.bfloat16
+        and q.is_cuda
+        and torch.cuda.get_device_capability(q.device) == (12, 0)
+    ):
+        bias = bias.float()
+    bias = _dezero(bias)
     mask = (biases[0] == 0).bool()
     if tuple(mask.shape) != (rows, 1, 1, n):
         return _skip(f"mask shape {tuple(mask.shape)}")
@@ -187,16 +214,43 @@ def _aligned(t: torch.Tensor) -> bool:
 # ------------------------------------------------------------------ launch
 
 
-def _pick_cfg(B: int, N: int, H: int, S: int) -> int:
+def _smem_bytes(cfg: int, S: int, bias_bytes: int, mask: bool) -> int:
+    """The kernel's dynamic shared memory for ``cfg`` (launch_inst in the
+    source: the pipeline stages of K/V tiles and a bias tile, plus the mask
+    words; the Q tile stays in registers)."""
+    G, BM = _CFG[cfg]
+    stage = G * 2 * 4096 + BM * 72 * bias_bytes
+    ntiles = (S + 63) // 64
+    return _CFG_STAGES[cfg] * stage + ((G * ntiles * 8 + ntiles * 8) if mask else 0)
+
+
+def _pick_cfg(
+    B: int,
+    N: int,
+    H: int,
+    S: int,
+    bias_bytes: int = 4,
+    mask: bool = True,
+    smem_limit: Optional[int] = None,
+) -> int:
     """Cheapest configuration (padded rows x pair rows x relative cost) among
-    those that fill the GPU; the smallest CTA shape for small grids."""
+    those that fill the GPU and fit its shared memory; the smallest CTA shape
+    for small grids."""
+
+    def fits(cfg: Optional[int]) -> bool:
+        if cfg is None or smem_limit is None:
+            return True
+        return _smem_bytes(cfg, S, bias_bytes, mask) <= smem_limit
+
     best, best_cost = 3, None
     for cfg in _CFG_ORDER:
         G, BM = _CFG[cfg]
         n_groups = (N + G - 1) // G
+        if not fits(cfg):
+            continue
         if ((S + BM - 1) // BM) * H * B * n_groups < _FILL_CTAS and cfg != 3:
             continue
-        main_rows, tail_rows, tail_cfg = _plan_rows(S, BM)
+        main_rows, tail_rows, tail_cfg = _plan_rows(S, BM, fits)
         if tail_rows:
             padded = main_rows + _CFG[tail_cfg][1] + 24  # +24: the extra launch
         else:
@@ -207,14 +261,15 @@ def _pick_cfg(B: int, N: int, H: int, S: int) -> int:
     return best
 
 
-def _plan_rows(S: int, BM: int) -> tuple[int, int, Optional[int]]:
+def _plan_rows(S: int, BM: int, fits=None) -> tuple[int, int, Optional[int]]:
     """Split off the S % BM leftover query rows for a small-BM launch, unless
-    they fill at least 3/4 of a block or S < 257."""
+    they fill at least 3/4 of a block, S < 257 or the tail configuration does
+    not fit the shared memory (``fits``)."""
     rem = S % BM
     if rem == 0 or S - rem < 256 or rem > (3 * BM) // 4:
         return S, 0, None
     tail_cfg = 9 if rem <= 16 else (10 if rem <= 32 else (0 if rem <= 64 else None))
-    if tail_cfg is None:
+    if tail_cfg is None or (fits is not None and not fits(tail_cfg)):
         return S, 0, None
     return S - rem, rem, tail_cfg
 
@@ -249,13 +304,16 @@ def _bias_fast(b5: torch.Tensor) -> int:
 def _attention(q5, k5, v5, b5, m5, scale) -> torch.Tensor:
     """cuEquivariance's 5-D triangle_attention result: q, k, v bf16
     [B, N, H, S, 32]; bias [B, 1, H, S, S]; mask None or bool [B, N, 1, 1, S]."""
-    lib = _load()
+    lib = _load(q5.device)
     B, N, H, S, _ = q5.shape
-    cfg = _pick_cfg(B, N, H, S)
+    b5 = _stage_bias(b5)
+    smem_limit = _smem_limit(q5.device)
+    cfg = _pick_cfg(B, N, H, S, b5.element_size(), m5 is not None, smem_limit)
     G, BM = _CFG[cfg]
+    if _smem_bytes(cfg, S, b5.element_size(), m5 is not None) > smem_limit:
+        raise ValueError(f"no launch configuration fits {smem_limit} bytes")
     if B * ((N + G - 1) // G) > _GRID_LIMIT:
         raise ValueError(f"grid of {B * ((N + G - 1) // G)} pair-row groups")
-    b5 = _stage_bias(b5)
     out = torch.empty((B, N, H, S, HEAD_DIM), dtype=torch.bfloat16, device=q5.device)
     a = _LaunchArgs()
     a.q, a.k, a.v, a.bias = (t.data_ptr() for t in (q5, k5, v5, b5))
@@ -277,7 +335,11 @@ def _attention(q5, k5, v5, b5, m5, scale) -> torch.Tensor:
     a.bias_fast = _bias_fast(b5)
     a.stream = torch.cuda.current_stream(q5.device).cuda_stream
     a.G, a.nwarps, a.cfg = G, 4, cfg
-    _, tail_rows, tail_cfg = _plan_rows(S, BM)
+    _, tail_rows, tail_cfg = _plan_rows(
+        S,
+        BM,
+        lambda c: _smem_bytes(c, S, b5.element_size(), m5 is not None) <= smem_limit,
+    )
     a.pad_ = tail_rows  # > 0: this launch serves rows [0, S - tail_rows)
     vbad = None
     n_qblocks = (S + BM - 1) // BM + (1 if tail_rows else 0)
@@ -349,21 +411,28 @@ def _cache_dir() -> Path:
     return path
 
 
-def _load():
-    global _lib
+def _smem_limit(device: torch.device) -> int:
+    props = torch.cuda.get_device_properties(device)
+    limit = getattr(props, "shared_memory_per_block_optin", None)
+    return int(limit) if limit else _SMEM_OPTIN[(props.major, props.minor)]
+
+
+def _load(device: torch.device):
+    capability = torch.cuda.get_device_capability(device)
     with _lock:
-        if _lib is not None:
-            return _lib
+        if capability in _libs:
+            return _libs[capability]
+        flags = nvcc_flags(capability)
         source = SOURCE.read_bytes()
         key = hashlib.sha256(
-            source + _nvcc_version().encode() + " ".join(NVCC_FLAGS).encode()
+            source + _nvcc_version().encode() + " ".join(flags).encode()
         ).hexdigest()[:16]
         so = _cache_dir() / f"triattn_v3_{key}.so"
         if not so.exists():
             tmp = so.with_name(f"{so.name}.{os.getpid()}.tmp")
             logger.info("building the triattn_exact kernel with %s", _nvcc())
             subprocess.run(
-                [_nvcc(), *NVCC_FLAGS, "-o", str(tmp), str(SOURCE)],
+                [_nvcc(), *flags, "-o", str(tmp), str(SOURCE)],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -376,7 +445,7 @@ def _load():
         lib.triattn_v3_vscan.argtypes = [ctypes.POINTER(_LaunchArgs), ctypes.c_void_p]
         if lib.triattn_v3_sizeof_launchargs() != ctypes.sizeof(_LaunchArgs):
             raise RuntimeError("triattn_v3 launch-argument layout mismatch")
-        _lib = lib
+        _libs[capability] = lib
         return lib
 
 

@@ -43,8 +43,12 @@ ROWS: dict[str, tuple[Row, ...]] = {
         Row((12, 0), "2.7.", "3.3.1"),
         Row((8, 0), "2.7.", "3.3.1", device_name="A100"),
     ),
-    # CUDA (nvcc), bit-identical to cuEquivariance's triangle attention.
-    "triattn_exact": (Row((8, 0), "2.7.", None, "0.10.0", "A100"),),
+    # CUDA (nvcc), bit-identical to cuEquivariance's triangle attention (on the
+    # RTX PRO 6000: kernel benchmark 2026-10-20, built for sm_120).
+    "triattn_exact": (
+        Row((8, 0), "2.7.", None, "0.10.0", "A100"),
+        Row((12, 0), "2.7.", None, "0.10.0"),
+    ),
     # Not bitwise: error against fp32 as stock's (fast only; tile sweep on
     # RTX PRO 6000 Blackwell, 2026-10-17).
     "triattn_k2b": (Row((12, 0), "2.7.", "3.3.1"),),
