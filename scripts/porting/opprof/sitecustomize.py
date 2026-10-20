@@ -16,6 +16,13 @@ record_function range "<top-level component>/<class>" and charges each GPU kerne
 enclosing its launch (<row>.opprof.json: per-family kernel time and the top kernels). It keeps every event
 in host memory, so large or guided rows can exceed a 29 GB job.
 
+OPENDDE_OPPROF_MODE=idle samples NVML utilization of the job's GPU every 20 ms during the warm call and writes
+<row>.opidle.json with the mean busy share (the share of time with at least one kernel running), which bounds
+what host-overhead items can save.
+
+OPENDDE_TRIAL_KEEP_POOL=1 (independent of the modes) makes torch.cuda.empty_cache a counted no-op inside
+every OpenDDE.__call__ of the process, the kit's keep_pool, for timing it.
+
 Development use only: the outputs of profiled runs are not compared with anything.
 """
 
@@ -23,6 +30,7 @@ import os
 
 OUT = os.environ.get("OPENDDE_OPPROF_OUT")
 MODE = os.environ.get("OPENDDE_OPPROF_MODE", "events")
+KEEP_POOL = os.environ.get("OPENDDE_TRIAL_KEEP_POOL") == "1"
 
 FAMILIES = {
     "TriangleAttention",
@@ -246,10 +254,89 @@ def _install():
         )
         return result
 
-    mod.OpenDDE.__call__ = call_events if MODE == "events" else call
+    def call_idle(self, *args, **kwargs):
+        state["calls"] += 1
+        if state["calls"] != 2:
+            return original(self, *args, **kwargs)
+        import threading
+
+        import pynvml
+
+        pynvml.nvmlInit()
+        uuid = str(torch.cuda.get_device_properties(torch.cuda.current_device()).uuid)
+        handle = pynvml.nvmlDeviceGetHandleByUUID(
+            uuid if uuid.startswith("GPU-") else "GPU-" + uuid
+        )
+        samples = []
+        stop = threading.Event()
+
+        def poll():
+            while not stop.is_set():
+                samples.append(pynvml.nvmlDeviceGetUtilizationRates(handle).gpu)
+                stop.wait(0.02)
+
+        torch.cuda.synchronize()
+        thread = threading.Thread(target=poll, daemon=True)
+        t0 = time.perf_counter()
+        thread.start()
+        result = original(self, *args, **kwargs)
+        torch.cuda.synchronize()
+        wall = time.perf_counter() - t0
+        stop.set()
+        thread.join()
+        busy = sum(samples) / len(samples) if samples else None
+        rec = {
+            "row": row,
+            "argv": sys.argv,
+            "mode": "idle",
+            "wall_s": wall,
+            "samples": len(samples),
+            "busy_percent_mean": busy,
+            "busy_percent_min": min(samples) if samples else None,
+            "torch": torch.__version__,
+            "device": torch.cuda.get_device_name(),
+        }
+        os.makedirs(OUT, exist_ok=True)
+        with open(os.path.join(OUT, f"{row}.opidle.json"), "w") as f:
+            json.dump(rec, f, indent=1)
+        print(
+            f"[opprof] {row}: GPU busy {busy:.1f}% over a {wall:.2f} s call (idle)",
+            flush=True,
+        )
+        return result
+
+    chosen = (
+        {"events": call_events, "idle": call_idle}.get(MODE, call) if OUT else original
+    )
+    if KEEP_POOL:
+        empty_cache = torch.cuda.empty_cache
+        inside = {"depth": 0, "skipped": 0}
+
+        def keep_pool_empty_cache():
+            if inside["depth"]:
+                inside["skipped"] += 1
+                return
+            empty_cache()
+
+        torch.cuda.empty_cache = keep_pool_empty_cache
+
+        def call_keep_pool(self, *args, **kwargs):
+            inside["depth"] += 1
+            try:
+                return chosen(self, *args, **kwargs)
+            finally:
+                inside["depth"] -= 1
+                print(
+                    f"[opprof] keep_pool: {inside['skipped']} in-forward empty_cache calls skipped so far",
+                    flush=True,
+                )
+
+        mod.OpenDDE.__call__ = call_keep_pool
+    else:
+        mod.OpenDDE.__call__ = chosen
 
 
-if OUT:
+if OUT or KEEP_POOL:
     try:
         import importlib.util
 
