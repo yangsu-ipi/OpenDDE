@@ -130,7 +130,7 @@ Order and budget:
 2. One A100 session, which the user provisions: the replacement-host test against `baseline_off_sm80.json` first, then the same measurements for sm_80, in one batch.
 3. The `fast` items that pass on a GPU are bundled into one candidate for that GPU, rehearsed, and drawn only with the user's go-ahead, so each `fast` claim spends at most one more of its two remaining draws.
 
-`big` and `--n_gpu` items are decided by capacity rather than speed: they are ported if an intended input does not fit, or lacks the agreed memory margin, under `fast` on a target card (step 5), or, for `rowpair_tp`, if native Fold-CP does not meet the multi-GPU need (step 6). The items the kit itself ships in no mode keep the kit's own neutral or negative measurements as their evidence. The per-item record is `kit_fast_comparison.md`'s table, which gains a disposition per GPU as evidence arrives.
+`big` and `--n_gpu` items are decided by capacity rather than speed: they are ported if an intended input does not fit, or lacks the agreed memory margin, under `fast` on a target card (step 5), or, for `rowpair_tp`, if native Fold-CP does not meet the multi-GPU need (step 6). The items the kit itself ships in no mode keep the kit's own neutral or negative measurements as their evidence. The per-item record, with its evidence and status per GPU, is [kit_disposition.md](kit_disposition.md); `kit_fast_comparison.md` describes the items.
 
 ## Implementation plan
 
