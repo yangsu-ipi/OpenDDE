@@ -86,6 +86,11 @@ OPTIMIZATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
         # (normalize, permute, contiguous copy) once per sampler call; it is
         # reused only while its source is the same tensor, as under dit_hoist.
         "zprep_hoist": EXACT_AND_ABOVE,
+        # Diffusion denoiser: compute the single conditioning for one sample
+        # when the sampler expands one noise level over the samples; every
+        # consumer broadcasts it (its GEMMs see fewer rows, so rounding
+        # differs) on the rows of opendde.model.optimized.dispatch.
+        "cond_dedupe": FAST_AND_ABOVE,
         # Triangle multiplication: Triton gated projections around the stock
         # cuEquivariance LayerNorms and cuBLAS contraction, bit-identical to
         # it on the rows of opendde.model.optimized.dispatch.

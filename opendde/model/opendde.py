@@ -41,7 +41,7 @@ from opendde.model.generator import (
     sample_diffusion,
 )
 from opendde.model.modules.confidence import ConfidenceHead
-from opendde.model.modules.diffusion import DiffusionModule
+from opendde.model.modules.diffusion import DiffusionModule, cond_dedupe
 from opendde.model.modules.embedders import (
     InputFeatureEmbedder,
     RelativePositionEncoding,
@@ -1387,6 +1387,7 @@ class OpenDDE(nn.Module):
             host_noise_schedule(
                 optimization_enabled(self.configs, "host_noise_schedule")
             ),
+            cond_dedupe(optimization_enabled(self.configs, "cond_dedupe")),
             step_invariant_memo(
                 name
                 for name in MEMO_OPTIMIZATIONS

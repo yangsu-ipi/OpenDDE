@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) 2026 Aureka AI Research
+import contextlib
+import contextvars
 import os
-from typing import Any, Optional, Union
+from typing import Any, Iterator, Optional, Union
 
 import torch
 import torch.distributed as dist
@@ -17,6 +19,7 @@ from opendde.distributed.foldcp.launch import (
 )
 from opendde.distributed.foldcp.msa_pair_weighted import collect_msa_pair_row_slab
 from opendde.model import step_invariant
+from opendde.model.optimized import dispatch
 from opendde.distributed.foldcp.pair_sharding import (
     FoldCPPairShardSpec,
     gather_pair_tensor,
@@ -1135,6 +1138,51 @@ class DiffusionConditioning(nn.Module):
         return single_s, pair_z
 
 
+_COND_DEDUPE: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "opendde_cond_dedupe", default=False
+)
+
+# Token counts where the deduplicated conditioning's error against an fp64
+# reference stays within 1.25x of stock's (at most 1.006x), by compute
+# capability, for COND_DEDUPE_SAMPLES samples: cuBLAS chooses its fp32 GEMM
+# kernels by row count, and at 65-76 tokens and from 1,121 tokens on the
+# 5x-row stock GEMMs round more accurately (sweep of every token count up to
+# 2,400 on RTX PRO 6000 Blackwell, 2026-10-21). The torch stack is checked by
+# the dispatch row ``cond_dedupe``.
+COND_DEDUPE_TOKENS: dict[tuple[int, int], tuple[tuple[int, int], ...]] = {
+    (12, 0): ((1, 64), (77, 1120)),
+}
+COND_DEDUPE_SAMPLES = 5
+
+
+@contextlib.contextmanager
+def cond_dedupe(enabled: bool) -> Iterator[None]:
+    """Run denoiser calls in this context with the ``cond_dedupe``
+    optimization on or off: when the sampler hands one noise level expanded
+    over the samples, the single conditioning is computed for one sample and
+    broadcast by its consumers."""
+    token = _COND_DEDUPE.set(bool(enabled))
+    try:
+        yield
+    finally:
+        _COND_DEDUPE.reset(token)
+
+
+def _cond_dedupe_applies(n_sample: int, n_token: int, device: torch.device) -> bool:
+    """Whether ``cond_dedupe`` may run for this call: a dispatch row for the
+    device and stack, and a measured token window for this sample count."""
+    if not dispatch.available("cond_dedupe", device):
+        return False
+    if n_sample != COND_DEDUPE_SAMPLES:
+        return dispatch.fallback("cond_dedupe", f"{n_sample} samples")
+    windows = COND_DEDUPE_TOKENS.get(torch.cuda.get_device_capability(device), ())
+    if not any(low <= n_token <= high for low, high in windows):
+        return dispatch.fallback(
+            "cond_dedupe", f"{n_token} tokens outside the measured windows"
+        )
+    return True
+
+
 class DiffusionModule(nn.Module):
     """
     Implements Algorithm 20 in AF3
@@ -1309,6 +1357,17 @@ class DiffusionModule(nn.Module):
         """
         N_sample = r_noisy.size(-3)
         assert t_hat_noise_level.size(-1) == N_sample
+        # ``cond_dedupe``: the sampler expands one noise level over the samples
+        # (stride 0), so the single conditioning is the same for every sample;
+        # compute it once and let its consumers broadcast the sample dimension.
+        cond_t_hat = t_hat_noise_level
+        if (
+            _COND_DEDUPE.get()
+            and N_sample > 1
+            and t_hat_noise_level.stride(-1) == 0
+            and _cond_dedupe_applies(N_sample, s_trunk.size(-2), r_noisy.device)
+        ):
+            cond_t_hat = t_hat_noise_level[..., :1]
 
         blocks_per_ckpt = self.blocks_per_ckpt
         if not torch.is_grad_enabled():
@@ -1360,7 +1419,7 @@ class DiffusionModule(nn.Module):
                 checkpoint_fn = get_checkpoint_fn()
                 prepared_s_single, prepared_z_pair = checkpoint_fn(
                     self.diffusion_conditioning,
-                    t_hat_noise_level,
+                    cond_t_hat,
                     input_feature_dict["relp"],
                     s_inputs,
                     s_trunk,
@@ -1371,7 +1430,7 @@ class DiffusionModule(nn.Module):
                 )
             else:
                 prepared_s_single, prepared_z_pair = self.diffusion_conditioning(
-                    t_hat_noise_level,
+                    cond_t_hat,
                     input_feature_dict["relp"],
                     s_inputs=s_inputs,
                     s_trunk=s_trunk,
