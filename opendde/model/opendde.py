@@ -53,6 +53,7 @@ from opendde.model.modules.pairformer import (
     TemplateEmbedder,
 )
 from opendde.model.modules.primitives import LinearNoBias, Transition
+from opendde.model.modules.transformer import DiffusionTransformer
 from opendde.model.shape_complementarity import (
     build_shape_comp_pred_outputs,
     compute_shape_complementarity_fields,
@@ -385,6 +386,7 @@ class OpenDDE(nn.Module):
         use_triattn_exact = optimization_enabled(configs, "triattn_exact")
         use_triattn = optimization_enabled(configs, "triattn_k2b")
         use_triattn_native = optimization_enabled(configs, "triattn_native")
+        use_dit_fused = optimization_enabled(configs, "dit_fused")
         for module in self.modules():
             if isinstance(module, TriangleMultiplicativeUpdate):
                 module.use_triton_kernel = use_trimul
@@ -394,6 +396,8 @@ class OpenDDE(nn.Module):
                 module.mha.use_exact_kernel = use_triattn_exact
                 module.mha.use_triton_kernel = use_triattn
                 module.mha.use_native_kernel = use_triattn_native
+            elif isinstance(module, DiffusionTransformer):
+                module.use_fused_stack = use_dit_fused
 
     @staticmethod
     def _maybe_foldcp_mesh() -> Optional[FoldCPProcessMesh]:

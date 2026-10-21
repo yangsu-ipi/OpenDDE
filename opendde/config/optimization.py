@@ -109,6 +109,10 @@ OPTIMIZATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
         # cuEquivariance's (rounding differs; error against fp32 as stock's) on
         # the rows of opendde.model.optimized.dispatch.
         "triattn_native": FAST_AND_ABOVE,
+        # Diffusion denoiser: the token transformer as one fused fp32 stack
+        # (merged GEMMs, Triton row kernels, the stock attention; rounding
+        # differs) on the rows of opendde.model.optimized.dispatch.
+        "dit_fused": FAST_AND_ABOVE,
     }
 )
 # The overlapping options whose kernel choice an optimization replaces: an

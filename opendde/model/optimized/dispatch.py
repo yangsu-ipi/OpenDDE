@@ -59,6 +59,10 @@ ROWS: dict[str, tuple[Row, ...]] = {
     # CUDA (nvcc), not bitwise: error against fp32 within 1.06x of stock's
     # (fast only; kernel benchmark on A100 80GB PCIe, 2026-10-18).
     "triattn_native": (Row((8, 0), "2.7.", None, device_name="A100"),),
+    # The fused fp32 token transformer (fast only; error against fp64 within
+    # 1.001x of stock's, D1-D15 development gates on RTX PRO 6000 Blackwell,
+    # 2026-10-21).
+    "dit_fused": (Row((12, 0), "2.7.", "3.3.1"),),
 }
 
 _DISABLED: dict[str, str] = {}

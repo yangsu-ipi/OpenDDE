@@ -55,5 +55,6 @@ inference_configs: dict[str, Any] = {
         "triattn_exact": True,
         "triattn_k2b": True,
         "triattn_native": True,
+        "dit_fused": True,
     },
 }

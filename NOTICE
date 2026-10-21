@@ -23,5 +23,9 @@ kit's triattn_native (v11) sm_80 member, trimmed to head dimension 32.
 opendde/model/optimized/transition.py follows the arithmetic of OpenDDE's
 own Transition module, itself derived from Protenix (Apache License 2.0).
 
+opendde/model/optimized/dit_fused.py follows the arithmetic of OpenDDE's own
+DiffusionTransformer, itself derived from Protenix (Apache License 2.0); its
+Triton row kernels are adapted from the kit's fused token-stack kernels.
+
 These kernels call, and do not include, NVIDIA cuEquivariance (NVIDIA's
 licence, as installed), PyTorch (BSD-3-Clause) and Triton (MIT).

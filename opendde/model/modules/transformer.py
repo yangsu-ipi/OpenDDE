@@ -1759,6 +1759,10 @@ class DiffusionTransformer(nn.Module):
         blocks_per_ckpt (int, optional): number of DiffusionTransformer blocks in each activation checkpoint. Defaults to None.
     """
 
+    # Serve the sampler's token transformer with the fused fp32 stack of
+    # opendde.model.optimized.dit_fused (dit_fused).
+    use_fused_stack = False
+
     def __init__(
         self,
         c_a: int,  # could be 128 or 768 in AF3
@@ -1845,6 +1849,21 @@ class DiffusionTransformer(nn.Module):
                     torch.Tensor: the output of DiffusionTransformer
                         [..., N, c_a]
         """
+        if self.use_fused_stack:
+            from opendde.model.optimized import dit_fused
+
+            if dit_fused.eligible(self, a, s, n_queries, n_keys):
+                out = dit_fused.dispatch.guarded(
+                    dit_fused.SITE,
+                    dit_fused.stack(self).forward,
+                    a,
+                    s,
+                    z,
+                    enable_efficient_fusion,
+                    extra_attn_bias,
+                )
+                if out is not None:
+                    return out
         blocks = self._prep_blocks(
             n_queries=n_queries,
             n_keys=n_keys,
