@@ -1142,18 +1142,6 @@ _COND_DEDUPE: contextvars.ContextVar[bool] = contextvars.ContextVar(
     "opendde_cond_dedupe", default=False
 )
 
-# Token counts where the deduplicated conditioning's error against an fp64
-# reference stays within 1.25x of stock's (at most 1.006x), by compute
-# capability, for COND_DEDUPE_SAMPLES samples: cuBLAS chooses its fp32 GEMM
-# kernels by row count, and at 65-76 tokens and from 1,121 tokens on the
-# 5x-row stock GEMMs round more accurately (sweep of every token count up to
-# 2,400 on RTX PRO 6000 Blackwell, 2026-10-21). The torch stack is checked by
-# the dispatch row ``cond_dedupe``.
-COND_DEDUPE_TOKENS: dict[tuple[int, int], tuple[tuple[int, int], ...]] = {
-    (12, 0): ((1, 64), (77, 1120)),
-}
-COND_DEDUPE_SAMPLES = 5
-
 
 @contextlib.contextmanager
 def cond_dedupe(enabled: bool) -> Iterator[None]:
@@ -1168,19 +1156,11 @@ def cond_dedupe(enabled: bool) -> Iterator[None]:
         _COND_DEDUPE.reset(token)
 
 
-def _cond_dedupe_applies(n_sample: int, n_token: int, device: torch.device) -> bool:
-    """Whether ``cond_dedupe`` may run for this call: a dispatch row for the
-    device and stack, and a measured token window for this sample count."""
-    if not dispatch.available("cond_dedupe", device):
-        return False
-    if n_sample != COND_DEDUPE_SAMPLES:
-        return dispatch.fallback("cond_dedupe", f"{n_sample} samples")
-    windows = COND_DEDUPE_TOKENS.get(torch.cuda.get_device_capability(device), ())
-    if not any(low <= n_token <= high for low, high in windows):
-        return dispatch.fallback(
-            "cond_dedupe", f"{n_token} tokens outside the measured windows"
-        )
-    return True
+def _cond_dedupe_applies(device: torch.device) -> bool:
+    """Whether ``cond_dedupe`` may run on this device and stack. The values it
+    computes are the ones stock computes with one sample; it runs where it
+    passed the development gates (``dispatch.ROWS``)."""
+    return dispatch.available("cond_dedupe", device)
 
 
 class DiffusionModule(nn.Module):
@@ -1365,7 +1345,7 @@ class DiffusionModule(nn.Module):
             _COND_DEDUPE.get()
             and N_sample > 1
             and t_hat_noise_level.stride(-1) == 0
-            and _cond_dedupe_applies(N_sample, s_trunk.size(-2), r_noisy.device)
+            and _cond_dedupe_applies(r_noisy.device)
         ):
             cond_t_hat = t_hat_noise_level[..., :1]
 

@@ -49,10 +49,9 @@ ROWS: dict[str, tuple[Row, ...]] = {
         Row((8, 0), "2.7.", None, "0.10.0", "A100"),
         Row((12, 0), "2.7.", None, "0.10.0"),
     ),
-    # Not a kernel: the sampler's single conditioning computed for one sample
-    # (fast only; within the token windows of
-    # opendde.model.modules.diffusion.COND_DEDUPE_TOKENS, error against fp64
-    # at most 1.006x stock's on RTX PRO 6000 Blackwell, 2026-10-21).
+    # Not a kernel: the sampler's single conditioning computed for one sample,
+    # as stock computes it with one sample (fast only; D1-D15 development
+    # gates on RTX PRO 6000 Blackwell, 2026-10-21).
     "cond_dedupe": (Row((12, 0), "2.7.", None),),
     # Not bitwise: error against fp32 as stock's (fast only; tile sweep on
     # RTX PRO 6000 Blackwell, 2026-10-17).

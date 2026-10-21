@@ -11,32 +11,57 @@ from opendde.model.step_invariant import step_invariant_memo
 from tests.test_step_invariant_memo import _guidance, _inputs, _module
 
 
-@pytest.fixture
-def sm120_row(monkeypatch):
+def test_runs_where_the_dispatch_row_allows(monkeypatch):
+    assert not diffusion._cond_dedupe_applies(torch.device("cpu"))
+    assert [row.capability for row in diffusion.dispatch.ROWS["cond_dedupe"]] == [
+        (12, 0)
+    ]
     monkeypatch.setattr(diffusion.dispatch, "available", lambda site, device: True)
-    monkeypatch.setattr(torch.cuda, "get_device_capability", lambda device: (12, 0))
+    assert diffusion._cond_dedupe_applies(torch.device("cuda", 0))
 
 
-@pytest.mark.parametrize(
-    "n_token, applies",
-    [(1, True), (64, True), (65, False), (76, False), (77, True), (1120, True)]
-    + [(1121, False), (2300, False)],
-)
-def test_runs_only_inside_the_measured_token_windows(sm120_row, n_token, applies):
-    device = torch.device("cuda", 0)
-    assert diffusion._cond_dedupe_applies(5, n_token, device) is applies
+def _conditioning(module, inputs, x_noisy, t_hat, dedupe):
+    """The single conditioning the denoiser computes for these samples."""
+    seen = []
+    forward = module.diffusion_conditioning.forward
+
+    def recording(*args, **kw):
+        out = forward(*args, **kw)
+        seen.append(out[0])
+        return out
+
+    module.diffusion_conditioning.forward = recording
+    try:
+        with torch.no_grad(), diffusion.cond_dedupe(dedupe):
+            module(
+                x_noisy=x_noisy,
+                t_hat_noise_level=t_hat,
+                input_feature_dict=inputs["input_feature_dict"],
+                s_inputs=inputs["s_inputs"],
+                s_trunk=inputs["s_trunk"],
+                z_trunk=None,
+                pair_z=inputs["pair_z"],
+                p_lm=inputs["p_lm"],
+                c_l=inputs["c_l"],
+            )
+    finally:
+        del module.diffusion_conditioning.forward
+    return seen[0]
 
 
-def test_runs_only_for_the_measured_sample_count(sm120_row):
-    device = torch.device("cuda", 0)
-    assert not diffusion._cond_dedupe_applies(4, 200, device)
-
-
-def test_unmeasured_capability_and_cpu_run_stock(monkeypatch):
-    assert not diffusion._cond_dedupe_applies(5, 200, torch.device("cpu"))
-    monkeypatch.setattr(diffusion.dispatch, "available", lambda site, device: True)
-    monkeypatch.setattr(torch.cuda, "get_device_capability", lambda device: (9, 0))
-    assert not diffusion._cond_dedupe_applies(5, 200, torch.device("cuda", 0))
+def test_the_conditioning_is_stocks_one_sample_conditioning(monkeypatch):
+    # The basis of standard (b) for this item (plan revision 118): every value
+    # it changes is one stock computes when run with one sample.
+    monkeypatch.setattr(diffusion, "_cond_dedupe_applies", lambda *args: True)
+    module = _module()
+    inputs = _inputs(module, True)
+    n_atom = inputs["input_feature_dict"]["atom_to_token_idx"].shape[0]
+    x_noisy = torch.randn(5, n_atom, 3)
+    t_hat = torch.tensor([3.0])
+    deduped = _conditioning(module, inputs, x_noisy, t_hat.expand(5), True)
+    one_sample = _conditioning(module, inputs, x_noisy[:1], t_hat, False)
+    assert deduped.shape[-3] == 1
+    assert torch.equal(deduped, one_sample)
 
 
 def _sample(dedupe, monkeypatch, **kwargs):

@@ -2,6 +2,12 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 118 (2026-10-21)
+
+Records the user's amendment of disposition standard (b); qualification code, limits, tags and declared claims are unchanged.
+
+- (b)'s kernel-error test, for an item that changes no kernel and only how many rows an operation sees, compares the item's error with the largest error stock gives for the same input over its supported settings that change those row counts (such as the number of samples); an item whose every changed value is one stock computes under such a setting is not numerically worse on this test. The tier 1 and tier 2 gates still apply. Reason: `cond_dedupe` computes the sampler's single conditioning for one sample, exactly as stock does when run with one sample; its error against fp64 exceeded 1.25x stock's 5-sample error only where cuBLAS picks a slightly more accurate fp32 kernel for the 5x-row GEMM (65-76 and from 1,121 tokens on sm_120), so the test measured stock's sample count, not a loss of precision. The token gate the user chose on 2026-10-21 under the unamended test is removed.
+
 ## Revision 117 (2026-10-19)
 
 Records the user's decision that every kit item reaches a disposition; qualification code, limits, tags and declared claims are unchanged.
