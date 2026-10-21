@@ -13,8 +13,10 @@ frame and counted in frames_closed_early.
 
 OPENDDE_OPPROF_MODE=profiler runs torch.profiler over the call with each family module in a
 record_function range "<top-level component>/<class>" and charges each GPU kernel to the innermost range
-enclosing its launch (<row>.opprof.json: per-family kernel time and the top kernels). It keeps every event
-in host memory, so large or guided rows can exceed a 29 GB job.
+enclosing its launch (<row>.opprof.json: per-family kernel time and the top kernels). Inside the diffusion
+module it also charges each kernel to its sampler part (the diffusion module's child the module sits in:
+diffusion_transformer, atom_attention_encoder, ...) and keeps the per-part kernel times by kernel name. It
+keeps every event in host memory, so large or guided rows can exceed a 29 GB job.
 
 OPENDDE_OPPROF_MODE=idle samples NVML utilization of the job's GPU every 20 ms during the warm call and writes
 <row>.opidle.json with the mean busy share (the share of time with at least one kernel running), which bounds
@@ -85,6 +87,9 @@ def _install():
                 continue
             top = path.split(".")[0] if path else "(root)"
             name = f"M::{top}/{cls}"
+            if top == "diffusion_module":
+                parts = path.split(".")
+                name += "|" + (parts[1] if len(parts) > 1 else "(self)")
 
             def pre(module, args, kwargs=None, _name=name):
                 rf = torch.profiler.record_function(_name)
@@ -120,6 +125,7 @@ def _install():
             h.remove()
         fam = defaultdict(float)
         kernels = defaultdict(lambda: [0.0, 0])
+        part_kernels = defaultdict(lambda: defaultdict(lambda: [0.0, 0]))
         total = 0.0
         for e in prof.events():
             ks = getattr(e, "kernels", None) or []
@@ -128,12 +134,22 @@ def _install():
             owner = e
             while owner is not None and not owner.name.startswith("M::"):
                 owner = owner.cpu_parent
-            key = owner.name[3:] if owner is not None else "(unattributed)"
+            key = (
+                owner.name[3:].split("|")[0] if owner is not None else "(unattributed)"
+            )
+            part = (
+                owner.name.split("|")[1]
+                if owner is not None and "|" in owner.name
+                else None
+            )
             for k in ks:
                 fam[key] += k.duration
                 total += k.duration
                 kernels[k.name][0] += k.duration
                 kernels[k.name][1] += 1
+                if part is not None:
+                    part_kernels[part][k.name][0] += k.duration
+                    part_kernels[part][k.name][1] += 1
         top = sorted(kernels.items(), key=lambda kv: -kv[1][0])[:80]
         rec = {
             "row": row,
@@ -142,6 +158,13 @@ def _install():
             "kernel_us_total": total,
             "families_us": dict(sorted(fam.items(), key=lambda kv: -kv[1])),
             "top_kernels": [{"name": n, "us": v[0], "count": v[1]} for n, v in top],
+            "sampler_part_kernels": {
+                part: [
+                    {"name": n, "us": v[0], "count": v[1]}
+                    for n, v in sorted(ks.items(), key=lambda kv: -kv[1][0])
+                ]
+                for part, ks in part_kernels.items()
+            },
             "torch": torch.__version__,
             "device": torch.cuda.get_device_name(),
         }
