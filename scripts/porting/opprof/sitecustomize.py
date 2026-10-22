@@ -15,7 +15,8 @@ OPENDDE_OPPROF_MODE=profiler runs torch.profiler over the call with each family 
 record_function range "<top-level component>/<class>" and charges each GPU kernel to the innermost range
 enclosing its launch (<row>.opprof.json: per-family kernel time and the top kernels). Inside the diffusion
 module it also charges each kernel to its sampler part (the diffusion module's child the module sits in:
-diffusion_transformer, atom_attention_encoder, ...) and keeps the per-part kernel times by kernel name. It
+diffusion_transformer, atom_attention_encoder, ..., with each atom transformer as its own part, such as
+atom_attention_encoder.atom_transformer) and keeps the per-part kernel times by kernel name. It
 keeps every event in host memory, so large or guided rows can exceed a 29 GB job.
 
 OPENDDE_OPPROF_MODE=idle samples NVML utilization of the job's GPU every 20 ms during the warm call and writes
@@ -89,6 +90,8 @@ def _install():
             name = f"M::{top}/{cls}"
             if top == "diffusion_module":
                 parts = path.split(".")
+                if len(parts) > 2 and parts[2] == "atom_transformer":
+                    parts[1] = ".".join(parts[1:3])  # the atom transformers apart
                 name += "|" + (parts[1] if len(parts) > 1 else "(self)")
 
             def pre(module, args, kwargs=None, _name=name):
