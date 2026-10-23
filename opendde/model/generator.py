@@ -2,6 +2,7 @@
 # Copyright (c) 2026 Aureka AI Research
 import contextlib
 import contextvars
+import functools
 from collections.abc import Iterator
 from typing import Any, Callable, Optional
 
@@ -87,6 +88,22 @@ class InferenceNoiseScheduler:
 _HOST_NOISE_SCHEDULE: contextvars.ContextVar[bool] = contextvars.ContextVar(
     "opendde_host_noise_schedule", default=False
 )
+
+
+_STEPGRAPH: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "opendde_stepgraph", default=False
+)
+
+
+@contextlib.contextmanager
+def stepgraph(enabled: bool) -> Iterator[None]:
+    """Run ``sample_diffusion`` calls in this context with the ``stepgraph``
+    optimization on or off (opendde.model.optimized.stepgraph)."""
+    token = _STEPGRAPH.set(bool(enabled))
+    try:
+        yield
+    finally:
+        _STEPGRAPH.reset(token)
 
 
 @contextlib.contextmanager
@@ -258,6 +275,12 @@ def sample_diffusion(
             ),
             "Fold-CP diffusion initial-noise preparation",
         )
+        step_graph = None
+        if _STEPGRAPH.get():
+            from opendde.model.optimized import stepgraph as optimized_stepgraph
+
+            if optimized_stepgraph.SEGMENTS.get() is not None:
+                step_graph = optimized_stepgraph.StepGraph()
 
         for step_i, (c_tau_last, c_tau) in enumerate(
             zip(noise_schedule[:-1], noise_schedule[1:])
@@ -348,7 +371,12 @@ def sample_diffusion(
                     ),
                 )
             else:
-                x_denoised = denoise_net(
+                denoise_step = (
+                    denoise_net
+                    if step_graph is None
+                    else functools.partial(step_graph, denoise_net)
+                )
+                x_denoised = denoise_step(
                     x_noisy=x_noisy,
                     t_hat_noise_level=t_hat,
                     input_feature_dict=input_feature_dict,
@@ -421,6 +449,16 @@ def sample_diffusion(
                     )
 
         return x_l
+
+    if _STEPGRAPH.get() and foldcp_group is None:
+        from opendde.model.optimized import stepgraph as optimized_stepgraph
+
+        if optimized_stepgraph.eligible(device, tfg_cfg.enable, inplace_safe):
+            inner_chunk_sample_diffusion = _chunk_sample_diffusion
+
+            def _chunk_sample_diffusion(*args, **kwargs):
+                with optimized_stepgraph.segments():
+                    return inner_chunk_sample_diffusion(*args, **kwargs)
 
     if diffusion_chunk_size is None:
         x_l = _chunk_sample_diffusion(

@@ -327,6 +327,22 @@ def aggregate_atom_to_token(
             [..., N_token, d]
     """
 
+    from opendde.model.optimized import stepgraph
+
+    tables = stepgraph.SEGMENTS.get()
+    if (
+        tables is not None
+        and reduce == "mean"
+        and n_token is not None
+        and atom_to_token_idx.dim() == 1
+    ):
+        # Inside a graphed sampler call: the same sums, capturable.
+        key = (atom_to_token_idx.data_ptr(), atom_to_token_idx.numel(), n_token)
+        table = tables.get(key)
+        if table is None:
+            table = tables[key] = stepgraph.segment_table(atom_to_token_idx, n_token)
+        return stepgraph.segment_mean(x_atom, table, n_token)
+
     # Broadcasting in the given dim.
     out = scatter(
         src=x_atom, index=atom_to_token_idx, dim=-2, dim_size=n_token, reduce=reduce

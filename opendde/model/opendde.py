@@ -39,6 +39,7 @@ from opendde.model.generator import (
     InferenceNoiseScheduler,
     host_noise_schedule,
     sample_diffusion,
+    stepgraph,
 )
 from opendde.model.modules.confidence import ConfidenceHead
 from opendde.model.modules.diffusion import DiffusionModule, cond_dedupe
@@ -1392,6 +1393,7 @@ class OpenDDE(nn.Module):
                 optimization_enabled(self.configs, "host_noise_schedule")
             ),
             cond_dedupe(optimization_enabled(self.configs, "cond_dedupe")),
+            stepgraph(optimization_enabled(self.configs, "stepgraph")),
             step_invariant_memo(
                 name
                 for name in MEMO_OPTIMIZATIONS

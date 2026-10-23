@@ -59,6 +59,10 @@ ROWS: dict[str, tuple[Row, ...]] = {
     # CUDA (nvcc), not bitwise: error against fp32 within 1.06x of stock's
     # (fast only; kernel benchmark on A100 80GB PCIe, 2026-10-18).
     "triattn_native": (Row((8, 0), "2.7.", None, device_name="A100"),),
+    # The sampler's denoiser step as a CUDA graph, checked bitwise against
+    # the eager step (exact: D1-D15 byte-identical to off on RTX PRO 6000
+    # Blackwell, 2026-10-23).
+    "stepgraph": (Row((12, 0), "2.7.", None),),
     # The fused fp32 token transformer (fast only; error against fp64 within
     # 1.001x of stock's, D1-D15 development gates on RTX PRO 6000 Blackwell,
     # 2026-10-21).
