@@ -345,7 +345,7 @@ class Attention(nn.Module):
     """
 
     # Serve measured cuEquivariance triangle-attention calls with the flash
-    # kernel of opendde.model.optimized.triattn (triattn_k2b, fast only) or
+    # kernel of opendde.model.optimized.triattn (triattn_k2b, in no mode) or
     # the CUDA kernel of opendde.model.optimized.triattn_native (fast only),
     # or else the bit-identical kernel of opendde.model.optimized.triattn_exact.
     use_triton_kernel = False

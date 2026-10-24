@@ -3,7 +3,8 @@
 # Adapted from the kit's flash triangle-attention kernel (k2b), whose
 # arithmetic follows the cuEquivariance triangle_attention call it replaces;
 # see NOTICE.
-"""Flash triangle attention in Triton for optimization_mode fast (triattn_k2b).
+"""Flash triangle attention in Triton (triattn_k2b; run by no mode since its
+held-out draw on sm_120 failed, see opendde.config.optimization).
 
 Replaces the cuEquivariance ``triangle_attention`` call of ``Attention`` under
 bf16 autocast at head dimension 32:

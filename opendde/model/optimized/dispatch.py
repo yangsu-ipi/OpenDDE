@@ -53,8 +53,8 @@ ROWS: dict[str, tuple[Row, ...]] = {
     # as stock computes it with one sample (fast only; D1-D15 development
     # gates on RTX PRO 6000 Blackwell, 2026-10-21).
     "cond_dedupe": (Row((12, 0), "2.7.", None),),
-    # Not bitwise: error against fp32 as stock's (fast only; tile sweep on
-    # RTX PRO 6000 Blackwell, 2026-10-17).
+    # Not bitwise: error against fp32 as stock's (tile sweep on RTX PRO 6000
+    # Blackwell, 2026-10-17); in no mode since its held-out draw failed.
     "triattn_k2b": (Row((12, 0), "2.7.", "3.3.1"),),
     # CUDA (nvcc), not bitwise: error against fp32 within 1.06x of stock's
     # (fast only; kernel benchmark on A100 80GB PCIe, 2026-10-18).

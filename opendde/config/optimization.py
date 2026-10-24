@@ -61,6 +61,8 @@ OVERLAPPING_ENVIRONMENT = ("LAYERNORM_TYPE", "OPENDDE_TRUNK_CACHE")
 # name -> the modes that may run it.
 EXACT_AND_ABOVE = ("exact", "fast", "big")
 FAST_AND_ABOVE = ("fast", "big")
+# Kept in the code, run by no mode: rejected at a held-out draw.
+NO_MODE: tuple[str, ...] = ()
 OPTIMIZATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
     {
         # Drop the [N_atom, N_atom] int64 ``bond_mask`` feature, which no
@@ -106,8 +108,10 @@ OPTIMIZATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
         "triattn_exact": EXACT_AND_ABOVE,
         # Triangle attention: the flash triangle-attention Triton kernel in
         # place of cuEquivariance's (rounding differs; error against fp32 as
-        # stock's) on the rows of opendde.model.optimized.dispatch.
-        "triattn_k2b": FAST_AND_ABOVE,
+        # stock's) on the rows of opendde.model.optimized.dispatch. Rejected
+        # at the sm_120 held-out draw sm120-fast-1 (2026-10-17); kept for the
+        # B200/B300 test in porting_docs/TODO.md.
+        "triattn_k2b": NO_MODE,
         # Triangle attention on A100: the kit's sm_80 CUDA kernel in place of
         # cuEquivariance's (rounding differs; error against fp32 as stock's) on
         # the rows of opendde.model.optimized.dispatch.

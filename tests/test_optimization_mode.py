@@ -159,17 +159,16 @@ def test_explicit_kernel_options_keep_the_stock_kernels():
     configs = build_inference_config(fill_required_with_null=True)
     configs.optimization_mode = "fast"
     plan = opt.build_optimization_plan(configs, device=None)
-    assert plan.enabled("triattn_k2b") and plan.enabled("trimul_triton")
+    assert plan.enabled("triattn_native") and plan.enabled("trimul_triton")
     configs.explicit_options = ["triatt_kernel", "dtype"]
     plan = opt.build_optimization_plan(configs, device=None)
-    assert not plan.enabled("triattn_k2b") and not plan.enabled("triattn_exact")
-    assert not plan.enabled("triattn_native")
-    assert plan.decisions["triattn_k2b"].reason == "explicit triatt_kernel"
+    assert not plan.enabled("triattn_native") and not plan.enabled("triattn_exact")
+    assert plan.decisions["triattn_native"].reason == "explicit triatt_kernel"
     assert plan.decisions["triattn_exact"].reason == "explicit triatt_kernel"
     assert plan.enabled("trimul_triton") and plan.enabled("transition_triton")
     configs.explicit_options = ["trimul_kernel"]
     plan = opt.build_optimization_plan(configs, device=None)
-    assert not plan.enabled("trimul_triton") and plan.enabled("triattn_k2b")
+    assert not plan.enabled("trimul_triton") and plan.enabled("triattn_native")
 
 
 def test_fast_runs_exact_plus_the_fast_only_kernels():
@@ -178,12 +177,23 @@ def test_fast_runs_exact_plus_the_fast_only_kernels():
     exact = opt.build_optimization_plan(configs, device=None)
     configs.optimization_mode = "fast"
     fast = opt.build_optimization_plan(configs, device=None)
-    assert not exact.enabled("triattn_k2b") and fast.enabled("triattn_k2b")
     assert exact.enabled("triattn_exact")
+    assert fast.enabled("cond_dedupe") and fast.enabled("dit_fused")
     assert not exact.enabled("triattn_native") and fast.enabled("triattn_native")
     for name in opt.OPTIMIZATIONS:
         if exact.enabled(name):
             assert fast.enabled(name), name
+
+
+def test_rejected_kernels_run_in_no_mode():
+    configs = build_inference_config(fill_required_with_null=True)
+    for mode in opt.AVAILABLE_OPTIMIZATION_MODES:
+        configs.optimization_mode = mode
+        plan = opt.build_optimization_plan(configs, device=None)
+        assert not plan.enabled("triattn_k2b"), mode
+        if mode != "off":
+            reason = plan.decisions["triattn_k2b"].reason
+            assert reason == f"not part of mode {mode}"
 
 
 def test_config_defaults():

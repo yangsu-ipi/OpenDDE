@@ -2,6 +2,13 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 119 (2026-10-23)
+
+Records the user's decision on the rejected sm_120 kernel; qualification code, limits, tags and declared claims are unchanged.
+
+- `triattn_k2b` leaves `fast`: the registry runs it in no mode (it stays in the code for the B200/B300 test in `TODO.md`). sm_120 `fast` is `exact` plus `cond_dedupe` and `dit_fused`, so a next sm_120 candidate is the bundle under its plain `--optimization_mode fast` arguments. sm_80's `triattn_native` is to be handled the same way at the A100 session. Reason: `fast` should run only what can still be qualified; with `triattn_k2b` in it, the bundle could be drawn only as `fast` plus an override, which is not what a user runs.
+- Status: every sm_120 kit item but the capacity items has its disposition (`kit_disposition.md`).
+
 ## Revision 118 (2026-10-21)
 
 Records the user's amendment of disposition standard (b); qualification code, limits, tags and declared claims are unchanged.

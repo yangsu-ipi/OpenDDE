@@ -70,7 +70,7 @@ Upper bounds on sm_120 (share of the warm forward's GPU span, 1,043.6 s summed o
 | `stepgraph` | **ported** (`exact`): the unguided denoiser step as one CUDA graph per sampler call, checked bitwise against the eager step; D1-D15 byte-identical to `off`; 0.89% of model forward time summed, 11.7% on D7 and 4.3% on D6 | pending |
 | `prefetch` | **(a)**: 1.1% of wall time on a four-input query, and featurization is 5.3% of D1-D15's total time; it also changes every output in 1.2 (random-state consumption), so it would not be `exact` as it stands | pending |
 | `dit_align` | **(a)**: exact (bitwise outputs, attention 1.07-1.16x per call when N is not a multiple of 8), but the pad kernels it removes are at most 1.37% of kernel time summed and 1.73% on a row | pending |
-| `triattn_core` | ported as `triattn_k2b`; rejected at the held-out draw | ported as `triattn_native`; rejected at the held-out draw |
+| `triattn_core` | ported as `triattn_k2b`; rejected at the held-out draw, and run by no mode since 2026-10-23 (user decision) | ported as `triattn_native`; rejected at the held-out draw |
 | `trimul_core` | **(a)**: no sm_120 cell in the kit; its `esm_shapes` row re-tiled for sm_120 (as `trimul_esm`, error equal to stock's, tier 1 and tier 2 pass) is 0.91-1.09x the bit-identical `trimul_triton` up to 1,536 tokens; on D1-D15 it saves 0.15% on D4 and about 0.03% summed, and the large inputs where it is clearly faster run out of memory in stock 1.2 on this card; archived, not committed | pending |
 | `transition_core` | **(c)**: no sm_120 cell; its fused rows are slower than stock (0.80-0.89x on sm_120), so at 1.2's cell it is `sep16`, which `transition_triton` already serves bit for bit | pending |
 | `arm_u` + `arm_u23` | `arm_u`'s bf16 pair-stack region is **(c)** (1.2 already runs the trunk under bf16 autocast); its triangle attention is `triattn_core`; U2 is `trimul_core` and U3's transition is `transition_core` (rows below); U3's cast-once prologue is **(a)**: exact, 0.08% summed, at most 0.35% on a row | pending |
@@ -85,6 +85,6 @@ Upper bounds on sm_120 (share of the warm forward's GPU span, 1,043.6 s summed o
 
 ## Next on sm_120
 
-Every kit item but the capacity items (`big`, `rowpair_tp`; plan steps 5 and 6) has an sm_120 disposition. Remaining: the held-out draw for the `fast` survivors (`cond_dedupe`, `dit_fused`), with the user's go-ahead.
+Every kit item but the capacity items (`big`, `rowpair_tp`; plan steps 5 and 6) has an sm_120 disposition. `triattn_k2b` no longer runs in `fast` (user decision, 2026-10-23), so sm_120 `fast` is the bundle: `exact` plus `cond_dedupe` and `dit_fused`. Remaining: its development run together, then a rehearsal and a held-out draw, each with the user's go-ahead.
 
 The sm_80 column waits for one A100 session, which starts with the replacement-host test; the same profile and measurements are then repeated there, because bounds measured on sm_120 do not carry over.
