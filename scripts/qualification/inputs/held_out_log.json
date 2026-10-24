@@ -45,6 +45,32 @@
     "contract_tag": "qual-sm120-contract-7",
     "tag_commit": "37c02cc9fa13ce3c61119769de181747b5322475"
    }
+  },
+  {
+   "id": "fast-22c9dd7",
+   "gpu": "sm_120",
+   "candidate": "fast-bundle120",
+   "route": "dev-rehearsal",
+   "contract_tag": "qual-sm120-contract-7",
+   "code_commit": "22c9dd7bd3528796e8f5ad51ed6dd61ad7338731",
+   "candidate_args": [
+    "--optimization_mode",
+    "fast"
+   ],
+   "evidence_sha256": "19bc3bf38261fa3719227f1b01d68747ffb6889440ef50c3672a6ab1a05791db",
+   "verdict_sha256": "b3a65aac8d83909427f267effe0844bee5f8424eeb790efd8b2d6a6d79718251",
+   "status": "rehearsal passed (not an acceptance)",
+   "exit_code": 4,
+   "gate_sha256": "a1b4c0c689faf70209f1090e6e0101945d006d5e7d8755f0bf334033cebfc3ef",
+   "gate_commit": "37c02cc9fa13ce3c61119769de181747b5322475",
+   "gate_approved_tag": "qual-sm120-contract-7",
+   "smoke": {
+    "sha256": "037c6d36a99c2841f4055ba368440df19e40adf8b617ad4146cb79da47fa5253",
+    "ok": true,
+    "gpu": "sm_120",
+    "contract_tag": "qual-sm120-contract-7",
+    "tag_commit": "37c02cc9fa13ce3c61119769de181747b5322475"
+   }
   }
  ],
  "draws": [
