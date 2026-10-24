@@ -85,6 +85,6 @@ Upper bounds on sm_120 (share of the warm forward's GPU span, 1,043.6 s summed o
 
 ## Next on sm_120
 
-Every kit item but the capacity items (`big`, `rowpair_tp`; plan steps 5 and 6) has an sm_120 disposition. `triattn_k2b` no longer runs in `fast` (user decision, 2026-10-23), so sm_120 `fast` is the bundle: `exact` plus `cond_dedupe` and `dit_fused`. Remaining: its development run together, then a rehearsal and a held-out draw, each with the user's go-ahead.
+Every kit item but the capacity items (`big`, `rowpair_tp`; plan steps 5 and 6) has an sm_120 disposition. `triattn_k2b` no longer runs in `fast` (user decision, 2026-10-23), so sm_120 `fast` is the bundle: `exact` plus `cond_dedupe` and `dit_fused`. Together on D1-D15 it passed the development gates and saves 6.63% of model forward time summed over `exact` (jobs 56034 and 56035); its rehearsal passed and the line `accept/sm120-fast-22c9dd7` is open ([line ledger](qualification_line_ledger.md)). Remaining: the held-out draw, with the user's go-ahead.
 
 The sm_80 column waits for one A100 session, which starts with the replacement-host test; the same profile and measurements are then repeated there, because bounds measured on sm_120 do not carry over.

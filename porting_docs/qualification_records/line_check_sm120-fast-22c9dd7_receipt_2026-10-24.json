@@ -1,0 +1,119 @@
+{
+ "candidate": "/home/yang.su/opendde-accept",
+ "head": "22c9dd7bd3528796e8f5ad51ed6dd61ad7338731",
+ "remote": "https://github.com/yangsu-ipi/OpenDDE.git",
+ "ledger": {
+  "accept/sm120-fast-25267ec": {
+   "status": "rejected",
+   "tip": "9def88b9c6d0ed8d1abecee200d3c312d4b9f401"
+  },
+  "accept/sm80-fast80-87526cb": {
+   "status": "rejected",
+   "tip": "d2637e07b50c109a090328156eedfd6361adf48e"
+  }
+ },
+ "refs": {
+  "accept/sm120-fast-25267ec": "9def88b9c6d0ed8d1abecee200d3c312d4b9f401",
+  "accept/sm80-fast80-87526cb": "d2637e07b50c109a090328156eedfd6361adf48e"
+ },
+ "checks": [
+  {
+   "check": "candidate checkout clean",
+   "ok": true,
+   "detail": []
+  },
+  {
+   "check": "ledger present at the candidate",
+   "ok": true,
+   "detail": "porting_docs/qualification_line_ledger.md"
+  },
+  {
+   "check": "acceptance refs listed on the remote",
+   "ok": true,
+   "detail": "https://github.com/yangsu-ipi/OpenDDE.git"
+  },
+  {
+   "check": "every acceptance ref has a ledger entry",
+   "ok": true,
+   "detail": []
+  },
+  {
+   "check": "every ledger entry's ref is on the remote",
+   "ok": true,
+   "detail": []
+  },
+  {
+   "check": "no ledger entry open",
+   "ok": true,
+   "detail": []
+  },
+  {
+   "check": "candidate held-out log readable",
+   "ok": true,
+   "detail": null
+  },
+  {
+   "check": "accept/sm120-fast-25267ec records its final tip",
+   "ok": true,
+   "detail": {
+    "status": "rejected",
+    "tip": "9def88b9c6d0ed8d1abecee200d3c312d4b9f401"
+   }
+  },
+  {
+   "check": "accept/sm120-fast-25267ec is at its recorded tip",
+   "ok": true,
+   "detail": {
+    "remote": "9def88b9c6d0ed8d1abecee200d3c312d4b9f401",
+    "ledger": "9def88b9c6d0ed8d1abecee200d3c312d4b9f401"
+   }
+  },
+  {
+   "check": "accept/sm120-fast-25267ec tip resolved",
+   "ok": true,
+   "detail": "9def88b9c6d0ed8d1abecee200d3c312d4b9f401"
+  },
+  {
+   "check": "accept/sm120-fast-25267ec tip is an ancestor of the candidate",
+   "ok": true,
+   "detail": "9def88b9c6d0ed8d1abecee200d3c312d4b9f401"
+  },
+  {
+   "check": "candidate log extends the log at accept/sm120-fast-25267ec's tip",
+   "ok": true,
+   "detail": "9def88b9c6d0ed8d1abecee200d3c312d4b9f401"
+  },
+  {
+   "check": "accept/sm80-fast80-87526cb records its final tip",
+   "ok": true,
+   "detail": {
+    "status": "rejected",
+    "tip": "d2637e07b50c109a090328156eedfd6361adf48e"
+   }
+  },
+  {
+   "check": "accept/sm80-fast80-87526cb is at its recorded tip",
+   "ok": true,
+   "detail": {
+    "remote": "d2637e07b50c109a090328156eedfd6361adf48e",
+    "ledger": "d2637e07b50c109a090328156eedfd6361adf48e"
+   }
+  },
+  {
+   "check": "accept/sm80-fast80-87526cb tip resolved",
+   "ok": true,
+   "detail": "d2637e07b50c109a090328156eedfd6361adf48e"
+  },
+  {
+   "check": "accept/sm80-fast80-87526cb tip is an ancestor of the candidate",
+   "ok": true,
+   "detail": "d2637e07b50c109a090328156eedfd6361adf48e"
+  },
+  {
+   "check": "candidate log extends the log at accept/sm80-fast80-87526cb's tip",
+   "ok": true,
+   "detail": "d2637e07b50c109a090328156eedfd6361adf48e"
+  }
+ ],
+ "ok": true
+}

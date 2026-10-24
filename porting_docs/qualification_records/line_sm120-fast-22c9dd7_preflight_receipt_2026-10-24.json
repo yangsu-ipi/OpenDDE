@@ -1,0 +1,572 @@
+{
+ "line": "accept/sm120-fast-22c9dd7",
+ "receipt": "fast-22c9dd7",
+ "candidate": {
+  "code_commit": "22c9dd7bd3528796e8f5ad51ed6dd61ad7338731",
+  "candidate_args": [
+   "--optimization_mode",
+   "fast"
+  ]
+ },
+ "measured_at": "2026-10-24T16:47:26+0000",
+ "purpose": "pre-receipt disk preflight of the held-out block (protocol E5 disk headroom): frozen held-out token counts (signature inventory) and conservative heavy-atom counts against measured development comparators, per-role and per-class bounds from the rehearsal's measured bytes, and both headroom measurements",
+ "method": {
+  "held_out_atoms": "upper bound from the input JSONs: standard heavy atoms per residue and nucleotide (with phosphate), +1 terminal atom per chain, every non-hydrogen CCD atom of each ligand (leaving atoms included), 1 per ion; no OpenDDE inference or preprocessing of any held-out input",
+  "identity": "a held-out row whose entity list and covalent bonds equal its comparator's (restraint fields ignored; restraints add no tokens or atoms) has the comparator's own counts (H7 and D8, H10 and D4)",
+  "comparator_counts": "tokens from z_trunk and atoms from x_pred_coords of the comparator's own tier 1 off capture (seed 101)",
+  "bound": "factor 1.5 x the comparator's measured bytes for the same role and output class; H10 uses D4, its identical input",
+  "factor_justification": "every held-out row is at most its comparator in tokens and heavy atoms (dominated, below); the factor covers role-to-role and seed variation (measured below) and file-schema variation; candidate captures keep stock dtypes (cand_dtypes), so no dtype allowance beyond the factor is needed",
+  "h3_extra_zn": "4 extra seeds x (off + candidate) predictions and run files per seed of D8, times the factor",
+  "floor_and_margin": "remaining estimate = max(sum of bounds, 36 GB floor); margin = max(20 GB, 25% of the estimate)"
+ },
+ "comparators": {
+  "D4": {
+   "tokens": 1218,
+   "atoms": 9142,
+   "dtypes": {
+    "s_inputs": "torch.float32",
+    "s_trunk": "torch.bfloat16",
+    "z_trunk": "torch.bfloat16"
+   },
+   "capture": "/data/yang.su/opendde-accept-sm120/fast-22c9dd7/rehearsal-1/runs/cap_off/D4/7wux/seed_101/tier1.pt"
+  },
+  "D6": {
+   "tokens": 86,
+   "atoms": 1836,
+   "dtypes": {
+    "s_inputs": "torch.float32",
+    "s_trunk": "torch.bfloat16",
+    "z_trunk": "torch.bfloat16"
+   },
+   "capture": "/data/yang.su/opendde-accept-sm120/fast-22c9dd7/rehearsal-1/runs/cap_off/D6/9gmw_2/seed_101/tier1.pt"
+  },
+  "D8": {
+   "tokens": 732,
+   "atoms": 5640,
+   "dtypes": {
+    "s_inputs": "torch.float32",
+    "s_trunk": "torch.bfloat16",
+    "z_trunk": "torch.bfloat16"
+   },
+   "capture": "/data/yang.su/opendde-accept-sm120/fast-22c9dd7/rehearsal-1/runs/cap_off/D8/9lh2_unconstrained/seed_101/tier1.pt"
+  }
+ },
+ "cand_capture_dtypes": {
+  "D4": {
+   "s_inputs": "torch.float32",
+   "s_trunk": "torch.bfloat16",
+   "z_trunk": "torch.bfloat16"
+  },
+  "D6": {
+   "s_inputs": "torch.float32",
+   "s_trunk": "torch.bfloat16",
+   "z_trunk": "torch.bfloat16"
+  },
+  "D8": {
+   "s_inputs": "torch.float32",
+   "s_trunk": "torch.bfloat16",
+   "z_trunk": "torch.bfloat16"
+  }
+ },
+ "held_out": {
+  "H1": {
+   "tokens": 693,
+   "atoms_upper": 5370,
+   "basis": [
+    "1 x proteinChain 5370"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H2": {
+   "tokens": 600,
+   "atoms_upper": 5222,
+   "basis": [
+    "2 x proteinChain 1908",
+    "2 x dnaSequence 389",
+    "2 x dnaSequence 291",
+    "2 x ligand 23"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H3": {
+   "tokens": 710,
+   "atoms_upper": 5456,
+   "basis": [
+    "1 x proteinChain 1690",
+    "1 x proteinChain 1667",
+    "1 x proteinChain 2078",
+    "3 x ligand 7"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H4": {
+   "tokens": 650,
+   "atoms_upper": 5013,
+   "basis": [
+    "1 x proteinChain 3260",
+    "1 x proteinChain 818",
+    "1 x proteinChain 935"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H5": {
+   "tokens": 710,
+   "atoms_upper": 5456,
+   "basis": [
+    "1 x proteinChain 1690",
+    "1 x proteinChain 1667",
+    "1 x proteinChain 2078",
+    "3 x ligand 7"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H6": {
+   "tokens": 650,
+   "atoms_upper": 5013,
+   "basis": [
+    "1 x proteinChain 3260",
+    "1 x proteinChain 818",
+    "1 x proteinChain 935"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H7": {
+   "tokens": 732,
+   "atoms_upper": 5642,
+   "basis": [
+    "2 x proteinChain 1734",
+    "2 x proteinChain 1072",
+    "2 x ligand 15"
+   ],
+   "comparator": "D8",
+   "identical_entities_to_comparator": true,
+   "dominated": true
+  },
+  "H8": {
+   "tokens": 28,
+   "atoms_upper": 576,
+   "basis": [
+    "1 x dnaSequence 289",
+    "1 x dnaSequence 287"
+   ],
+   "comparator": "D6",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H9": {
+   "tokens": 30,
+   "atoms_upper": 638,
+   "basis": [
+    "1 x rnaSequence 638"
+   ],
+   "comparator": "D6",
+   "identical_entities_to_comparator": false,
+   "dominated": true
+  },
+  "H10": {
+   "tokens": 1218,
+   "atoms_upper": 9160,
+   "basis": [
+    "2 x proteinChain 1791",
+    "2 x proteinChain 2756",
+    "1 x ligand 11",
+    "2 x ligand 17",
+    "3 x ligand 7"
+   ],
+   "comparator": "D4",
+   "identical_entities_to_comparator": true,
+   "dominated": true
+  }
+ },
+ "measured_development_bytes": {
+  "D1": {
+   "off.prediction": 23070511,
+   "off.other": 2429617,
+   "cand.prediction": 23072135,
+   "cand.other": 2432304,
+   "repeat.prediction": 23072135,
+   "repeat.other": 20724,
+   "tier1_off.capture": 114408384,
+   "tier1_off.other": 4685698,
+   "tier1_cand.capture": 114368074,
+   "tier1_cand.other": 4689863
+  },
+  "D2": {
+   "off.prediction": 29615919,
+   "off.other": 2327119,
+   "cand.prediction": 29623507,
+   "cand.other": 2329812,
+   "repeat.prediction": 29623507,
+   "repeat.other": 20705,
+   "tier1_off.capture": 171407296,
+   "tier1_off.other": 5958235,
+   "tier1_cand.capture": 171346378,
+   "tier1_cand.other": 5960835
+  },
+  "D3": {
+   "off.prediction": 170728342,
+   "off.other": 2411630,
+   "cand.prediction": 170708865,
+   "cand.other": 2414493,
+   "repeat.prediction": 170708865,
+   "repeat.other": 19390,
+   "tier1_off.capture": 1059973824,
+   "tier1_off.other": 34049010,
+   "tier1_cand.capture": 1059858506,
+   "tier1_cand.other": 34051961
+  },
+  "D4": {
+   "off.prediction": 661385038,
+   "off.other": 2328772,
+   "cand.prediction": 661394021,
+   "cand.other": 2332334,
+   "repeat.prediction": 661394021,
+   "repeat.other": 22648,
+   "tier1_off.capture": 4187879744,
+   "tier1_off.other": 132198619,
+   "tier1_cand.capture": 4187659978,
+   "tier1_cand.other": 132174383
+  },
+  "D5": {
+   "off.prediction": 196639369,
+   "off.other": 2333653,
+   "cand.prediction": 196630524,
+   "cand.other": 2336532,
+   "repeat.prediction": 196630524,
+   "repeat.other": 25075,
+   "tier1_off.capture": 1173130432,
+   "tier1_off.other": 47792913,
+   "tier1_cand.capture": 1173025226,
+   "tier1_cand.other": 47795648
+  },
+  "D6": {
+   "off.prediction": 5529704,
+   "off.other": 2335835,
+   "cand.prediction": 5529710,
+   "cand.other": 2339042,
+   "repeat.prediction": 5529710,
+   "repeat.other": 18168,
+   "tier1_off.capture": 22083648,
+   "tier1_off.other": 1118248,
+   "tier1_cand.capture": 22039370,
+   "tier1_cand.other": 1119439
+  },
+  "D7": {
+   "off.prediction": 888603,
+   "off.other": 2375303,
+   "cand.prediction": 888602,
+   "cand.other": 2378550,
+   "repeat.prediction": 888602,
+   "repeat.other": 17469,
+   "tier1_off.capture": 1969984,
+   "tier1_off.other": 188312,
+   "tier1_cand.capture": 1957962,
+   "tier1_cand.other": 191422
+  },
+  "D8": {
+   "off.prediction": 241938293,
+   "off.other": 2412632,
+   "cand.prediction": 241966044,
+   "cand.other": 2415501,
+   "repeat.prediction": 241966044,
+   "repeat.other": 21528,
+   "tier1_off.capture": 1515123264,
+   "tier1_off.other": 48616481,
+   "tier1_cand.capture": 1514987722,
+   "tier1_cand.other": 48608142
+  },
+  "D9": {
+   "off.prediction": 170818669,
+   "off.other": 3291296,
+   "cand.prediction": 170818625,
+   "cand.other": 3293829,
+   "repeat.prediction": 170818625,
+   "repeat.other": 138239,
+   "tier1_off.capture": 1059973824,
+   "tier1_off.other": 34084830,
+   "tier1_cand.capture": 1059858378,
+   "tier1_cand.other": 34087068
+  },
+  "D10": {
+   "off.prediction": 170800508,
+   "off.other": 3232506,
+   "cand.prediction": 170795959,
+   "cand.other": 3235052,
+   "repeat.prediction": 170795959,
+   "repeat.other": 87537,
+   "tier1_off.capture": 1059973824,
+   "tier1_off.other": 34073892,
+   "tier1_cand.capture": 1059858378,
+   "tier1_cand.other": 34071706
+  },
+  "D11": {
+   "off.prediction": 170912104,
+   "off.other": 3175563,
+   "cand.prediction": 170916826,
+   "cand.other": 3178118,
+   "repeat.prediction": 170916826,
+   "repeat.other": 22494,
+   "tier1_off.capture": 1059973824,
+   "tier1_off.other": 34041844,
+   "tier1_cand.capture": 1059858378,
+   "tier1_cand.other": 34044263
+  },
+  "D12": {
+   "off.prediction": 170906427,
+   "off.other": 3175605,
+   "cand.prediction": 170892181,
+   "cand.other": 3178590,
+   "repeat.prediction": 170892181,
+   "repeat.other": 22928,
+   "tier1_off.capture": 1059973824,
+   "tier1_off.other": 34053558,
+   "tier1_cand.capture": 1059858378,
+   "tier1_cand.other": 34056451
+  },
+  "D13": {
+   "off.prediction": 200346162,
+   "off.other": 4726367,
+   "cand.prediction": 200334273,
+   "cand.other": 4729817,
+   "repeat.prediction": 200334273,
+   "repeat.other": 29381,
+   "tier1_off.capture": 1231381120,
+   "tier1_off.other": 40000377,
+   "tier1_cand.capture": 1231204884,
+   "tier1_cand.other": 40003964
+  },
+  "D14": {
+   "off.prediction": 101476846,
+   "off.other": 2329407,
+   "cand.prediction": 101498338,
+   "cand.other": 2332273,
+   "repeat.prediction": 101498338,
+   "repeat.other": 21965,
+   "tier1_off.capture": 623391168,
+   "tier1_off.other": 20347160,
+   "tier1_cand.capture": 623305290,
+   "tier1_cand.other": 20353466
+  },
+  "D15": {
+   "off.prediction": 90654877,
+   "off.other": 2325055,
+   "cand.prediction": 90668452,
+   "cand.other": 2327915,
+   "repeat.prediction": 90668452,
+   "repeat.other": 18226,
+   "tier1_off.capture": 556420544,
+   "tier1_off.other": 18157325,
+   "tier1_cand.capture": 556338250,
+   "tier1_cand.other": 18160098
+  }
+ },
+ "role_variation": {
+  "D1": {
+   "prediction_max_over_min": 1.0000703928924677,
+   "capture_cand_over_off": 0.999647665681564
+  },
+  "D2": {
+   "prediction_max_over_min": 1.0002562135586608,
+   "capture_cand_over_off": 0.9996446008926014
+  },
+  "D3": {
+   "prediction_max_over_min": 1.0001140948362581,
+   "capture_cand_over_off": 0.9998912067473847
+  },
+  "D4": {
+   "prediction_max_over_min": 1.0000135821034404,
+   "capture_cand_over_off": 0.9999475233260184
+  },
+  "D5": {
+   "prediction_max_over_min": 1.0000449828430504,
+   "capture_cand_over_off": 0.9999103202873865
+  },
+  "D6": {
+   "prediction_max_over_min": 1.000001085049037,
+   "capture_cand_over_off": 0.9979949870601089
+  },
+  "D7": {
+   "prediction_max_over_min": 1.000001125363211,
+   "capture_cand_over_off": 0.9938974123647705
+  },
+  "D8": {
+   "prediction_max_over_min": 1.0001147028015114,
+   "capture_cand_over_off": 0.9999105406119617
+  },
+  "D9": {
+   "prediction_max_over_min": 1.0000002575831528,
+   "capture_cand_over_off": 0.9998910859896857
+  },
+  "D10": {
+   "prediction_max_over_min": 1.0000266341196047,
+   "capture_cand_over_off": 0.9998910859896857
+  },
+  "D11": {
+   "prediction_max_over_min": 1.0000276282363243,
+   "capture_cand_over_off": 0.9998910859896857
+  },
+  "D12": {
+   "prediction_max_over_min": 1.000083362503285,
+   "capture_cand_over_off": 0.9998910859896857
+  },
+  "D13": {
+   "prediction_max_over_min": 1.0000593458114877,
+   "capture_cand_over_off": 0.9998568794038356
+  },
+  "D14": {
+   "prediction_max_over_min": 1.0002117921560156,
+   "capture_cand_over_off": 0.9998622405892026
+  },
+  "D15": {
+   "prediction_max_over_min": 1.0001497437363465,
+   "capture_cand_over_off": 0.9998521010755491
+  }
+ },
+ "bounds_bytes": {
+  "H1": {
+   "cand.other": 3623251,
+   "cand.prediction": 362949066,
+   "off.other": 3618948,
+   "off.prediction": 362907439,
+   "repeat.other": 32292,
+   "repeat.prediction": 362949066,
+   "tier1_cand.capture": 2272481583,
+   "tier1_cand.other": 72912213,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72924721
+  },
+  "H2": {
+   "cand.other": 3623251,
+   "cand.prediction": 362949066,
+   "off.other": 3618948,
+   "off.prediction": 362907439,
+   "repeat.other": 32292,
+   "repeat.prediction": 362949066,
+   "tier1_cand.capture": 2272481583,
+   "tier1_cand.other": 72912213,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72924721
+  },
+  "H3": {
+   "cand.other": 3623251,
+   "cand.prediction": 362949066,
+   "off.other": 3618948,
+   "off.prediction": 362907439,
+   "repeat.other": 32292,
+   "repeat.prediction": 362949066,
+   "tier1_cand.capture": 2272481583,
+   "tier1_cand.other": 72912213,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72924721
+  },
+  "H4": {
+   "cand.other": 3623251,
+   "cand.prediction": 362949066,
+   "off.other": 3618948,
+   "off.prediction": 362907439,
+   "repeat.other": 32292,
+   "repeat.prediction": 362949066,
+   "tier1_cand.capture": 2272481583,
+   "tier1_cand.other": 72912213,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72924721
+  },
+  "H5": {
+   "cand.other": 3623251,
+   "cand.prediction": 362949066,
+   "off.other": 3618948,
+   "off.prediction": 362907439,
+   "repeat.other": 32292,
+   "repeat.prediction": 362949066,
+   "tier1_cand.capture": 2272481583,
+   "tier1_cand.other": 72912213,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72924721
+  },
+  "H6": {
+   "cand.other": 3623251,
+   "cand.prediction": 362949066,
+   "off.other": 3618948,
+   "off.prediction": 362907439,
+   "repeat.other": 32292,
+   "repeat.prediction": 362949066,
+   "tier1_cand.capture": 2272481583,
+   "tier1_cand.other": 72912213,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72924721
+  },
+  "H7": {
+   "cand.other": 3623251,
+   "cand.prediction": 362949066,
+   "off.other": 3618948,
+   "off.prediction": 362907439,
+   "repeat.other": 32292,
+   "repeat.prediction": 362949066,
+   "tier1_cand.capture": 2272481583,
+   "tier1_cand.other": 72912213,
+   "tier1_off.capture": 2272684896,
+   "tier1_off.other": 72924721
+  },
+  "H8": {
+   "cand.other": 3508563,
+   "cand.prediction": 8294565,
+   "off.other": 3503752,
+   "off.prediction": 8294556,
+   "repeat.other": 27252,
+   "repeat.prediction": 8294565,
+   "tier1_cand.capture": 33059055,
+   "tier1_cand.other": 1679158,
+   "tier1_off.capture": 33125472,
+   "tier1_off.other": 1677372
+  },
+  "H9": {
+   "cand.other": 3508563,
+   "cand.prediction": 8294565,
+   "off.other": 3503752,
+   "off.prediction": 8294556,
+   "repeat.other": 27252,
+   "repeat.prediction": 8294565,
+   "tier1_cand.capture": 33059055,
+   "tier1_cand.other": 1679158,
+   "tier1_off.capture": 33125472,
+   "tier1_off.other": 1677372
+  },
+  "H10": {
+   "cand.other": 3498501,
+   "cand.prediction": 992091031,
+   "off.other": 3493158,
+   "off.prediction": 992077557,
+   "repeat.other": 33972,
+   "repeat.prediction": 992091031,
+   "tier1_cand.capture": 6281489967,
+   "tier1_cand.other": 198261574,
+   "tier1_off.capture": 6281819616,
+   "tier1_off.other": 198297928
+  }
+ },
+ "h3_extra_zn_bound_bytes": 1466197410,
+ "sum_of_bounds_bytes": 58121864690,
+ "remaining_estimate_bytes": 58121864690,
+ "margin_bytes": 20000000000,
+ "required_bytes": 78121864690,
+ "headroom": {
+  "filesystem_available_bytes": 153071276032,
+  "quota_used_bytes": 361619296256,
+  "quota_soft_bytes": 612032839680,
+  "quota_headroom_bytes": 250413543424,
+  "bytes_held_for_line": 40897671416
+ },
+ "pass": true
+}

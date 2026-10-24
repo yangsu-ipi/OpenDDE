@@ -1,0 +1,123 @@
+{
+ "checked_at": "2026-10-24T12:47:00-04:00",
+ "purpose": "ruleset recheck immediately before the receipt push (line accept/sm120-fast-22c9dd7, receipt fast-22c9dd7, candidate 22c9dd7)",
+ "rulesets": [
+  {
+   "id": 25051626,
+   "name": "Acceptance lines",
+   "target": "branch",
+   "source_type": "Repository",
+   "source": "yangsu-ipi/OpenDDE",
+   "enforcement": "active",
+   "conditions": {
+    "ref_name": {
+     "exclude": [],
+     "include": [
+      "refs/heads/accept/**"
+     ]
+    }
+   },
+   "rules": [
+    {
+     "type": "deletion"
+    },
+    {
+     "type": "non_fast_forward"
+    }
+   ],
+   "node_id": "RRS_lACqUmVwb3NpdG9yec5UJ8GZzgF-Qeo",
+   "created_at": "2026-10-14T00:44:08.303-04:00",
+   "updated_at": "2026-10-14T00:44:08.330-04:00",
+   "bypass_actors": [],
+   "current_user_can_bypass": "never",
+   "_links": {
+    "self": {
+     "href": "https://api.github.com/repos/yangsu-ipi/OpenDDE/rulesets/25051626"
+    },
+    "html": {
+     "href": "https://github.com/yangsu-ipi/OpenDDE/rules/25051626"
+    }
+   }
+  },
+  {
+   "id": 25051458,
+   "name": "Contract tags",
+   "target": "tag",
+   "source_type": "Repository",
+   "source": "yangsu-ipi/OpenDDE",
+   "enforcement": "active",
+   "conditions": {
+    "ref_name": {
+     "exclude": [],
+     "include": [
+      "refs/tags/qual-*-contract-*"
+     ]
+    }
+   },
+   "rules": [
+    {
+     "type": "deletion"
+    },
+    {
+     "type": "update",
+     "parameters": {
+      "update_allows_fetch_and_merge": false
+     }
+    }
+   ],
+   "node_id": "RRS_lACqUmVwb3NpdG9yec5UJ8GZzgF-QUI",
+   "created_at": "2026-10-14T00:42:41.013-04:00",
+   "updated_at": "2026-10-14T00:42:41.042-04:00",
+   "bypass_actors": [],
+   "current_user_can_bypass": "never",
+   "_links": {
+    "self": {
+     "href": "https://api.github.com/repos/yangsu-ipi/OpenDDE/rulesets/25051458"
+    },
+    "html": {
+     "href": "https://github.com/yangsu-ipi/OpenDDE/rules/25051458"
+    }
+   }
+  }
+ ],
+ "rules_branches_accept_sm120_fast_22c9dd7": [
+  {
+   "type": "deletion",
+   "ruleset_source_type": "Repository",
+   "ruleset_source": "yangsu-ipi/OpenDDE",
+   "ruleset_id": 25051626
+  },
+  {
+   "type": "non_fast_forward",
+   "ruleset_source_type": "Repository",
+   "ruleset_source": "yangsu-ipi/OpenDDE",
+   "ruleset_id": 25051626
+  }
+ ],
+ "rules_branches_accept_sm120_example": [
+  {
+   "type": "deletion",
+   "ruleset_source_type": "Repository",
+   "ruleset_source": "yangsu-ipi/OpenDDE",
+   "ruleset_id": 25051626
+  },
+  {
+   "type": "non_fast_forward",
+   "ruleset_source_type": "Repository",
+   "ruleset_source": "yangsu-ipi/OpenDDE",
+   "ruleset_id": 25051626
+  }
+ ],
+ "tag_pattern_static_check": {
+  "pattern": "refs/tags/qual-*-contract-*",
+  "matches": [
+   "refs/tags/qual-sm120-contract-1",
+   "refs/tags/qual-sm120-contract-2",
+   "refs/tags/qual-sm120-contract-3",
+   "refs/tags/qual-sm120-contract-4",
+   "refs/tags/qual-sm120-contract-5",
+   "refs/tags/qual-sm120-contract-6",
+   "refs/tags/qual-sm120-contract-7"
+  ]
+ }
+}

@@ -48,12 +48,12 @@
   {
    "path": "/home/yang.su/opendde-accept",
    "registered": "2026-10-17",
-   "note": "Dedicated sm_120 acceptance checkout (decision 2026-10-11), a clone of the approved fork created 2026-10-17 at the first fast candidate's code commit 25267ec; runs and measurements write outside it. Searched for ad hoc output directories before use."
+   "note": "Dedicated sm_120 acceptance checkout (decision 2026-10-11), a clone of the approved fork created 2026-10-17 at the first fast candidate's code commit 25267ec; runs and measurements write outside it. Searched for ad hoc output directories before use. On 2026-10-24 it was moved to the second sm_120 line's code commit 22c9dd7 and then its branch accept/sm120-fast-22c9dd7."
   },
   {
    "path": "/data/yang.su/opendde-accept-sm120",
    "registered": "2026-10-17",
-   "note": "First fast candidate (25267ec, --optimization_mode fast): the paired D1/D9 candidate smoke test (smoke/) and the D1-D15 development evidence and rehearsal record (rehearsal-1/). Development rows and development seeds 101 and 102 only."
+   "note": "First fast candidate (25267ec, --optimization_mode fast): the paired D1/D9 candidate smoke test (smoke/) and the D1-D15 development evidence and rehearsal record (rehearsal-1/). Development rows and development seeds 101 and 102 only. The second sm_120 line (candidate 22c9dd7, fast-bundle120) uses fast-22c9dd7/: its paired D1/D9 smoke test (smoke/), D1-D15 development evidence and rehearsal record (rehearsal-1/) and operator records (operator/), development rows and seeds 101 and 102 only."
   },
   {
    "path": "/mnt/compbio-data/yang.su/opendde-qualification-archive",
