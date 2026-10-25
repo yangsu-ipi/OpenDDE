@@ -84,16 +84,17 @@ Held-out draw and closure (2026-10-19):
 
 | Field | Value |
 | --- | --- |
-| Status | open (opened 2026-10-24) |
+| Status | **rejected** (closed 2026-10-25) |
 | GPU | sm_120 (RTX PRO 6000 Blackwell Max-Q, gnode2) |
 | Branch | `accept/sm120-fast-22c9dd7` on `yangsu-ipi/OpenDDE` |
 | Receipt ID | `fast-22c9dd7` |
 | Candidate | `fast-bundle120`: code commit `22c9dd7bd3528796e8f5ad51ed6dd61ad7338731`, candidate arguments `--optimization_mode fast` (on sm_120: `exact`, which includes `triattn_exact` and `stepgraph`, plus `cond_dedupe` and `dit_fused`; `triattn_k2b` runs in no mode since plan revision 119) |
 | Contract tag | `qual-sm120-contract-7` (commit `37c02cc9fa13ce3c61119769de181747b5322475`) |
 | Pushed receipt commit | `9ebd1832f502bc1661267169b24e13a7abf63953` (changes only `scripts/qualification/inputs/held_out_log.json`) |
-| Final branch tip | not yet recorded |
-| Acceptance checkout | `~/opendde-accept` on gnode2, on branch `accept/sm120-fast-22c9dd7` at the receipt commit |
-| Draw | none logged; one earlier draw (`sm120-fast-1`) counts against the declared `fast` sm_120 claim's 3 |
+| Final branch tip | `67a322b35cf5dd6bcc313b1cbd7311e58d657ee8` (pushed; the draw commit) |
+| Acceptance checkout | `~/opendde-accept` on gnode2, on branch `accept/sm120-fast-22c9dd7` at the final branch tip |
+| Draw | `sm120-fast-2`, draw 2 of at most 3 for the declared `fast` sm_120 claim; seeds H1 242-243 through H10 260-261 (lowest unused seeds in row order); no extra Zn seeds (H3 had 29 eligible ions from its primary seeds) |
+| Verdict | **fail**, `accept.py` exit 1 through `qual_gate.py --gpu sm_120 --accept --receipt fast-22c9dd7` (gate passed, candidate unchanged); 2,498 checks, 1 failed; Zn claim `qualified` |
 
 Development gates before the line (not acceptance evidence): the bundle, as `fast` with `optimization.triattn_k2b=false` at `d3b8466`, against `exact` on D1-D15 (jobs 56034 and 56035): `exact` byte-identical to `off` on all 480 artifacts, tier 2 passed all 16 jobs with the Zn claim qualified, the bundle repeated byte for byte, and model forward time fell 6.63% summed ([kit_disposition.md](kit_disposition.md)).
 
@@ -107,3 +108,15 @@ Rehearsal (2026-10-24, `dev-rehearsal` route through `qual_gate.py --gpu sm_120 
 - Record hashes (SHA-256): `verdict.json` `b3a65aac8d83909427f267effe0844bee5f8424eeb790efd8b2d6a6d79718251`; `gate.json` `a1b4c0c689faf70209f1090e6e0101945d006d5e7d8755f0bf334033cebfc3ef`; `record.json` `0ec6bf5d5fbc0e5e7c49ff3ac355bf6ef2c182b65defd31bb4983342b451cb0c`; `receipt.json` `b9b102ff06a65b68f2d6cce6e3d0356a2f6404b3d37c63fd48a1560d3809d4ee`; `evidence.json` `f595a1219e3ccd9391146af47230fd643069e012dbbc78d39baceff8e0ee98e9`; gate preflight with the receipt after the push (11 of 11 checks passed) `gate-preflight-receipt.json` `ef424a97df8382951fee1e748ec19c455f43503e842317bb977550ff73b6d82e`.
 - Pre-receipt checks: GitHub rulesets rechecked, unchanged since 2026-10-14, with the line branch and `accept/sm120-example` both under deletion and non-fast-forward protection ([record](qualification_records/ruleset_recheck_receipt_fast-22c9dd7_2026-10-24.json)); the line check rerun against the remote (17 of 17 checks passed, [record](qualification_records/line_check_sm120-fast-22c9dd7_receipt_2026-10-24.json)); disk preflight of the held-out block passed ([operator record](qualification_records/line_sm120-fast-22c9dd7_preflight_receipt_2026-10-24.json), SHA-256 `a80b0aa9fae2a4d0294ef147c252cdcac173c97604402252cb3ac8fe3b2faa47`, the first sm_120 line's method with this line's paths): every held-out row dominated by its comparator (H7 and H10 by identical entities), 58.1 GB of bounds plus a 20 GB margin against 153.1 GB available on `/data` and 250.4 GB of quota headroom; 40.9 GB already held for the line.
 - The rehearsal outputs, the line's smoke test, its operator records and the tag smoke record were made read-only after the receipt commit.
+
+Held-out draw and closure (2026-10-24 to 2026-10-25):
+
+- Pre-draw: logged draws per claim counted (1 for the sm_120 `fast` claim, `sm120-fast-1`; `sm80-fast-1` is the sm_80 claim's); audit of all registered stores from the clean acceptance checkout at the receipt commit, which holds every logged draw (job 56085; `run_audit.py` with the registry at `55188bd`): 4,670 runs, no stop, no deviation, 2,343 unverified, the only gaps being the two retired A100 VM stores, whose copies on the NAS are registered and were audited; a supplementary scan of 21 unregistered OpenDDE-related directories, the porting and gate checkouts and the scratch clones of the kit-disposition work (no runs). GitHub rulesets rechecked before the draw commit push, before held-out batch B and before the final verdict, all unchanged ([draw](qualification_records/ruleset_recheck_draw_sm120-fast-2_2026-10-24.json), [batch B](qualification_records/ruleset_recheck_batchB_sm120-fast-2_2026-10-24.json), [final](qualification_records/ruleset_recheck_final_sm120-fast-2_2026-10-25.json)).
+- Draw commit `67a322b` (changes only the held-out log), pushed before any held-out run.
+- Runs, from `~/opendde-accept` at the draw commit with the frozen asset copy, serially behind the gate preflight with the receipt, the asset and input-digest preflights and a per-run headroom guard (operator records in `draw-1/operator`): `off` and the candidate traced (job 56086), then the candidate repeat and both tier 1 runs (job 56088). All 50 runs exited 0; the checkout stayed clean. H3's eligible Zn ion count after job 56086 (29, job 56087, which printed only the count) met the stopping rule, so no extra Zn seed was logged.
+- Verdict (job 56113): the development set passed as in the rehearsal; every held-out tier 1, trace, repeat, provenance and seed check passed, and the Zn claim is qualified. Failed tier 2 gates: H7 (`9lh2_contact`) `lddt_polymer` and `lddt_protein` 0.839 (limit 0.85). H1-H6 and H8-H10 passed.
+- The failure was not diagnosed on held-out data, so that no later candidate is chosen from it.
+- Held-out evidence digest (`accept.evidence_digest` of the held-out set): `cdf2867e813e9d3421b18e1077f1f001f75b7e403e2b6ee968c57ea06a57dd75`; of all sets: `9c8f8f27c0909f5d564bae2fafd005d3899f01efab5f8a0a27d9a5a65be87ed3`; development: `19bc3bf38261fa3719227f1b01d68747ffb6889440ef50c3672a6ab1a05791db`, equal to the receipt's.
+- Record hashes (SHA-256, `draw-1/record`): `record.json` `363120b0c7d7cdb29a5badc3c5853ebf9604d030bb97035782125fee63fb6da8`; `gate.json` `2d1fd7c32948d02dfd449b02ee2f8c1884e2bbb9a9722542088c99477c46bd69`; `verdict.json` `09cad30bb03d652a600ed10d0ac9c12c55b29c83d7bdb4780e90e2988d4a6d6e`.
+- Archive: the whole line store (smoke test, rehearsal, line operator records, draw, and the line's job scripts, logs and audit reports under `jobs/`; 3,341 files, 74.8 GB, no symlinks) copied to `/mnt/compbio-data/yang.su/opendde-qualification-archive/accept-sm120-fast-22c9dd7` and verified from gnode2 against the source manifest (every file matched, none missing or extra; job 56125). Archive manifest `manifest-sha256.txt` SHA-256 `a708f60c6578d37e8292e74b37dbca5610656b051fe6a12c34024a45397c350e`. The copy and the originals on `/data` are read-only by file permission; this is not a NAS-protected immutable copy, and the originals are kept until the storage-admin procedure protects and independently verifies the archive.
+- Merged into `porting/inline-optimizations` after this entry.

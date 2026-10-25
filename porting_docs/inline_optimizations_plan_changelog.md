@@ -2,6 +2,12 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 120 (2026-10-25)
+
+Status only; qualification code, limits, tags and declared claims are unchanged.
+
+- The sm_120 `fast` bundle (`fast-bundle120`: `exact` plus `cond_dedupe` and `dit_fused`, code commit `22c9dd7`) was rejected at its held-out draw `sm120-fast-2` (1 of 2,498 checks failed: H7's tier 2 lDDT gates). Draw counts: sm_120 `fast` two of three, sm_80 `fast` one of three; seeds 201-261 spent. The line `accept/sm120-fast-22c9dd7` is closed and merged.
+
 ## Revision 119 (2026-10-23)
 
 Records the user's decision on the rejected sm_120 kernel; qualification code, limits, tags and declared claims are unchanged.
