@@ -94,8 +94,9 @@ OPTIMIZATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
         # Diffusion denoiser: compute the single conditioning for one sample
         # when the sampler expands one noise level over the samples; every
         # consumer broadcasts it (its GEMMs see fewer rows, so rounding
-        # differs) on the rows of opendde.model.optimized.dispatch.
-        "cond_dedupe": FAST_AND_ABOVE,
+        # differs) on the rows of opendde.model.optimized.dispatch. Rejected
+        # with dit_fused at the sm_120 held-out draw sm120-fast-2 (2026-10-25).
+        "cond_dedupe": NO_MODE,
         # Triangle multiplication: Triton gated projections around the stock
         # cuEquivariance LayerNorms and cuBLAS contraction, bit-identical to
         # it on the rows of opendde.model.optimized.dispatch.
@@ -118,8 +119,9 @@ OPTIMIZATIONS: Mapping[str, tuple[str, ...]] = MappingProxyType(
         "triattn_native": FAST_AND_ABOVE,
         # Diffusion denoiser: the token transformer as one fused fp32 stack
         # (merged GEMMs, Triton row kernels, the stock attention; rounding
-        # differs) on the rows of opendde.model.optimized.dispatch.
-        "dit_fused": FAST_AND_ABOVE,
+        # differs) on the rows of opendde.model.optimized.dispatch. Rejected
+        # with cond_dedupe at the sm_120 held-out draw sm120-fast-2 (2026-10-25).
+        "dit_fused": NO_MODE,
     }
 )
 # The overlapping options whose kernel choice an optimization replaces: an

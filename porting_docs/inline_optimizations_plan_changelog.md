@@ -2,6 +2,12 @@
 
 Changes to `inline_optimizations_plan.md`. Newest first.
 
+## Revision 121 (2026-10-25)
+
+Records the user's decision on the rejected sm_120 bundle; qualification code, limits, tags and declared claims are unchanged.
+
+- `cond_dedupe` and `dit_fused` leave `fast`: the registry runs them in no mode (they stay in the code). sm_120 `fast` runs the same changes as `exact`; sm_80 `fast` still adds `triattn_native`, to be decided at the A100 session (revision 119). Reason: both were rejected at the held-out draw `sm120-fast-2`, and `fast` should run only what can still be qualified.
+
 ## Revision 120 (2026-10-25)
 
 Status only; qualification code, limits, tags and declared claims are unchanged.

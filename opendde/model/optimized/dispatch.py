@@ -50,8 +50,8 @@ ROWS: dict[str, tuple[Row, ...]] = {
         Row((12, 0), "2.7.", None, "0.10.0"),
     ),
     # Not a kernel: the sampler's single conditioning computed for one sample,
-    # as stock computes it with one sample (fast only; D1-D15 development
-    # gates on RTX PRO 6000 Blackwell, 2026-10-21).
+    # as stock computes it with one sample (D1-D15 development gates on RTX PRO
+    # 6000 Blackwell, 2026-10-21); in no mode since its held-out draw failed.
     "cond_dedupe": (Row((12, 0), "2.7.", None),),
     # Not bitwise: error against fp32 as stock's (tile sweep on RTX PRO 6000
     # Blackwell, 2026-10-17); in no mode since its held-out draw failed.
@@ -63,9 +63,9 @@ ROWS: dict[str, tuple[Row, ...]] = {
     # the eager step (exact: D1-D15 byte-identical to off on RTX PRO 6000
     # Blackwell, 2026-10-23).
     "stepgraph": (Row((12, 0), "2.7.", None),),
-    # The fused fp32 token transformer (fast only; error against fp64 within
-    # 1.001x of stock's, D1-D15 development gates on RTX PRO 6000 Blackwell,
-    # 2026-10-21).
+    # The fused fp32 token transformer (error against fp64 within 1.001x of
+    # stock's, D1-D15 development gates on RTX PRO 6000 Blackwell,
+    # 2026-10-21); in no mode since its held-out draw failed.
     "dit_fused": (Row((12, 0), "2.7.", "3.3.1"),),
 }
 

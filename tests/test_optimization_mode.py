@@ -178,7 +178,6 @@ def test_fast_runs_exact_plus_the_fast_only_kernels():
     configs.optimization_mode = "fast"
     fast = opt.build_optimization_plan(configs, device=None)
     assert exact.enabled("triattn_exact")
-    assert fast.enabled("cond_dedupe") and fast.enabled("dit_fused")
     assert not exact.enabled("triattn_native") and fast.enabled("triattn_native")
     for name in opt.OPTIMIZATIONS:
         if exact.enabled(name):
@@ -190,10 +189,11 @@ def test_rejected_kernels_run_in_no_mode():
     for mode in opt.AVAILABLE_OPTIMIZATION_MODES:
         configs.optimization_mode = mode
         plan = opt.build_optimization_plan(configs, device=None)
-        assert not plan.enabled("triattn_k2b"), mode
-        if mode != "off":
-            reason = plan.decisions["triattn_k2b"].reason
-            assert reason == f"not part of mode {mode}"
+        for name in ("triattn_k2b", "cond_dedupe", "dit_fused"):
+            assert not plan.enabled(name), (name, mode)
+            if mode != "off":
+                reason = plan.decisions[name].reason
+                assert reason == f"not part of mode {mode}"
 
 
 def test_config_defaults():
